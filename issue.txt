@@ -1,7 +1,7 @@
 # ISA Reconciliation Issues
 
 Date: 2026-03-07
-Scope: `isa.txt.txt`, `/Users/zhoubot/linxisa-v0.3.txt`, and `docs/bringup/check26_contract.yaml`
+Scope: `isa.txt.txt`, `/Users/zhoubot/linxisa-v0.3.txt`, and archived bring-up contract notes
 
 1. Legacy TEPL encoding conflicts with canonical v0.4 TEPL.
    Raw sources:

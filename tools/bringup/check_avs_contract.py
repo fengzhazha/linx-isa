@@ -30,7 +30,7 @@ REQUIRED_TOP_LEVEL_PROFILES = {
 ALLOWED_DOMAINS = {"Compiler", "Emulator", "ISA", "Kernel", "Library", "Regression", "Model"}
 ALLOWED_STATES = {"active", "archived"}
 ALLOWED_TIERS = {"pr", "nightly"}
-FORBIDDEN_TOKENS = ("check26", "-draft/")
+FORBIDDEN_TOKENS = ("-draft/",)
 
 
 def _load_yaml_or_json(path: Path) -> dict[str, Any]:
@@ -150,9 +150,6 @@ def main(argv: list[str]) -> int:
         unknown_tiers = sorted(set(must_pass_tiers) - ALLOWED_TIERS)
         if unknown_tiers:
             raise SystemExit(f"error: {test_id} uses unknown must_pass_in_tier values: {unknown_tiers}")
-
-        if "check26_ids" in test:
-            raise SystemExit(f"error: {test_id} still contains removed field check26_ids")
 
         requirement = str(test.get("requirement", "")).strip()
         pass_fail = str(test.get("pass_fail", "")).strip()
