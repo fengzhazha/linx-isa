@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-SPEC ?= ../../../isa/v0.4/linxisa-v0.4.json
+SPEC ?= ../../../isa/v0.56/linxisa-v0.56.json
 GEN_DIR ?= src/generated
 DOC ?= src/linxisa-isa-manual.adoc
 
@@ -16,9 +16,10 @@ bundle-check:
 	@command -v bundle >/dev/null 2>&1 || (echo "ERROR: bundler not found (expected 'bundle' in PATH)"; exit 1)
 
 gen:
-	@mkdir -p $(GEN_DIR)
+	@mkdir -p $(GEN_DIR)/encodings $(GEN_DIR)/instructions
 	python3 ../../../tools/isa/gen_manual_adoc.py --spec $(SPEC) --out-dir $(GEN_DIR)
-	python3 ../../../tools/isa/gen_instruction_fragments.py --spec $(SPEC) --uop-root ../../../isa/v0.4/uop_classification_v0.4 --out-dir $(GEN_DIR)/instructions --enc-rel-dir ../generated/encodings
+	python3 ../../../tools/isa/gen_encoding_svg.py --spec $(SPEC) --out-dir $(GEN_DIR)/encodings
+	python3 ../../../tools/isa/gen_instruction_fragments.py --spec $(SPEC) --uop-root ../../../isa/v0.56/uop_classification_v0.56 --out-dir $(GEN_DIR)/instructions --enc-rel-dir ../generated/encodings
 	python3 ../../../tools/isa/gen_ssr_adoc.py --spec $(SPEC) --out-dir $(GEN_DIR)
 
 $(BUILD_DIR):

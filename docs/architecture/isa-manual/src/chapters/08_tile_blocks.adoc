@@ -1,13 +1,13 @@
-== Tile / Vector Block Instructions (v0.4)
+== Tile / Vector Block Instructions (v0.56)
 
-This chapter defines the **normative header contracts** for tile/vector/tensor-style block types in the live v0.4
+This chapter defines the **normative header contracts** for tile/vector/tensor-style block types in the live v0.56
 profile.
 
 It complements:
 
 * <<blockisa-forms>> (block forms, coupled vs decoupled vs template),
-* <<memory-operations>> (architectural memory model + ordering), and
-* the opcode catalog notes (e.g. `isa/v0.4/opcodes/lx_32.opc`).
+* <<memory>> (architectural memory model + ordering), and
+* the opcode catalog notes (e.g. `isa/v0.56/opcodes/lx_32.opc`).
 
 Unless stated otherwise:
 
@@ -24,16 +24,18 @@ Tile/vector block headers use the standard descriptor families:
 * `B.DIM`  — dimension/loop counters and/or operand extents
 * `B.ARG`  — layout and per-op argument payload (layout defaults may exist per-op)
 * `B.IOR`  — stride/base/scalar register bindings (memory addressing)
-* `B.IOT` / `B.IOTI` — tile binding and tile size (strict range `512B..4KB`)
-* `B.TEXT` — body pointer for SIMT vector blocks (one-lane body)
+* `B.IOT` — tile binding and tile size (strict range `0B..512KB`)
+* `B.TEXT` — body pointer for SIMT vector blocks (group-granular kernel body)
 
 [[tileblocks-vvec]]
 === SIMT vector blocks (`VPAR`/`VSEQ`, `MPAR`/`MSEQ`)
 
 These blocks execute a SIMT-style body:
 
-* The body specifies **one lane** of computation.
-* The engine repeats it according to loop counters.
+* The body is a **group-granular kernel body**.
+* Each group executes the body under one group PC and one EXEC mask `p`.
+* Divergence inside the body is group-internal and expressed by explicit `p`
+  updates.
 
 Mandatory header descriptors:
 
@@ -46,8 +48,14 @@ Mandatory header descriptors:
 
 Vector body termination:
 
-* The out-of-line SIMT body stream terminates on the first terminator marker encountered.
-* Valid terminators are `BSTOP`/`C.BSTOP` and `BSTART.*`/`C.BSTART.*`.
+* Valid body terminators are `BSTOP`/`C.BSTOP` and `BSTART.*`/`C.BSTART.*`.
+* A terminator ends the current body execution only when control reaches that
+  terminator.
+* An earlier lexical terminator does **not** truncate the body if group-local
+  control flow branches to a later label within the same out-of-line `B.TEXT`
+  body.
+* In-body control-flow targets remain group-internal and MUST stay within the
+  current body region selected by `B.TEXT`.
 
 If a mandatory descriptor is missing, hardware MUST trap with `E_BLOCK(EC_BLOCKFMT)` and report the missing descriptor family in `TRAPARG0` (see System/Privilege trap reporting).
 
@@ -58,14 +66,14 @@ MissingDescFamily numeric IDs (from `TRAPARG0[7:0]`, for quick reference):
 * `2 = B.TEXT`
 * `3 = B.ARG`
 * `4 = B.IOR`
-* `5 = B.IOT/B.IOTI`
+* `5 = B.IOT`
 Other descriptors (tile inputs, register in/out bindings, etc.) are kernel-defined and may be mandatory for specific
 kernels but are not universally required by the ISA.
 
 [[tileblocks-rendering-profile]]
-=== Rendering profile (v0.4 canonical)
+=== Rendering profile (v0.56 canonical)
 
-The first frozen rendering-oriented v0.4 profile uses the following tile conventions:
+The first frozen rendering-oriented v0.56 profile uses the following tile conventions:
 
 * tiles remain general-purpose intermediate-state storage; they are not inherently screen-space tiles,
 * the canonical carrier is a 4KB `1024x1` row-major tile,
@@ -85,7 +93,7 @@ Mandatory header descriptors:
 
 * `B.ARG` is **mandatory** (layout/pad).
 * `B.IOR` is **mandatory** (stride/base).
-* `B.IOT` / `B.IOTI` is **mandatory** (tile binding + tile size).
+* `B.IOT` is **mandatory** (tile binding + tile size).
 
 Missing mandatory descriptors MUST trap with `E_BLOCK(EC_BLOCKFMT)` and report the missing descriptor family in `TRAPARG0` (see System/Privilege trap reporting).
 [[tileblocks-tmov]]
@@ -99,7 +107,7 @@ NOTE (header legality): `B.TEXT` is not meaningful for header-driven engine ops 
 
 Mandatory header descriptors:
 
-* `B.IOT` / `B.IOTI` is **mandatory** (bind source/destination tiles and tile sizes).
+* `B.IOT` is **mandatory** (bind source/destination tiles and tile sizes).
 
 Optional descriptors:
 
@@ -119,7 +127,7 @@ These blocks do not have a SIMT body (`B.TEXT` is not used).
 Mandatory header descriptors:
 
 * `B.DIM` is **mandatory** and specifies `m/n/k` via `LB0/LB1/LB2`.
-* `B.IOT` / `B.IOTI` is **mandatory** (bind operand tiles and sizes).
+* `B.IOT` is **mandatory** (bind operand tiles and sizes).
 * `B.ARG` is **mandatory** (CUBE uses a fixed layout contract for left/right matrices).
 
 ==== `ACCCVT`
@@ -132,5 +140,5 @@ Source operand note:
 Mandatory header descriptors:
 
 * `B.DIM` is **mandatory**.
-* `B.IOT` / `B.IOTI` is **mandatory** (bind destination tile + size).
+* `B.IOT` is **mandatory** (bind destination tile + size).
 * `B.ARG` + `B.IOR` are **mandatory** (quantization arguments and scalar bindings).

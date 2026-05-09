@@ -1,10 +1,10 @@
 # QEMU Opcode Sync Audit
 
-- Generated (UTC): `2026-03-08 10:51:25Z`
+- Generated (UTC): `2026-05-08 15:41:23Z`
 - Result: `qemu_opcode_meta_sync_ok`
 - OK: `true`
-- Decode forms (unique): `541`
-- Meta mnemonics (unique, non-internal): `541`
+- Decode forms (unique): `640`
+- Meta mnemonics (unique, non-internal): `640`
 
 ## Drift Summary
 

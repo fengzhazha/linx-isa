@@ -5,9 +5,9 @@
 [[inst_b_iot]]
 ==== B.IOT
 
-*Syntax:* B.IOT [SrcTile0<.reuse>, SrcTile1<.reuse>],  group=0, ->DstTile<RegSrc>
+*Syntax:* B.IOT <last>, ->DstTile<Size>
 
-*Description:* -
+*Description:* v0.56 no-input immediate-size tile descriptor; function=110 means only the destination allocation is valid.
 
 *Encoding:*
 

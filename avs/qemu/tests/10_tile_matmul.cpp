@@ -2,7 +2,7 @@
 //
 // This suite exercises the builtin-based PTO→LinxISA tile lowering (no inline
 // assembly / no raw-encoding stubs):
-// - BSTART.TMA + B.IOT/B.IOTI: TLOAD/TSTORE
+// - BSTART.TMA + B.IOT: TLOAD/TSTORE
 // - BSTART.CUBE(MAMULB/ACCCVT) + B.DIM + B.IOT: 8x8 i32 matmul in QEMU (TAU emulation)
 
 #include "linx_test.h"
@@ -10,17 +10,11 @@
 #define __LINX_TAU__ 1
 #include <pto/linx/AutoModeKernels.hpp>
 #include <pto/linx/TileOps.hpp>
+#include <common/runtime/kernel_api.hpp>
 
 #ifndef PTO_QEMU_SMOKE
 #define PTO_QEMU_SMOKE 0
 #endif
-
-extern "C" void tload_store_i32(int *src, int *dst);
-extern "C" void mamulb_i32(int *lhs, int *rhs, int *dst);
-extern "C" void tmatmul_acc_i32(int *lhs, int *rhs, int *acc_dst);
-extern "C" void gemm_i32(int *lhs, int *rhs, int *dst);
-extern "C" void flash_attention_i32(int *query, int *key, int *value, int *dst);
-extern "C" void flash_attention_masked_f32(float *out_ptr, float *q_ptr, float *k_ptr, float *v_ptr);
 
 static constexpr unsigned kTileElemsI32 = pto::linx::auto_mode::kTileElemsI32;
 static constexpr unsigned kTileSizeCode = pto::linx::auto_mode::kFullTileSizeCode;
@@ -202,7 +196,7 @@ static void run_base_tile_tests()
     auto tA_acc = pto::linx::tload<kTileSizeCode>(A);
     auto tB_acc = pto::linx::tload<kTileSizeCode>(B);
 
-    // v0.3 bring-up: the implicit accumulator is seeded by a preceding MAMULB.
+    // v0.56 bring-up: the implicit accumulator is seeded by a preceding MAMULB.
     // The ACC operand of tmatmul_acc is currently a SSA dependency carrier.
     auto tSeed = pto::linx::mamulb<8, 8, 8>(tA_acc, tB_acc);
     auto tOut = pto::linx::tmatmul_acc<8, 8, 8>(tSeed, tA_acc, tB_acc);
@@ -412,42 +406,43 @@ static void run_pto_example_kernel_tests()
 
     test_start(0x000A0006);
     uart_puts("PTO kernel tload_store digest ... ");
-    tload_store_i32(VEC_SRC, VEC_DST);
+    pto::kernels::pto_tload_store(VEC_DST, VEC_SRC, nullptr);
     TEST_EQ64(fnv1a_bytes(VEC_DST, sizeof(VEC_DST)), kDigestTloadStore, 0x000A6001u);
     test_pass();
 
     test_start(0x000A0007);
     uart_puts("PTO kernel mamulb digest ... ");
     zero_i32(MAT_C, kMatElems);
-    mamulb_i32(MAT_A, MAT_B, MAT_C);
+    pto::kernels::pto_mamulb(MAT_C, MAT_A, MAT_B, nullptr);
     TEST_EQ64(fnv1a_bytes(MAT_C, sizeof(MAT_C)), kDigestMamulb, 0x000A7001u);
     test_pass();
 
     test_start(0x000A0008);
     uart_puts("PTO kernel tmatmul_acc digest ... ");
     zero_i32(MAT_C, kMatElems);
-    tmatmul_acc_i32(MAT_A, MAT_B, MAT_C);
+    pto::kernels::pto_tmatmul_acc(MAT_C, MAT_A, MAT_B, nullptr);
     TEST_EQ64(fnv1a_bytes(MAT_C, sizeof(MAT_C)), kDigestTmatmulAcc, 0x000A8001u);
     test_pass();
 
     test_start(0x000A0009);
     uart_puts("PTO kernel gemm digest ... ");
     zero_i32(MAT_C, kMatElems);
-    gemm_i32(MAT_A, MAT_B, MAT_C);
+    pto::kernels::pto_gemm(MAT_C, MAT_A, MAT_B, nullptr);
     TEST_EQ64(fnv1a_bytes(MAT_C, sizeof(MAT_C)), kDigestGemm, 0x000A9001u);
     test_pass();
 
     test_start(0x000A000A);
     uart_puts("PTO kernel flash_attention digest ... ");
     zero_i32(FLASH_O, kFlashI32O);
-    flash_attention_i32(FLASH_Q, FLASH_K, FLASH_V, FLASH_O);
+    pto::kernels::pto_flash_attention(FLASH_O, FLASH_Q, FLASH_K, FLASH_V, nullptr);
     TEST_EQ64(fnv1a_bytes(FLASH_O, sizeof(FLASH_O)), kDigestFlash, 0x000AA001u);
     test_pass();
 
     test_start(0x000A0012);
     uart_puts("PTO kernel flash_attention_masked digest ... ");
     zero_f32(FLASH_M_O, kFlashMaskO);
-    flash_attention_masked_f32(FLASH_M_O, FLASH_M_Q, FLASH_M_K, FLASH_M_V);
+    pto::kernels::pto_flash_attention_masked(FLASH_M_O, FLASH_M_Q, FLASH_M_K,
+                                             FLASH_M_V, nullptr);
     TEST_EQ64(fnv1a_bytes(FLASH_M_O, sizeof(FLASH_M_O)), kDigestFlashMasked, 0x000A1201u);
     test_pass();
 }
@@ -562,7 +557,7 @@ static void run_tma_layout_and_padding_tests()
 static void run_tso_store_store_order_smoke()
 {
     /*
-     * Strict v0.3 contract requires one architectural TSO ordering domain for
+     * Strict v0.56 contract requires one architectural TSO ordering domain for
      * scalar (BCC) and tile-memory (TMA/MTC) channels. This is a bring-up smoke
      * test that the observable store order is preserved across one scalar store
      * followed by one TSTORE.

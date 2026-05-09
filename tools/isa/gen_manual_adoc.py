@@ -20,6 +20,7 @@ import argparse
 import json
 import os
 import re
+import sys
 import tempfile
 from collections import Counter, OrderedDict
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -1221,41 +1222,17 @@ def _infer_operation_pseudocode(group: str, mnemonic: str, asm_forms: List[str],
 
 
 def _write_registers_reg5(spec: Dict[str, Any], out_path: str, source_comment: str) -> None:
-    regs = spec.get("registers", {}).get("reg5", {})
-    entries: List[Dict[str, Any]] = list(regs.get("entries", []))
+    """Delegate to the dedicated registers generator subprocess."""
+    import subprocess
 
-    lines: List[str] = []
-    lines.append("// Generated file; do not edit by hand.")
-    lines.append(source_comment)
-    gen_on = str(spec.get("generated_on") or "").strip()
-    if gen_on:
-        lines.append(f"// Catalog generated_on: {gen_on}")
-    lines.append("")
-    lines.append('[cols="1,1,2,4",options="header"]')
-    lines.append("|===")
-    lines.append("|Code |Draft name |Preferred asm |Accepted spellings")
-
-    for e in sorted(entries, key=lambda x: int(x.get("code", 0))):
-        code = int(e.get("code", 0))
-        name = str(e.get("name", "")).strip()
-        asm = str(e.get("asm", "")).strip()
-        aliases = e.get("aliases") or []
-        if isinstance(aliases, list):
-            aliases_s = ", ".join(str(a) for a in aliases)
-        else:
-            aliases_s = str(aliases)
-
-        lines.append(f"|{code}")
-        lines.append(f"|`{_escape_table_cell(name)}`" if name else "|-")
-        lines.append(f"|`{_escape_table_cell(asm)}`" if asm else "|-")
-        lines.append(f"|{_escape_table_cell(aliases_s)}" if aliases_s else "|-")
-
-    lines.append("|===")
-    lines.append("")
-
-    _mkdirp(os.path.dirname(out_path))
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+    script = os.path.join(os.path.dirname(__file__), "gen_registers_reg5.py")
+    result = subprocess.run(
+        [sys.executable, script, "--out-dir", os.path.dirname(out_path)],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr)
+        raise SystemExit(result.returncode)
 
 
 def _write_instruction_group_summary(groups: "OrderedDict[str, List[Dict[str, Any]]]", out_path: str) -> None:
@@ -1268,16 +1245,15 @@ def _write_instruction_group_summary(groups: "OrderedDict[str, List[Dict[str, An
     lines.append('[cols="3,1,1",options="header"]')
     lines.append("|===")
     lines.append("|Group |Forms |Unique mnemonics")
-
     for group, insts in groups.items():
-        forms = len(insts)
-        uniq = len({str(i.get("mnemonic", "")).strip() for i in insts})
-        lines.append(f"|{_escape_table_cell(group)} |{forms} |{uniq}")
-
+        mnemonics = {
+            str(inst.get("mnemonic", "")).strip()
+            for inst in insts
+            if str(inst.get("mnemonic", "")).strip()
+        }
+        lines.append(f"|{group} |{len(insts)} |{len(mnemonics)}")
     lines.append("|===")
     lines.append("")
-
-    _mkdirp(os.path.dirname(out_path))
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
@@ -1522,9 +1498,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--profile",
-        choices=["v0.3", "v0.4"],
-        default="v0.4",
-        help="ISA profile for default --spec path (v0.4 is canonical)",
+        choices=["v0.56"],
+        default="v0.56",
+        help="ISA profile for default --spec path (v0.56 is canonical)",
     )
     ap.add_argument("--spec", default=None, help="Path to ISA catalog JSON")
     ap.add_argument(
@@ -1540,7 +1516,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--check", action="store_true", help="Fail if outputs are not up-to-date")
     args = ap.parse_args(argv)
 
-    spec_path = args.spec or "isa/v0.4/linxisa-v0.4.json"
+    spec_path = args.spec or "isa/v0.56/linxisa-v0.56.json"
     spec = _read_json(spec_path)
     spec_version = str(spec.get("version") or "").strip() or "?"
     golden_hint = f"isa/v{spec_version}/" if spec_version != "?" else "isa/v*/"
