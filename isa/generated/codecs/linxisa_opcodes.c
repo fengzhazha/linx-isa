@@ -6709,4 +6709,3 @@ const linxisa_inst_form linxisa_inst_forms[] = {
   { .id = "xorw_32_32282566e32d", .mnemonic = "XORW", .asm_fmt = "xorw SrcL, SrcR<{.sw,.uw,.not}><<<shamt>, ->{t, u, Rd}", .length_bits = 32, .mask = 0x000000000000707fULL, .match = 0x0000000000004025ULL, .field_start = 2606, .field_count = 5 },
 };
 const size_t linxisa_inst_forms_count = 740;
-
