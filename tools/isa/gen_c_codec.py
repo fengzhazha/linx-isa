@@ -299,7 +299,6 @@ def _emit_tables(spec: Dict[str, Any], spec_label: str) -> Tuple[str, str]:
         )
     c_lines.append("};")
     c_lines.append(f"const size_t linxisa_inst_forms_count = {len(forms)};")
-    c_lines.append("")
 
     return h + "\n", "\n".join(c_lines) + "\n"
 
