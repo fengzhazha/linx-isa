@@ -7,12 +7,11 @@ This folder tracks the LLVM/Clang toolchain bring-up for **LinxISA** (Linx Instr
 
 ## Targets / triples
 
-- `-target linx64-linx-none-elf` (LP64-style datalayout)
-- `-target linx32-linx-none-elf` (ILP32-style datalayout)
+- Active baremetal target on this Bisheng compiler branch: `-target linx64-linx-none-elf` (LP64-style datalayout)
+- The checked-in compiler currently registers the LLVM arch names `linx64` and `linx64be`.
+- Historical bring-up material may still mention `linx32-linx-none-elf`, but that triple is not registered by the current branch and is not part of the active AVS closure.
 
-The LLVM arch names are `linx64` and `linx32` (e.g. `linx64-linx-none-elf`).
-
-## Build (llvm-project)
+## Build (in-repo compiler/llvm)
 
 This repo expects an LLVM build configured with:
 
@@ -20,14 +19,14 @@ This repo expects an LLVM build configured with:
 - `LLVM_EXPERIMENTAL_TARGETS_TO_BUILD=LinxISA`
 - `LLVM_TARGETS_TO_BUILD=AArch64` (host convenience; can be broader)
 
-Example build dir used in this workspace:
+Example build dir:
 
-- `~/llvm-project/build-linxisa-clang`
+- `compiler/llvm/build-linxisa-clang`
 
 Build:
 
 ```bash
-cmake --build ~/llvm-project/build-linxisa-clang --target clang llc llvm-objdump llvm-objcopy llvm-readobj -j 12
+cmake --build compiler/llvm/build-linxisa-clang --target clang llc llvm-objdump llvm-objcopy llvm-readobj -j 12
 ```
 
 ## What codegen emits (Block ISA + ClockHands)
@@ -81,14 +80,10 @@ The compile tests live in `avs/compiler/linx-llvm/tests` and generate:
 Run (linx64):
 
 ```bash
-CLANG=~/llvm-project/build-linxisa-clang/bin/clang ./avs/compiler/linx-llvm/tests/run.sh
+CLANG=compiler/llvm/build-linxisa-clang/bin/clang ./avs/compiler/linx-llvm/tests/run.sh
 ```
 
-Run (linx32):
-
-```bash
-CLANG=~/llvm-project/build-linxisa-clang/bin/clang TARGET=linx32-linx-none-elf OUT_DIR=./avs/compiler/linx-llvm/tests/out-linx32 ./avs/compiler/linx-llvm/tests/run.sh
-```
+The AVS runner now validates the requested target up front and errors out immediately if the compiler does not register it.
 
 ## Known limitations (current bring-up)
 
