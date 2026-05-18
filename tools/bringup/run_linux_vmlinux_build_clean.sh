@@ -9,6 +9,7 @@ GMAKE_BIN="${GMAKE_BIN:-}"
 HOSTCC="${HOSTCC:-/usr/bin/clang}"
 HOSTCXX="${HOSTCXX:-/usr/bin/clang++}"
 TARGET="${TARGET:-vmlinux}"
+KALLSYMS_EXTRA_PASS="${KALLSYMS_EXTRA_PASS:-128}"
 
 usage() {
   cat <<'USAGE'
@@ -139,5 +140,6 @@ env "PATH=$(dirname "$CLANG_BIN"):$PATH" \
   "CC=$CLANG_BIN --target=linx64-unknown-linux-gnu -fintegrated-as" \
   "HOSTCC=$HOSTCC" \
   "HOSTCXX=$HOSTCXX" \
+  "KALLSYMS_EXTRA_PASS=$KALLSYMS_EXTRA_PASS" \
   "O=$OUT_DIR" \
   "$TARGET"

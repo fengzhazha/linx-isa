@@ -42,7 +42,7 @@ checklists for the module-specific closure criteria.
 | SIMT autovec | `Regression::TSVC strict coverage gate` / `INT-025` | PR not blocked | PR closure uses compile-only strict coverage at `148/151`; QEMU runtime remains a separate nightly/runtime follow-up. |
 | QEMU baseline | `Emulator::QEMU all suites` + `QEMU strict system` | Not blocked | Baseline runtime/system gates are green; the remaining QEMU issue for this lane is TSVC runtime reproduction, not broad decode expansion. |
 | Superproject breadth | `ISA::AVS tier closure` / `INT-016` | PR not blocked | PR-tier closure is green at `31/31`; nightly breadth remains `32/54`. |
-| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-003` | Nightly/runtime blocker | The PR run leaves this row opt-in; known follow-up remains 9p `E_BLOCK` in `___slab_alloc` and initramfs child-startup failure. |
+| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-003` | Nightly/runtime blocker | The PR run leaves this row opt-in. Current 2026-05-17 non-canonical evidence is split: static `999.specrand_ir` now reaches the same late kernel task-creation stall as smoke bring-up, while dynamic `531.deepsjeng_r` is still blocked earlier because `phase-c` hosted musl packaging has no `libc.so`. |
 
 ## 1. Keep Gate Truth Current
 
