@@ -94,7 +94,6 @@ linx-isa/
 | Submodule | Repository | Purpose |
 |-----------|------------|---------|
 | `compiler/llvm` | [LinxISA/llvm-project](https://github.com/LinxISA/llvm-project) | LLVM-based compiler for Linx |
-| `compiler/ptoas` | [LinxISA/ptoas](https://github.com/LinxISA/ptoas) | PTO assembler and PTO-to-Linx lowering toolchain |
 | `emulator/qemu` | [LinxISA/qemu](https://github.com/LinxISA/qemu) | QEMU-based emulator |
 | `kernel/linux` | [LinxISA/linux](https://github.com/LinxISA/linux) | Linux kernel port |
 | `rtl/LinxCore` | [LinxISA/LinxCore](https://github.com/LinxISA/LinxCore) | RTL implementation |
@@ -102,7 +101,6 @@ linx-isa/
 | `lib/glibc` | [LinxISA/glibc](https://github.com/LinxISA/glibc) | GNU C Library port |
 | `lib/musl` | [LinxISA/musl](https://github.com/LinxISA/musl) | musl libc port |
 | `workloads/pto_kernels` | [LinxISA/PTO-Kernel](https://github.com/LinxISA/PTO-Kernel) | PTO accelerator kernels |
-| `skills/linx-skills` | [LinxISA/linx-skills](https://github.com/LinxISA/linx-skills) | Canonical LinxISA Codex skills |
 
 ### Updating Submodules
 
@@ -112,7 +110,7 @@ git submodule sync --recursive
 git submodule update --init --recursive
 
 # Pull latest from upstream
-git submodule update --remote compiler/llvm compiler/ptoas emulator/qemu kernel/linux rtl/LinxCore tools/pyCircuit lib/glibc lib/musl workloads/pto_kernels skills/linx-skills
+git submodule update --remote compiler/llvm emulator/qemu kernel/linux rtl/LinxCore tools/pyCircuit lib/glibc lib/musl workloads/pto_kernels
 
 # Verify layout
 bash tools/ci/check_repo_layout.sh
