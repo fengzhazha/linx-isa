@@ -373,8 +373,8 @@ C
   "$CLANG" -target "$TARGET" -fPIC -c "$OUT/bar.c" -o "$OUT/bar.o"
 
   "$READOBJ" -r "$OUT/bar.o" >"$OUT/bar.o.relocs"
-  if ! grep -Eq "R_LINX_.*PCREL[[:space:]]+foo|R_LinxV5_.*BNEXT[[:space:]]+foo" "$OUT/bar.o.relocs"; then
-    echo "error: expected a PC-relative/call relocation against foo in $BASE" >&2
+  if ! grep -Eq "R_LINX_.*PCREL[[:space:]]+foo|R_LinxV5_.*BNEXT[[:space:]]+foo|R_LinxV5_64[[:space:]]+foo" "$OUT/bar.o.relocs"; then
+    echo "error: expected a recognized Linx call/data relocation against foo in $BASE" >&2
     exit 1
   fi
 

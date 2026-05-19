@@ -68,7 +68,7 @@
 
 - [x] ID: QEMU-006 QEMU can boot full Linux with complete runtime APIs.
   Done means: Linux kernel boots with timer interrupts working, full syscalls available.
-  Status: ✅ PASS (2026-02-25) - full-OS closure gate is green in run `2026-02-25-r2-pin-lanefix` (`strict_cross_repo.sh` pass and BusyBox rootfs boot pass evidence in `kernel_busybox_rootfs.log`).
+  Status: ✅ PASS (2026-02-25) - full-OS closure gate is green in run `2026-02-25-r2-pin-lanefix` (`strict_cross_repo.sh` pass and BusyBox rootfs boot pass evidence in `kernel_busybox_rootfs.log`). Note for current recovery work: the merged Linx64 recovery lane now expects direct kernel/rootfs boot to run firmwareless (`-bios none`), so local rootfs/SPEC reruns should preserve that QEMU invocation policy.
 
 - [x] ID: QEMU-007 Build pinned `qemu-system-linx64` after v0.56 decode/translate propagation.
   Command: `ninja -C emulator/qemu/build qemu-system-linx64`

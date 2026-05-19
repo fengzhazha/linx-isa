@@ -17,7 +17,8 @@
   Status: ❌ NIGHTLY/RUNTIME BLOCKER (2026-05-17) - non-canonical local reruns now split the blocker precisely:
   - `999.specrand_ir` over `9p` reaches the QEMU workload path with `guest_shared_runtime=false` and then stalls at the same late kernel task-creation boundary seen in initramfs smoke (`...abcdefghijklZ` in `workloads/spec2017/tmp/linx-qemu-results-smoke/999_specrand_ir/run_001/qemu.log`).
   - `531.deepsjeng_r` is blocked earlier because it requires `/lib/ld-musl-linx64.so.1` + `libc.so`, and the current `phase-c` sysroot still lacks `libc.so`.
-  - full Stage-A closure therefore remains blocked on both hosted shared-musl packaging and the late kernel userspace-launch path.
+  - the merged Linx64 QEMU recovery lane also expects firmwareless boot (`-bios none`) for direct-kernel runs; older local `...biosnone...` artifacts already reflect that lane, and current reruns should preserve that policy.
+  - full Stage-A closure therefore remains blocked on both hosted shared-musl packaging and the same late Linux userspace/rootfs runtime path.
 
 - [ ] ID: SPEC-004 Stage A matrix summary artifacts are written.
   Artifacts:
