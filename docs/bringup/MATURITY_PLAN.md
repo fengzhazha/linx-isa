@@ -1,14 +1,16 @@
 # LinxISA Maturity Plan (Tier-1 Track vs ARM/x86)
 
-Last updated: 2026-04-25
+Last updated: 2026-05-17
 
 ## Baseline
 
 - Latest canonical run: `2026-04-18-r9-pin-linuxlibc-refresh`
 - Latest canonical report generation: `2026-04-18 02:11:34Z`
 - Canonical report: `docs/bringup/gates/latest.json`
+- Latest diagnostic strict rerun: `2026-04-17-r7-pin-recovery` (non-canonical; BusyBox rootfs skipped to expose downstream blockers in `docs/bringup/gates/logs/2026-04-17-r7-pin-recovery/pin/reg_strict_cross_repo.log`)
 - The checked-in canonical report now includes the April 18 pin-lane recovery evidence. It clears the stale March false blockers for AVS PR-tier closure, model-diff, LinxCore/Testbench/Trace/pyCircuit leaf PR gates, glibc runtime, musl runtime, PTO parity, and TSVC compile-only PR coverage.
 - Active governance phase remains `G0`; `docs/bringup/agent_runs/waivers.yaml` contains no waivers.
+- Latest non-canonical Linux smoke diagnostic: 2026-05-17 local bring-up iterations move well past DT, percpu, log-buffer, proc/ns/pidfs pseudo-fs setup, and the pre-`rest_init()` late-init lane. The live boundary is now the first task-creation handoff after `rest_init()`, specifically `user_mode_thread()` / `kernel_clone()` / `copy_process()` on the Linx tiny-RCU configuration.
 
 ## Gap Snapshot
 
@@ -16,11 +18,55 @@ Last updated: 2026-04-25
 - The current recovery work is now narrowed to Linux/userspace runtime closure:
   - Linux BusyBox rootfs still fails after `/sbin/init` even with a clean pinned QEMU build and clean rootfs build helper,
   - `strict_cross_repo.sh` remains red only because the required BusyBox rootfs row is red in the latest canonical run,
-  - canonical runtime evidence is otherwise refreshed through `2026-04-18-r9-pin-linuxlibc-refresh`.
+  - canonical runtime evidence is otherwise refreshed through `2026-04-18-r9-pin-linuxlibc-refresh`,
+  - the latest diagnostic rerun with BusyBox skipped reaches TSVC and then times out after 240 seconds on `tsvc.auto.elf`, so TSVC QEMU runtime is the next blocker after BusyBox rather than an already-cleared lane.
+- Separate non-canonical kernel smoke bring-up work is no longer blocked in DT parsing or pseudo-filesystem bootstrap:
+  - read-only DT import, memory discovery, percpu setup, and late pseudo-fs smoke bypasses now complete,
+  - the current local smoke trace reaches `...abcdefghijklZ` and then stalls before userspace launch,
+  - rebuilt-image disassembly shows the active next lane is task creation from `rest_init()` into `user_mode_thread()` / `kernel_clone()`, not the earlier RCU tiny-helper callsite and not DT/procfs/nsfs/pidfs bring-up.
 - Hosted workload hardening is now split cleanly by tier:
   - PR lane: benchmark/polybench/portfolio/ctuning artifact publication, PTO parity, and TSVC compile-only strict coverage are green.
-  - Nightly/runtime lane: SPEC Stage A and TSVC QEMU runtime remain blocked or opt-in.
+  - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 Stage A, not a checked-in SPEC CPU2006 corpus. A new 2026-05-17 non-canonical rerun shows static-only `999.specrand_ir` now reaches the same late kernel task-creation stall as initramfs smoke, while dynamic `531.deepsjeng_r` remains blocked earlier because `phase-c` shared musl packaging is still missing `libc.so` (`m3_notext_probe_signature=ld.lld: error: relocation R_LinxV5_64_BNEXT cannot be used against symbol 'malloc'; recompile with -fPIC`). TSVC QEMU runtime still fails in the latest diagnostic rerun.
 - Remaining superproject work: BusyBox rootfs Linux runtime, SPEC Stage A over 9p/initramfs, TSVC runtime, AVS nightly breadth, QEMU decode coverage, ABI/unwind/TLS hardening, privileged/MMU/debug scope, and SIMT/compiler maturity.
+
+## Closure Lanes
+
+### Scalar
+
+Status: Active first-closure lane
+
+- Priority:
+  - generic C without explicit SIMT autovec or tile intrinsic source
+  - scalar ABI/runtime/toolchain closure
+  - direct returning call headers written as fused `BSTART ... , ra=...`
+- Required cross-stack evidence:
+  - compiler AVS compile suite + 100% active mnemonic coverage
+  - scalar runtime startup asm on fused direct call headers
+  - QEMU scalar call/ret contract runtime gate
+- Explicit non-goals for this lane:
+  - proving fused handwritten `ICALL ra=` source syntax before the current
+    parser/MC gap is closed
+  - proving grouped SIMT or tile lowering maturity
+
+### SIMT
+
+Status: Partial / staged after scalar
+
+- Priority:
+  - keep the documented SIMT subset explicit and verified
+  - expand grouped-lane/runtime closure only inside the frozen subset boundary
+- Canonical plans:
+  - `docs/bringup/SIMT_COMPILER_SUPPORTED_SUBSET.md`
+  - `docs/bringup/SIMT_COMPILER_MATURITY_PLAN.md`
+
+### Tile
+
+Status: Partial / staged after scalar
+
+- Priority:
+  - keep tile/TEPL encoding and asm/manual sync green
+  - expand decode/runtime semantics without conflating that work with scalar
+    closure
 
 ## Immediate Recovery Lane (March-April 2026)
 
@@ -30,9 +76,10 @@ Status: Active
 2. Close the remaining kernel/userspace runtime blocker:
    - fix the BusyBox rootfs runtime regression (current signal: kernel `E_BLOCK` after `/sbin/init`; the same failure reproduces against a clean pinned QEMU build and currently lands in `__submit_bio` on `FRET.STK` with `ra=0`, while a clean-worktree `switch_to` EBARG rollback only stabilizes verbose boot),
    - refresh the canonical convergence report after BusyBox rootfs passes so `Regression::strict_cross_repo.sh` can turn green without a waiver.
+   - keep the local initramfs smoke diagnostic distinct from canonical BusyBox closure: the present smoke-only blocker is the first task-creation handoff after `rest_init()`, with the tiny-RCU state flip already inlined on Linx and the next live investigation target narrowed to `kernel_clone()` / `copy_process()`.
 3. Re-run the runtime-heavy workload lanes that still block nightly closure:
-   - re-run SPEC Stage A QEMU matrix,
-   - re-run the TSVC strict QEMU gate,
+   - re-run the CPU2017 Stage A QEMU matrix once the shared-musl hosted lane is restored for dynamic benches and the kernel task-creation stall is cleared for static benches,
+   - re-run the TSVC strict QEMU gate (the latest diagnostic rerun reaches this lane only when BusyBox is skipped and then times out after 240 seconds on `tsvc.auto.elf`),
    - reclassify the next Linux/userspace runtime fault after each fix.
 4. Resume nightly AVS breadth work on decode/block edge cases, atomics, FP, vector runtime, and Linux workload launch semantics.
 
@@ -49,7 +96,7 @@ Status: In progress
 - Remaining for M1:
   - `LINUX-004`,
   - `INT-004` through the BusyBox-dependent strict closure row,
-  - nightly/runtime follow-up for SPEC Stage A, TSVC runtime, and AVS nightly breadth.
+  - nightly/runtime follow-up for the CPU2017 Stage A workload lane, TSVC runtime, and AVS nightly breadth.
 
 ### M2 (3-6 weeks): AVS core coverage expansion
 
@@ -82,7 +129,7 @@ Status: Started (coverage reporting landed; PR-lane compatibility wrapper restor
 
 Status: Planned (PR compile/artifact lanes green; runtime execution lanes still open)
 
-- Close `SPEC-001..SPEC-007` in `docs/bringup/agent_runs/checklists/specint_qemu.md`.
+- Close `SPEC-001..SPEC-007` in `docs/bringup/agent_runs/checklists/specint_qemu.md`; treat the absence of a checked-in SPEC CPU2006 corpus as a separate asset/precondition issue, not as proof that the current CPU2017 Stage A runtime lane is closed.
 - Keep the canonical workload report current; PTO parity is reflected as green in `2026-04-18-r9-pin-linuxlibc-refresh`.
 - Keep 9p/virtfs compatibility (`LINUX-003`) as hard prerequisite for SPEC lane.
 - Evolve C++ runtime policy beyond current no-EH/no-RTTI baseline once dual-lane evidence is stable.

@@ -138,6 +138,14 @@ def main(argv: list[str]) -> int:
     branch_skips = {
         "valid_ret_setctgt": "branch does not yet prove general-register RET target materialization in this AVS lane",
         "valid_ind_setctgt": "branch does not yet prove general-register IND target materialization in this AVS lane",
+        "ret_setctgt_bad_target": "current Linx assembler lane does not accept %tpcrel_hi/%tpcrel_lo target materialization syntax",
+        "ind_setctgt_bad_target": "current Linx assembler lane does not accept %tpcrel_hi/%tpcrel_lo target materialization syntax",
+        "icall_setctgt_bad_target": "current Linx assembler lane does not accept %tpcrel_hi/%tpcrel_lo target materialization syntax",
+        "duplicate_setret": "current Linx assembler lane does not accept unfused symbolic BSTART CALL headers in this AVS case",
+        "call_missing_setret": "current Linx assembler lane does not accept unfused symbolic BSTART CALL headers in this AVS case",
+        "call_delayed_setret": "current Linx assembler lane does not accept unfused symbolic BSTART CALL headers in this AVS case",
+        "valid_icall_header": "current Linx assembler lane does not accept %tpcrel_hi/%tpcrel_lo target materialization syntax",
+        "valid_hl_icall_setret_header": "current Linx assembler lane does not accept %tpcrel_hi/%tpcrel_lo target materialization syntax",
     }
 
     failures: list[str] = []

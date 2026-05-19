@@ -55,3 +55,8 @@
 	path = tools/LinxCoreModel
 	url = https://github.com/LinxISA/LinxCoreModel.git
 	branch = main
+[submodule "compiler/ptoas"]
+	path = compiler/ptoas
+	url = https://github.com/LinxISA/ptoas.git
+	branch = main
+	update = checkout

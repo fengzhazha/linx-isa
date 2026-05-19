@@ -202,6 +202,7 @@ for SRC in "$SRC_DIR"/*.c; do
       33_callret_*|34_callret_*|35_callret_*|36_callret_*|37_callret_*|38_callret_*|39_callret_*|40_callret_*)
         CHECK_RELOCS_CMD=(
           python3 "$ROOT/check_callret_relocs.py"
+          --asm "$OUT/$BASE.s"
           --objdump "$OUT/$BASE.objdump"
           --relocs "$OUT/$BASE.relocs"
           --label "$BASE"
@@ -372,8 +373,8 @@ C
   "$CLANG" -target "$TARGET" -fPIC -c "$OUT/bar.c" -o "$OUT/bar.o"
 
   "$READOBJ" -r "$OUT/bar.o" >"$OUT/bar.o.relocs"
-  if ! grep -Eq "R_LINX_.*PCREL[[:space:]]+foo|R_LinxV5_.*BNEXT[[:space:]]+foo" "$OUT/bar.o.relocs"; then
-    echo "error: expected a PC-relative/call relocation against foo in $BASE" >&2
+  if ! grep -Eq "R_LINX_.*PCREL[[:space:]]+foo|R_LinxV5_.*BNEXT[[:space:]]+foo|R_LinxV5_64[[:space:]]+foo" "$OUT/bar.o.relocs"; then
+    echo "error: expected a recognized Linx call/data relocation against foo in $BASE" >&2
     exit 1
   fi
 

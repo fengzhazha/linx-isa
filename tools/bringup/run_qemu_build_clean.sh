@@ -112,7 +112,8 @@ if [[ "$need_configure" == "1" ]]; then
   mkdir -p "$OUT_DIR"
   (
     cd "$OUT_DIR"
-    "$WORKTREE_DIR/configure" \
+    LINX_MODEL_INCLUDE="$ROOT/tools/model/include" \
+      "$WORKTREE_DIR/configure" \
       --target-list=linx64-softmmu \
       --enable-plugins \
       --disable-docs \
