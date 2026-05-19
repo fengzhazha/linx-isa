@@ -1,0 +1,64 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "attr": "W",
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "attr": "Opc1",
+        "type": 10
+    },
+    {
+        "name": "simm[41:17]",
+        "bits": 25,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "attr": "W",
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "attr": "Opc1",
+        "type": 10
+    },
+    {
+        "name": "simm[16:12]",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "attr": "Func",
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm[11:0]",
+        "bits": 12,
+        "type": 7
+    }
+]

@@ -1,0 +1,146 @@
+[
+    {
+        "####": "SB.PCR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "simm17[16:12]",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm17[11:0]",
+        "bits": 12,
+        "type": 7
+    },
+    {
+        "####": "SH.PCR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "simm17[16:12]",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm17[11:0]",
+        "bits": 12,
+        "type": 7
+    },
+    {
+        "####": "SW.PCR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "simm17[16:12]",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm17[11:0]",
+        "bits": 12,
+        "type": 7
+    },
+    {
+        "####": "SD.PCR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "simm17[16:12]",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm17[11:0]",
+        "bits": 12,
+        "type": 7
+    }
+]

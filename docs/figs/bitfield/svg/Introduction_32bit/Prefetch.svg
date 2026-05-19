@@ -1,1 +1,958 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120"><rect width="640" height="120" fill="#0f172a"/><text x="20" y="70" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="20">Placeholder imported asset</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <g transform="translate(0.5,0.5)" text-anchor="middle" font-size="14" font-family="sans-serif" font-weight="normal">
+    <g transform="translate(4,341)">
+      <g stroke="black" stroke-width="1" stroke-linecap="round">
+        <line x2="631"/>
+        <line y2="55"/>
+        <line x2="631" y1="55" y2="55"/>
+        <line x1="631" x2="631" y2="55"/>
+        <line x1="609" x2="609" y2="6"/>
+        <line x1="609" x2="609" y1="55" y2="49"/>
+        <line x1="587" x2="587" y2="6"/>
+        <line x1="587" x2="587" y1="55" y2="49"/>
+        <line x1="566" x2="566" y2="6"/>
+        <line x1="566" x2="566" y1="55" y2="49"/>
+        <line x1="544" x2="544" y2="55"/>
+        <line x1="522" x2="522" y2="55"/>
+        <line x1="500" x2="500" y2="6"/>
+        <line x1="500" x2="500" y1="55" y2="49"/>
+        <line x1="479" x2="479" y2="55"/>
+        <line x1="457" x2="457" y2="6"/>
+        <line x1="457" x2="457" y1="55" y2="49"/>
+        <line x1="435" x2="435" y2="6"/>
+        <line x1="435" x2="435" y1="55" y2="49"/>
+        <line x1="413" x2="413" y2="6"/>
+        <line x1="413" x2="413" y1="55" y2="49"/>
+        <line x1="392" x2="392" y2="55"/>
+        <line x1="370" x2="370" y2="6"/>
+        <line x1="370" x2="370" y1="55" y2="49"/>
+        <line x1="348" x2="348" y2="6"/>
+        <line x1="348" x2="348" y1="55" y2="49"/>
+        <line x1="326" x2="326" y2="6"/>
+        <line x1="326" x2="326" y1="55" y2="49"/>
+        <line x1="305" x2="305" y2="6"/>
+        <line x1="305" x2="305" y1="55" y2="49"/>
+        <line x1="283" x2="283" y2="55"/>
+        <line x1="261" x2="261" y2="6"/>
+        <line x1="261" x2="261" y1="55" y2="49"/>
+        <line x1="239" x2="239" y2="6"/>
+        <line x1="239" x2="239" y1="55" y2="49"/>
+        <line x1="218" x2="218" y2="55"/>
+        <line x1="196" x2="196" y2="6"/>
+        <line x1="196" x2="196" y1="55" y2="49"/>
+        <line x1="174" x2="174" y2="6"/>
+        <line x1="174" x2="174" y1="55" y2="49"/>
+        <line x1="152" x2="152" y2="6"/>
+        <line x1="152" x2="152" y1="55" y2="49"/>
+        <line x1="131" x2="131" y2="6"/>
+        <line x1="131" x2="131" y1="55" y2="49"/>
+        <line x1="109" x2="109" y2="55"/>
+        <line x1="87" x2="87" y2="6"/>
+        <line x1="87" x2="87" y1="55" y2="49"/>
+        <line x1="65" x2="65" y2="6"/>
+        <line x1="65" x2="65" y1="55" y2="49"/>
+        <line x1="44" x2="44" y2="6"/>
+        <line x1="44" x2="44" y1="55" y2="49"/>
+        <line x1="22" x2="22" y2="6"/>
+        <line x1="22" x2="22" y1="55" y2="49"/>
+      </g>
+      <g>
+        <g>
+          <rect x="544" width="87" height="55" field="0" style="fill-opacity:0.1"/>
+          <rect x="522" width="22" height="55" field="1" style="fill-opacity:0.1"/>
+          <rect x="479" width="44" height="55" field="3" style="fill-opacity:0.1;fill:#ff0000"/>
+          <rect x="392" width="87" height="55" field="8" style="fill-opacity:0.1;fill:#ffbf00"/>
+          <rect x="218" width="65" height="55" field="0" style="fill-opacity:0.1;fill:#00ffd5"/>
+          <rect x="109" width="109" height="55" field="SrcL" style="fill-opacity:0.1"/>
+          <rect width="109" height="55" field="SrcR" style="fill-opacity:0.1"/>
+        </g>
+        <g transform="translate(11,-11)">
+          <g transform="translate(609)">
+            <text y="6">0</text>
+          </g>
+          <g transform="translate(544)">
+            <text y="6">3</text>
+          </g>
+          <g transform="translate(522)">
+            <text y="6">4</text>
+          </g>
+          <g transform="translate(500)">
+            <text y="6">5</text>
+          </g>
+          <g transform="translate(479)">
+            <text y="6">6</text>
+          </g>
+          <g transform="translate(457)">
+            <text y="6">7</text>
+          </g>
+          <g transform="translate(392)">
+            <text y="6">10</text>
+          </g>
+          <g transform="translate(370)">
+            <text y="6">11</text>
+          </g>
+          <g transform="translate(283)">
+            <text y="6">15</text>
+          </g>
+          <g transform="translate(261)">
+            <text y="6">16</text>
+          </g>
+          <g transform="translate(218)">
+            <text y="6">18</text>
+          </g>
+          <g transform="translate(196)">
+            <text y="6">19</text>
+          </g>
+          <g transform="translate(109)">
+            <text y="6">23</text>
+          </g>
+          <g transform="translate(87)">
+            <text y="6">24</text>
+          </g>
+          <g transform="translate(0)">
+            <text y="6">28</text>
+          </g>
+        </g>
+        <g transform="translate(11,27)">
+          <g>
+            <g transform="translate(609)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(587)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(566)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(544)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(522)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(500)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(479)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(457)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(435)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(413)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(392)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(370)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(348)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(326)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(305)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(283)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(261)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(239)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(218)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g transform="translate(152)">
+            <text y="6">
+              <tspan>SrcL</tspan>
+            </text>
+          </g>
+          <g transform="translate(44)">
+            <text y="6">
+              <tspan>SrcR</tspan>
+            </text>
+          </g>
+        </g>
+        <g transform="translate(11,63)"/>
+      </g>
+    </g>
+    <g transform="translate(4,261)">
+      <g stroke="black" stroke-width="1" stroke-linecap="round">
+        <line x2="631"/>
+        <line y2="55"/>
+        <line x2="631" y1="55" y2="55"/>
+        <line x1="631" x2="631" y2="55"/>
+        <line x1="609" x2="609" y2="6"/>
+        <line x1="609" x2="609" y1="55" y2="49"/>
+        <line x1="587" x2="587" y2="55"/>
+        <line x1="566" x2="566" y2="6"/>
+        <line x1="566" x2="566" y1="55" y2="49"/>
+        <line x1="544" x2="544" y2="6"/>
+        <line x1="544" x2="544" y1="55" y2="49"/>
+        <line x1="522" x2="522" y2="55"/>
+        <line x1="500" x2="500" y2="6"/>
+        <line x1="500" x2="500" y1="55" y2="49"/>
+        <line x1="479" x2="479" y2="55"/>
+        <line x1="457" x2="457" y2="6"/>
+        <line x1="457" x2="457" y1="55" y2="49"/>
+        <line x1="435" x2="435" y2="6"/>
+        <line x1="435" x2="435" y1="55" y2="49"/>
+        <line x1="413" x2="413" y2="6"/>
+        <line x1="413" x2="413" y1="55" y2="49"/>
+        <line x1="392" x2="392" y2="55"/>
+        <line x1="370" x2="370" y2="55"/>
+        <line x1="348" x2="348" y2="6"/>
+        <line x1="348" x2="348" y1="55" y2="49"/>
+        <line x1="326" x2="326" y2="55"/>
+        <line x1="305" x2="305" y2="6"/>
+        <line x1="305" x2="305" y1="55" y2="49"/>
+        <line x1="283" x2="283" y2="6"/>
+        <line x1="283" x2="283" y1="55" y2="49"/>
+        <line x1="261" x2="261" y2="6"/>
+        <line x1="261" x2="261" y1="55" y2="49"/>
+        <line x1="239" x2="239" y2="55"/>
+        <line x1="218" x2="218" y2="6"/>
+        <line x1="218" x2="218" y1="55" y2="49"/>
+        <line x1="196" x2="196" y2="6"/>
+        <line x1="196" x2="196" y1="55" y2="49"/>
+        <line x1="174" x2="174" y2="6"/>
+        <line x1="174" x2="174" y1="55" y2="49"/>
+        <line x1="152" x2="152" y2="6"/>
+        <line x1="152" x2="152" y1="55" y2="49"/>
+        <line x1="131" x2="131" y2="55"/>
+        <line x1="109" x2="109" y2="6"/>
+        <line x1="109" x2="109" y1="55" y2="49"/>
+        <line x1="87" x2="87" y2="6"/>
+        <line x1="87" x2="87" y1="55" y2="49"/>
+        <line x1="65" x2="65" y2="55"/>
+        <line x1="44" x2="44" y2="6"/>
+        <line x1="44" x2="44" y1="55" y2="49"/>
+        <line x1="22" x2="22" y2="6"/>
+        <line x1="22" x2="22" y1="55" y2="49"/>
+      </g>
+      <g>
+        <g>
+          <rect x="587" width="44" height="55" field="SrcRType" style="fill-opacity:0.1"/>
+          <rect x="522" width="65" height="55" field="shamt" style="fill-opacity:0.1"/>
+          <rect x="479" width="44" height="55" field="Mode" style="fill-opacity:0.1"/>
+          <rect x="392" width="87" height="55" field="0" style="fill-opacity:0.1"/>
+          <rect x="370" width="22" height="55" field="1" style="fill-opacity:0.1"/>
+          <rect x="326" width="44" height="55" field="3" style="fill-opacity:0.1;fill:#ff0000"/>
+          <rect x="239" width="87" height="55" field="8" style="fill-opacity:0.1;fill:#ffbf00"/>
+          <rect x="131" width="109" height="55" field="RegDst" style="fill-opacity:0.1;fill:#aaff00"/>
+          <rect x="65" width="65" height="55" field="1" style="fill-opacity:0.1;fill:#00ffd5"/>
+          <rect width="65" height="55" field="SrcL" style="fill-opacity:0.1"/>
+        </g>
+        <g transform="translate(11,-11)">
+          <g transform="translate(609)">
+            <text y="6">29</text>
+          </g>
+          <g transform="translate(587)">
+            <text y="6">30</text>
+          </g>
+          <g transform="translate(566)">
+            <text y="6">31</text>
+          </g>
+          <g transform="translate(522)">
+            <text y="6">33</text>
+          </g>
+          <g transform="translate(500)">
+            <text y="6">34</text>
+          </g>
+          <g transform="translate(479)">
+            <text y="6">35</text>
+          </g>
+          <g transform="translate(457)">
+            <text y="6">36</text>
+          </g>
+          <g transform="translate(392)">
+            <text y="6">39</text>
+          </g>
+          <g transform="translate(370)">
+            <text y="6">40</text>
+          </g>
+          <g transform="translate(348)">
+            <text y="6">41</text>
+          </g>
+          <g transform="translate(326)">
+            <text y="6">42</text>
+          </g>
+          <g transform="translate(305)">
+            <text y="6">43</text>
+          </g>
+          <g transform="translate(239)">
+            <text y="6">46</text>
+          </g>
+          <g transform="translate(218)">
+            <text y="6">47</text>
+          </g>
+          <g transform="translate(131)">
+            <text y="6">51</text>
+          </g>
+          <g transform="translate(109)">
+            <text y="6">52</text>
+          </g>
+          <g transform="translate(65)">
+            <text y="6">54</text>
+          </g>
+          <g transform="translate(44)">
+            <text y="6">55</text>
+          </g>
+          <g transform="translate(0)">
+            <text y="6">57</text>
+          </g>
+        </g>
+        <g transform="translate(11,27)">
+          <g transform="translate(598)">
+            <text y="6">
+              <tspan>SrcRType</tspan>
+            </text>
+          </g>
+          <g transform="translate(544)">
+            <text y="6">
+              <tspan>shamt</tspan>
+            </text>
+          </g>
+          <g transform="translate(490)">
+            <text y="6">
+              <tspan>Mode</tspan>
+            </text>
+          </g>
+          <g>
+            <g transform="translate(457)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(435)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(413)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(392)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(370)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(348)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(326)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(305)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(283)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(261)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(239)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g transform="translate(174)">
+            <text y="6">
+              <tspan>RegDst</tspan>
+            </text>
+          </g>
+          <g>
+            <g transform="translate(109)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(87)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(65)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g transform="translate(22)">
+            <text y="6">
+              <tspan>SrcL</tspan>
+            </text>
+          </g>
+        </g>
+        <g transform="translate(11,63)"/>
+      </g>
+    </g>
+    <g transform="translate(4,181)">
+      <g stroke="black" stroke-width="1" stroke-linecap="round">
+        <line x2="631"/>
+        <line y2="55"/>
+        <line x2="631" y1="55" y2="55"/>
+        <line x1="631" x2="631" y2="55"/>
+        <line x1="609" x2="609" y2="6"/>
+        <line x1="609" x2="609" y1="55" y2="49"/>
+        <line x1="587" x2="587" y2="55"/>
+        <line x1="566" x2="566" y2="6"/>
+        <line x1="566" x2="566" y1="55" y2="49"/>
+        <line x1="544" x2="544" y2="6"/>
+        <line x1="544" x2="544" y1="55" y2="49"/>
+        <line x1="522" x2="522" y2="6"/>
+        <line x1="522" x2="522" y1="55" y2="49"/>
+        <line x1="500" x2="500" y2="6"/>
+        <line x1="500" x2="500" y1="55" y2="49"/>
+        <line x1="479" x2="479" y2="55"/>
+        <line x1="457" x2="457" y2="6"/>
+        <line x1="457" x2="457" y1="55" y2="49"/>
+        <line x1="435" x2="435" y2="55"/>
+        <line x1="413" x2="413" y2="6"/>
+        <line x1="413" x2="413" y1="55" y2="49"/>
+        <line x1="392" x2="392" y2="6"/>
+        <line x1="392" x2="392" y1="55" y2="49"/>
+        <line x1="370" x2="370" y2="55"/>
+        <line x1="348" x2="348" y2="6"/>
+        <line x1="348" x2="348" y1="55" y2="49"/>
+        <line x1="326" x2="326" y2="55"/>
+        <line x1="305" x2="305" y2="6"/>
+        <line x1="305" x2="305" y1="55" y2="49"/>
+        <line x1="283" x2="283" y2="6"/>
+        <line x1="283" x2="283" y1="55" y2="49"/>
+        <line x1="261" x2="261" y2="6"/>
+        <line x1="261" x2="261" y1="55" y2="49"/>
+        <line x1="239" x2="239" y2="55"/>
+        <line x1="218" x2="218" y2="55"/>
+        <line x1="196" x2="196" y2="6"/>
+        <line x1="196" x2="196" y1="55" y2="49"/>
+        <line x1="174" x2="174" y2="55"/>
+        <line x1="152" x2="152" y2="6"/>
+        <line x1="152" x2="152" y1="55" y2="49"/>
+        <line x1="131" x2="131" y2="6"/>
+        <line x1="131" x2="131" y1="55" y2="49"/>
+        <line x1="109" x2="109" y2="6"/>
+        <line x1="109" x2="109" y1="55" y2="49"/>
+        <line x1="87" x2="87" y2="55"/>
+        <line x1="65" x2="65" y2="6"/>
+        <line x1="65" x2="65" y1="55" y2="49"/>
+        <line x1="44" x2="44" y2="6"/>
+        <line x1="44" x2="44" y1="55" y2="49"/>
+        <line x1="22" x2="22" y2="6"/>
+        <line x1="22" x2="22" y1="55" y2="49"/>
+      </g>
+      <g>
+        <g>
+          <rect x="587" width="44" height="55" field="SrcL" style="fill-opacity:0.1"/>
+          <rect x="479" width="109" height="55" field="SrcR" style="fill-opacity:0.1"/>
+          <rect x="435" width="44" height="55" field="SrcRType" style="fill-opacity:0.1"/>
+          <rect x="370" width="65" height="55" field="shamt" style="fill-opacity:0.1"/>
+          <rect x="326" width="44" height="55" field="Mode" style="fill-opacity:0.1"/>
+          <rect x="239" width="87" height="55" field="0" style="fill-opacity:0.1"/>
+          <rect x="218" width="22" height="55" field="1" style="fill-opacity:0.1"/>
+          <rect x="174" width="44" height="55" field="3" style="fill-opacity:0.1;fill:#ff0000"/>
+          <rect x="87" width="87" height="55" field="9" style="fill-opacity:0.1;fill:#ffbf00"/>
+        </g>
+        <g transform="translate(11,-11)">
+          <g transform="translate(609)">
+            <text y="6">58</text>
+          </g>
+          <g transform="translate(587)">
+            <text y="6">59</text>
+          </g>
+          <g transform="translate(566)">
+            <text y="6">60</text>
+          </g>
+          <g transform="translate(479)">
+            <text y="6">64</text>
+          </g>
+          <g transform="translate(457)">
+            <text y="6">65</text>
+          </g>
+          <g transform="translate(435)">
+            <text y="6">66</text>
+          </g>
+          <g transform="translate(413)">
+            <text y="6">67</text>
+          </g>
+          <g transform="translate(370)">
+            <text y="6">69</text>
+          </g>
+          <g transform="translate(348)">
+            <text y="6">70</text>
+          </g>
+          <g transform="translate(326)">
+            <text y="6">71</text>
+          </g>
+          <g transform="translate(305)">
+            <text y="6">72</text>
+          </g>
+          <g transform="translate(239)">
+            <text y="6">75</text>
+          </g>
+          <g transform="translate(218)">
+            <text y="6">76</text>
+          </g>
+          <g transform="translate(196)">
+            <text y="6">77</text>
+          </g>
+          <g transform="translate(174)">
+            <text y="6">78</text>
+          </g>
+          <g transform="translate(152)">
+            <text y="6">79</text>
+          </g>
+          <g transform="translate(87)">
+            <text y="6">82</text>
+          </g>
+          <g transform="translate(65)">
+            <text y="6">83</text>
+          </g>
+          <g transform="translate(0)">
+            <text y="6">86</text>
+          </g>
+        </g>
+        <g transform="translate(11,27)">
+          <g transform="translate(598)">
+            <text y="6">
+              <tspan>SrcL</tspan>
+            </text>
+          </g>
+          <g transform="translate(522)">
+            <text y="6">
+              <tspan>SrcR</tspan>
+            </text>
+          </g>
+          <g transform="translate(446)">
+            <text y="6">
+              <tspan>SrcRType</tspan>
+            </text>
+          </g>
+          <g transform="translate(392)">
+            <text y="6">
+              <tspan>shamt</tspan>
+            </text>
+          </g>
+          <g transform="translate(337)">
+            <text y="6">
+              <tspan>Mode</tspan>
+            </text>
+          </g>
+          <g>
+            <g transform="translate(305)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(283)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(261)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(239)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(218)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(196)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(174)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(152)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(131)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(109)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(87)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(76)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(54)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(33)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(11)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(-11)">
+              <text y="6">0</text>
+            </g>
+          </g>
+        </g>
+        <g transform="translate(11,63)"/>
+      </g>
+    </g>
+    <g transform="translate(4,101)">
+      <g stroke="black" stroke-width="1" stroke-linecap="round">
+        <line x2="631"/>
+        <line y2="55"/>
+        <line x2="631" y1="55" y2="55"/>
+        <line x1="631" x2="631" y2="55"/>
+        <line x1="609" x2="609" y2="55"/>
+        <line x1="587" x2="587" y2="6"/>
+        <line x1="587" x2="587" y1="55" y2="49"/>
+        <line x1="566" x2="566" y2="6"/>
+        <line x1="566" x2="566" y1="55" y2="49"/>
+        <line x1="544" x2="544" y2="55"/>
+        <line x1="522" x2="522" y2="6"/>
+        <line x1="522" x2="522" y1="55" y2="49"/>
+        <line x1="500" x2="500" y2="6"/>
+        <line x1="500" x2="500" y1="55" y2="49"/>
+        <line x1="479" x2="479" y2="6"/>
+        <line x1="479" x2="479" y1="55" y2="49"/>
+        <line x1="457" x2="457" y2="6"/>
+        <line x1="457" x2="457" y1="55" y2="49"/>
+        <line x1="435" x2="435" y2="55"/>
+        <line x1="413" x2="413" y2="6"/>
+        <line x1="413" x2="413" y1="55" y2="49"/>
+        <line x1="392" x2="392" y2="6"/>
+        <line x1="392" x2="392" y1="55" y2="49"/>
+        <line x1="370" x2="370" y2="6"/>
+        <line x1="370" x2="370" y1="55" y2="49"/>
+        <line x1="348" x2="348" y2="6"/>
+        <line x1="348" x2="348" y1="55" y2="49"/>
+        <line x1="326" x2="326" y2="6"/>
+        <line x1="326" x2="326" y1="55" y2="49"/>
+        <line x1="305" x2="305" y2="6"/>
+        <line x1="305" x2="305" y1="55" y2="49"/>
+        <line x1="283" x2="283" y2="6"/>
+        <line x1="283" x2="283" y1="55" y2="49"/>
+        <line x1="261" x2="261" y2="6"/>
+        <line x1="261" x2="261" y1="55" y2="49"/>
+        <line x1="239" x2="239" y2="6"/>
+        <line x1="239" x2="239" y1="55" y2="49"/>
+        <line x1="218" x2="218" y2="6"/>
+        <line x1="218" x2="218" y1="55" y2="49"/>
+        <line x1="196" x2="196" y2="6"/>
+        <line x1="196" x2="196" y1="55" y2="49"/>
+        <line x1="174" x2="174" y2="55"/>
+        <line x1="152" x2="152" y2="6"/>
+        <line x1="152" x2="152" y1="55" y2="49"/>
+        <line x1="131" x2="131" y2="6"/>
+        <line x1="131" x2="131" y1="55" y2="49"/>
+        <line x1="109" x2="109" y2="6"/>
+        <line x1="109" x2="109" y1="55" y2="49"/>
+        <line x1="87" x2="87" y2="55"/>
+        <line x1="65" x2="65" y2="55"/>
+        <line x1="44" x2="44" y2="6"/>
+        <line x1="44" x2="44" y1="55" y2="49"/>
+        <line x1="22" x2="22" y2="55"/>
+      </g>
+      <g>
+        <g>
+          <rect x="544" width="65" height="55" field="0" style="fill-opacity:0.1;fill:#00ffd5"/>
+          <rect x="435" width="109" height="55" field="SrcL" style="fill-opacity:0.1"/>
+          <rect x="174" width="261" height="55" field="simm12" style="fill-opacity:0.1;fill:#006aff"/>
+          <rect x="87" width="87" height="55" field="0" style="fill-opacity:0.1"/>
+          <rect x="65" width="22" height="55" field="1" style="fill-opacity:0.1"/>
+          <rect x="22" width="44" height="55" field="3" style="fill-opacity:0.1;fill:#ff0000"/>
+          <rect width="22" height="55" field="9" style="fill-opacity:0.1;fill:#ffbf00"/>
+        </g>
+        <g transform="translate(11,-11)">
+          <g transform="translate(609)">
+            <text y="6">87</text>
+          </g>
+          <g transform="translate(587)">
+            <text y="6">88</text>
+          </g>
+          <g transform="translate(544)">
+            <text y="6">90</text>
+          </g>
+          <g transform="translate(522)">
+            <text y="6">91</text>
+          </g>
+          <g transform="translate(435)">
+            <text y="6">95</text>
+          </g>
+          <g transform="translate(413)">
+            <text y="6">96</text>
+          </g>
+          <g transform="translate(174)">
+            <text y="6">107</text>
+          </g>
+          <g transform="translate(152)">
+            <text y="6">108</text>
+          </g>
+          <g transform="translate(87)">
+            <text y="6">111</text>
+          </g>
+          <g transform="translate(65)">
+            <text y="6">112</text>
+          </g>
+          <g transform="translate(44)">
+            <text y="6">113</text>
+          </g>
+          <g transform="translate(22)">
+            <text y="6">114</text>
+          </g>
+          <g transform="translate(0)">
+            <text y="6">115</text>
+          </g>
+        </g>
+        <g transform="translate(11,27)">
+          <g>
+            <g transform="translate(653)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(631)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(609)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(587)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(566)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(587)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(566)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(544)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g transform="translate(479)">
+            <text y="6">
+              <tspan>SrcL</tspan>
+            </text>
+          </g>
+          <g transform="translate(294)">
+            <text y="6">
+              <tspan>simm12</tspan>
+            </text>
+          </g>
+          <g>
+            <g transform="translate(152)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(131)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(109)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(87)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(65)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(44)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(22)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g>
+            <g transform="translate(33)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(11)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(-11)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(-33)">
+              <text y="6">1</text>
+            </g>
+          </g>
+        </g>
+        <g transform="translate(11,63)"/>
+      </g>
+    </g>
+    <g transform="translate(4,21)">
+      <g stroke="black" stroke-width="1" stroke-linecap="round">
+        <line x2="631"/>
+        <line y2="55"/>
+        <line x2="631" y1="55" y2="55"/>
+        <line x1="631" x2="631" y2="55"/>
+        <line x1="609" x2="609" y2="6"/>
+        <line x1="609" x2="609" y1="55" y2="49"/>
+        <line x1="587" x2="587" y2="6"/>
+        <line x1="587" x2="587" y1="55" y2="49"/>
+        <line x1="566" x2="566" y2="55"/>
+        <line x1="544" x2="544" y2="6"/>
+        <line x1="544" x2="544" y1="55" y2="49"/>
+        <line x1="522" x2="522" y2="6"/>
+        <line x1="522" x2="522" y1="55" y2="49"/>
+        <line x1="500" x2="500" y2="6"/>
+        <line x1="500" x2="500" y1="55" y2="49"/>
+        <line x1="479" x2="479" y2="6"/>
+        <line x1="479" x2="479" y1="55" y2="49"/>
+        <line x1="457" x2="457" y2="55"/>
+        <line x1="435" x2="435" y2="6"/>
+        <line x1="435" x2="435" y1="55" y2="49"/>
+        <line x1="413" x2="413" y2="6"/>
+        <line x1="413" x2="413" y1="55" y2="49"/>
+        <line x1="392" x2="392" y2="55"/>
+        <line x1="370" x2="370" y2="6"/>
+        <line x1="370" x2="370" y1="55" y2="49"/>
+        <line x1="348" x2="348" y2="6"/>
+        <line x1="348" x2="348" y1="55" y2="49"/>
+        <line x1="326" x2="326" y2="6"/>
+        <line x1="326" x2="326" y1="55" y2="49"/>
+        <line x1="305" x2="305" y2="6"/>
+        <line x1="305" x2="305" y1="55" y2="49"/>
+        <line x1="283" x2="283" y2="55"/>
+        <line x1="261" x2="261" y2="6"/>
+        <line x1="261" x2="261" y1="55" y2="49"/>
+        <line x1="239" x2="239" y2="6"/>
+        <line x1="239" x2="239" y1="55" y2="49"/>
+        <line x1="218" x2="218" y2="6"/>
+        <line x1="218" x2="218" y1="55" y2="49"/>
+        <line x1="196" x2="196" y2="6"/>
+        <line x1="196" x2="196" y1="55" y2="49"/>
+        <line x1="174" x2="174" y2="6"/>
+        <line x1="174" x2="174" y1="55" y2="49"/>
+        <line x1="152" x2="152" y2="6"/>
+        <line x1="152" x2="152" y1="55" y2="49"/>
+        <line x1="131" x2="131" y2="6"/>
+        <line x1="131" x2="131" y1="55" y2="49"/>
+        <line x1="109" x2="109" y2="6"/>
+        <line x1="109" x2="109" y1="55" y2="49"/>
+        <line x1="87" x2="87" y2="6"/>
+        <line x1="87" x2="87" y1="55" y2="49"/>
+        <line x1="65" x2="65" y2="6"/>
+        <line x1="65" x2="65" y1="55" y2="49"/>
+        <line x1="44" x2="44" y2="6"/>
+        <line x1="44" x2="44" y1="55" y2="49"/>
+        <line x1="22" x2="22" y2="6"/>
+        <line x1="22" x2="22" y1="55" y2="49"/>
+      </g>
+      <g>
+        <g>
+          <rect x="566" width="65" height="55" field="9" style="fill-opacity:0.1;fill:#ffbf00"/>
+          <rect x="457" width="109" height="55" field="RegDst" style="fill-opacity:0.1;fill:#aaff00"/>
+          <rect x="392" width="65" height="55" field="1" style="fill-opacity:0.1;fill:#00ffd5"/>
+          <rect x="283" width="109" height="55" field="SrcL" style="fill-opacity:0.1"/>
+          <rect x="22" width="261" height="55" field="simm12" style="fill-opacity:0.1;fill:#006aff"/>
+        </g>
+        <g transform="translate(11,-11)">
+          <g transform="translate(609)">
+            <text y="6">116</text>
+          </g>
+          <g transform="translate(566)">
+            <text y="6">118</text>
+          </g>
+          <g transform="translate(544)">
+            <text y="6">119</text>
+          </g>
+          <g transform="translate(457)">
+            <text y="6">123</text>
+          </g>
+          <g transform="translate(435)">
+            <text y="6">124</text>
+          </g>
+          <g transform="translate(392)">
+            <text y="6">126</text>
+          </g>
+          <g transform="translate(370)">
+            <text y="6">127</text>
+          </g>
+          <g transform="translate(283)">
+            <text y="6">131</text>
+          </g>
+          <g transform="translate(261)">
+            <text y="6">132</text>
+          </g>
+          <g transform="translate(22)">
+            <text y="6">143</text>
+          </g>
+        </g>
+        <g transform="translate(11,27)">
+          <g>
+            <g transform="translate(620)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(598)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(577)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(555)">
+              <text y="6">1</text>
+            </g>
+          </g>
+          <g transform="translate(500)">
+            <text y="6">
+              <tspan>RegDst</tspan>
+            </text>
+          </g>
+          <g>
+            <g transform="translate(435)">
+              <text y="6">1</text>
+            </g>
+            <g transform="translate(413)">
+              <text y="6">0</text>
+            </g>
+            <g transform="translate(392)">
+              <text y="6">0</text>
+            </g>
+          </g>
+          <g transform="translate(326)">
+            <text y="6">
+              <tspan>SrcL</tspan>
+            </text>
+          </g>
+          <g transform="translate(141)">
+            <text y="6">
+              <tspan>simm12</tspan>
+            </text>
+          </g>
+        </g>
+        <g transform="translate(11,63)"/>
+      </g>
+    </g>
+  </g>
+</svg>
+

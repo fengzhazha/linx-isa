@@ -1,0 +1,272 @@
+[
+    {
+        "####": "MUL",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "####": "MULU",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "####": "MULW",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "####": "MULUW",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "####": "MADD",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": "SrcD",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "####": "MADDW",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": "SrcD",
+        "bits": 5,
+        "type": 23
+    }
+]

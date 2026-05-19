@@ -1,0 +1,362 @@
+[
+    {
+        "####": "CMP.EQ",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.NE",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.AND",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.OR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.LT",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.GE",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 5,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.LTU",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "####": "CMP.GEU",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcRType",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 5
+    }
+]

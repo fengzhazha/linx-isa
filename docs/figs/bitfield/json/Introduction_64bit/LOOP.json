@@ -1,0 +1,122 @@
+[
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Counter",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Bound",
+        "bits": 32,
+        "type": 16
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop Begin PC",
+        "bits": 32,
+        "type": 17
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "Loop End PC",
+        "bits": 32,
+        "type": 18
+    }
+]

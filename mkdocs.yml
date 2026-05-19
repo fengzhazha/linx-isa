@@ -15,9 +15,14 @@ exclude_docs: |
 theme:
   name: material
   language: zh
+  logo: assets/linxisa-logo.svg
+  favicon: assets/linxisa-favicon.svg
 
 plugins:
   - search
+
+extra_css:
+  - stylesheets/linxisa-site.css
 
 markdown_extensions:
   - admonition
@@ -1254,23 +1259,3 @@ nav:
         - 内联汇编: compiler/assembly_manual/Inline_Assembly.md
         - 调用约定: compiler/Calling-Convention.md
         - 软件码块标记指导: compiler/hyper_block.md
-    - 版本介绍:
-        - V0.20设计更新: change_log/update_v0.20.md
-        - V0.30设计更新: change_log/update_v0.30.md
-        - V0.31设计更新: change_log/update_v0.31.md
-        - V0.32设计更新: change_log/update_v0.32.md
-        - V0.33设计更新: change_log/update_v0.33.md
-        - V0.34设计更新: change_log/update_v0.34.md
-        - V0.35设计更新: change_log/update_v0.35.md
-        - V0.36设计更新: change_log/update_v0.36.md
-        - V0.40设计更新: change_log/update_v0.40.md
-        - V0.41设计更新: change_log/update_v0.41.md
-        - V0.42设计更新: change_log/update_v0.42.md
-        - V0.43设计更新: change_log/update_v0.43.md
-        - V0.50设计更新: change_log/update_v0.50.md
-        - V0.51设计更新: change_log/update_v0.51.md
-        - V0.52设计更新: change_log/update_v0.52.md
-        - V0.53设计更新: change_log/update_v0.53.md
-        - V0.54设计更新: change_log/update_v0.54.md
-        - V0.55设计更新: change_log/update_v0.55.md
-        - V0.56设计更新: change_log/update_v0.56.md

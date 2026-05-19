@@ -1,0 +1,218 @@
+/* Hide the Material secondary table-of-contents pane. */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-content {
+    margin-right: 0;
+  }
+
+  .md-main__inner {
+    max-width: 1440px;
+  }
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2rem;
+  width: 2rem;
+}
+
+.linx-home-hero {
+  align-items: center;
+  border-bottom: 1px solid #d8dee9;
+  border-top: 1px solid #d8dee9;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  margin: 0 -1rem 2rem;
+  min-height: 480px;
+  padding: 3rem clamp(1rem, 5vw, 4rem);
+}
+
+.linx-home-hero h1,
+.linx-home-hero h2 {
+  color: #111827;
+  font-size: clamp(2rem, 4.4vw, 3.6rem);
+  line-height: 1.04;
+  margin: 0.35rem 0 1rem;
+}
+
+.linx-home-hero p {
+  color: #334155;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  max-width: 55rem;
+}
+
+.linx-home-eyebrow {
+  color: #b91c1c !important;
+  font-size: 0.82rem !important;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.linx-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+}
+
+.linx-home-hero__visual {
+  align-items: center;
+  background: #111827;
+  border: 1px solid #263244;
+  border-radius: 8px;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 340px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.linx-home-logo {
+  background: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgb(15 23 42 / 24%);
+  height: min(34vw, 180px);
+  max-height: 180px;
+  max-width: 180px;
+  padding: 1.1rem;
+  width: min(34vw, 180px);
+}
+
+.linx-home-wordmark {
+  color: #ffffff;
+  font-size: clamp(2rem, 5vw, 3.3rem);
+  font-weight: 800;
+  margin-top: 1.2rem;
+}
+
+.linx-home-submark {
+  color: #a7f3d0;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
+
+.linx-home-strip {
+  border-bottom: 1px solid #d8dee9;
+  border-top: 1px solid #d8dee9;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 2.2rem;
+  padding: 1rem 0;
+}
+
+.linx-home-strip > div {
+  border-left: 4px solid #0e7490;
+  padding: 0.1rem 1rem;
+}
+
+.linx-home-strip strong {
+  color: #111827;
+  display: block;
+  font-size: 1.05rem;
+}
+
+.linx-home-strip dd {
+  color: #475569;
+  margin: 0.25rem 0 0;
+}
+
+.linx-home-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.linx-home-card {
+  border: 1px solid #d8dee9;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.linx-home-card h3 {
+  color: #111827;
+  margin-top: 0;
+}
+
+.linx-home-card p {
+  color: #475569;
+  margin-bottom: 0;
+}
+
+.md-typeset img[src*="figs/bitfield/svg/"] {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  width: 100%;
+}
+
+.md-typeset p:has(> img[src*="figs/bitfield/svg/"]) {
+  margin: 1.1rem 0;
+  width: 100%;
+}
+
+.linx-home-encoding {
+  align-items: center;
+  border: 1px solid #d8dee9;
+  border-radius: 8px;
+  display: block;
+  gap: 1.5rem;
+  margin: 1rem 0 2rem;
+  padding: 1.25rem;
+}
+
+.linx-home-encoding figure {
+  margin: 1rem 0 0;
+}
+
+.linx-home-encoding img {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.linx-home-encoding figcaption {
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+@media screen and (max-width: 960px) {
+  .linx-home-hero,
+  .linx-home-encoding {
+    grid-template-columns: 1fr;
+  }
+
+  .linx-home-strip,
+  .linx-home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .linx-home-hero {
+    min-height: 0;
+    padding: 2rem 1rem;
+  }
+
+  .linx-home-strip,
+  .linx-home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .linx-home-hero__visual {
+    min-height: 280px;
+  }
+}

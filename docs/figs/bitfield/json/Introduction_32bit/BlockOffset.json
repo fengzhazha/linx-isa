@@ -1,0 +1,18 @@
+[
+    {
+        "####": "B.TEXT",
+        "name": 3,
+        "bits": 4,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": "simm25",
+        "bits": 25,
+        "type": 7
+    }
+]

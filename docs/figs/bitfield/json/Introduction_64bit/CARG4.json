@@ -1,0 +1,87 @@
+[
+    {
+        "name": "BPC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "BPC",
+        "bits": 32,
+        "type": 18
+    },
+    {
+        "name": "BPCN",
+        "bits": 32,
+        "type": 32
+    },
+    {
+        "name": "BPCN",
+        "bits": 32,
+        "type": 32
+    },
+    {
+        "name": "LRA",
+        "bits": 32,
+        "type": 21
+    },
+    {
+        "name": "LRA",
+        "bits": 32,
+        "type": 21
+    },
+    {
+        "name": "AC",
+        "bits": 1,
+        "type": 32
+    },
+    {
+        "name": "RstType",
+        "bits": 4,
+        "type": 32
+    },
+    {
+        "name": "AE",
+        "bits": 1,
+        "type": 18
+    },
+    {
+        "name": "RRA",
+        "bits": 4,
+        "type": 18
+    },
+    {
+        "name": "Reserve",
+        "bits": 22,
+        "type": 24
+    },
+    {
+        "name": "BlockType",
+        "bits": 4,
+        "type": 15
+    },
+    {
+        "name": "Type",
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": "Taken",
+        "bits": 1,
+        "type": 5
+    },
+    {
+        "name": "Trap",
+        "bits": 1,
+        "type": 7
+    },
+    {
+        "name": "Relay",
+        "bits": 1,
+        "type": 5
+    },
+    {
+        "name": "Reserve",
+        "bits": 23,
+        "type": 24
+    }
+]

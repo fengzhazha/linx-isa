@@ -1,0 +1,40 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "attr": "W",
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "attr": "Opc1",
+        "type": 10
+    },
+    {
+        "name": "imm17[16:12]",
+        "bits": 5,
+        "type": 15
+    },
+    {
+        "name": "LoopNest",
+        "bits": 3,
+        "type": 13
+    },
+    {
+        "name": "RegSrc",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imm17[11:0]",
+        "bits": 12,
+        "type": 15
+    }
+]

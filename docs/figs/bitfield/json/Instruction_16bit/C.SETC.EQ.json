@@ -1,0 +1,34 @@
+[
+    {
+        "name": 0,
+        "bits": 1,
+        "attr": "W",
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 2,
+        "attr": "Opc1",
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "",
+        "bits": 16
+    }
+]

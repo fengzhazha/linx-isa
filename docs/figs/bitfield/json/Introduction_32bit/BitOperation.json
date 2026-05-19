@@ -1,0 +1,166 @@
+[
+    {
+        "####": "BXS",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imml",
+        "bits": 6,
+        "type": 24
+    },
+    {
+        "name": "imms",
+        "bits": 6,
+        "type": 15
+    },
+    {
+        "####": "BXU",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imml",
+        "bits": 6,
+        "type": 24
+    },
+    {
+        "name": "imms",
+        "bits": 6,
+        "type": 15
+    },
+    {
+        "####": "BIC",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imml",
+        "bits": 6,
+        "type": 24
+    },
+    {
+        "name": "imms",
+        "bits": 6,
+        "type": 15
+    },
+    {
+        "####": "BIS",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imml",
+        "bits": 6,
+        "type": 24
+    },
+    {
+        "name": "imms",
+        "bits": 6,
+        "type": 15
+    }
+]

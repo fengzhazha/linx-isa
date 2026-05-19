@@ -1,0 +1,38 @@
+[
+    {
+        "####": "J",
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 1,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 14,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "simm5",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "imm5",
+        "bits": 5,
+        "type": 15
+    },
+    {
+        "name": "imm12",
+        "bits": 12,
+        "type": 15
+    }
+]
