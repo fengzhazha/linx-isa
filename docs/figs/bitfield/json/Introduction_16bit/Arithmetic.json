@@ -1,0 +1,212 @@
+[
+    {
+        "####": "C.ADD",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.SUB",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.AND",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.OR",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcR",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.ADDI",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "simm5",
+        "bits": 5,
+        "type": 7
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.SRLI",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 3,
+        "bits": 5,
+        "type": 4
+    },
+    {
+        "name": "",
+        "bits": 16
+    },
+    {
+        "####": "C.SLLI",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 2,
+        "bits": 5,
+        "type": 4
+    },
+    {
+        "name": "",
+        "bits": 16
+    }
+]

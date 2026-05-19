@@ -1,0 +1,563 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 48,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "TILE-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "RegSrc",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 49,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "TILE-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "RegSrc",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 51,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "L1-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "RegSrc",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 52,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "L1-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 52,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "L1-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 54,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "L1-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "L0C-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    }
+]

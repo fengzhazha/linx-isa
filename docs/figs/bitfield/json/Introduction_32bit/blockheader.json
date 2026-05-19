@@ -1,0 +1,1497 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": 0,
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "BlockType",
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": "BrType\u22600",
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "PayLoad",
+        "bits": 17,
+        "type": 29
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 5,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 5,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "EX",
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "simm17",
+        "bits": 17,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 5,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 4,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "Parallel Mode",
+        "bits": 17,
+        "type": 16
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 18
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 15,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "RESERVE",
+        "bits": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 15,
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 26
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 28
+    },
+    {
+        "name": "ACR-ID",
+        "bits": 10,
+        "type": 19
+    },
+    {
+        "name": "CROSS-BID",
+        "bits": 7,
+        "type": 18
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 1,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "simm25",
+        "bits": 25,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 2,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "simm25",
+        "bits": 25,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "simm25",
+        "bits": 25,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 4,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "simm25",
+        "bits": 25,
+        "type": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "BitMaskA[7:5]",
+        "bits": 3,
+        "type": 24
+    },
+    {
+        "name": "GroupA",
+        "bits": 2,
+        "type": 31
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "BitMaskA[4:0]",
+        "bits": 5,
+        "type": 24
+    },
+    {
+        "name": "BitMaskB[4:0]",
+        "bits": 5,
+        "type": 24
+    },
+    {
+        "name": "IO_A",
+        "bits": 1,
+        "type": 20
+    },
+    {
+        "name": "IO_B",
+        "bits": 1,
+        "type": 20
+    },
+    {
+        "name": "BitMaskB[7:5]",
+        "bits": 3,
+        "type": 24
+    },
+    {
+        "name": "GroupB",
+        "bits": 2,
+        "type": 31
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 6,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "rl",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "aq",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "atom",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "far",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "SC",
+        "bits": 1,
+        "type": 33
+    },
+    {
+        "name": "T",
+        "bits": 1,
+        "type": 35
+    },
+    {
+        "name": "R",
+        "bits": 1,
+        "type": 34
+    },
+    {
+        "name": "H",
+        "bits": 1,
+        "type": 32
+    },
+    {
+        "name": "RESERVE",
+        "bits": 9
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 6,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "BlockType",
+        "bits": 4,
+        "type": 13
+    },
+    {
+        "name": "D",
+        "bits": 1,
+        "type": 32
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "Allow_ACRs",
+        "bits": 4,
+        "type": 21
+    },
+    {
+        "name": "RESERVE",
+        "bits": 13
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 7,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "V",
+        "bits": 1,
+        "type": 27
+    },
+    {
+        "name": "L/UL",
+        "bits": 1,
+        "type": 27
+    },
+    {
+        "name": "temp",
+        "bits": 2,
+        "type": 27
+    },
+    {
+        "name": 0,
+        "bits": 1
+    },
+    {
+        "name": "prefetch_size",
+        "bits": 12,
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 7,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "B/E",
+        "bits": 1,
+        "type": 22
+    },
+    {
+        "name": "RESERVE",
+        "bits": 16
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 13,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "RegSrc0",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "RegSrc1",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": "RegSrc2",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 13,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "RegSrc0",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "RegSrc1",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 2
+    },
+    {
+        "name": "RegSrc2",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 14,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcBegin",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "SrcEnd",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imm7",
+        "bits": 7,
+        "type": 15
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 14,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "DstBegin",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "DstEnd",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imm7",
+        "bits": 7,
+        "type": 15
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 14,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "DstBegin",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "DstEnd",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imm7",
+        "bits": 7,
+        "type": 15
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 14,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "DstBegin",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "DstEnd",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "imm7",
+        "bits": 7,
+        "type": 15
+    }
+]

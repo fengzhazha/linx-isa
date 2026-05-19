@@ -1,0 +1,1 @@
+[{"name": 0, "bits": 1, "type": 36}, {"name": 1, "bits": 1, "attr": "Layer", "type": 2}, {"name": "SrcL", "bits": 5, "type": 23}, {"name": "Func", "bits": 5, "type": 4}, {"name": "Opcode", "bits": 4, "type": 5}]

@@ -1,0 +1,83 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 7,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "V",
+        "bits": 1,
+        "type": 27
+    },
+    {
+        "name": "L/UL",
+        "bits": 1,
+        "type": 27
+    },
+    {
+        "name": "temp",
+        "bits": 2,
+        "type": 27
+    },
+    {
+        "name": 0,
+        "bits": 1
+    },
+    {
+        "name": "prefetch_size",
+        "bits": 12,
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 7,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "B/E",
+        "bits": 1,
+        "type": 22
+    },
+    {
+        "name": "RESERVE",
+        "bits": 16
+    }
+]

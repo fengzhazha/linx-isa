@@ -1,0 +1,63 @@
+[
+    {
+        "####": "L.ADDLI",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "uimm[11:0]",
+        "bits": 12,
+        "type": 6
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": "uimm[31:12]",
+        "bits": 20,
+        "type": 6
+    }
+]

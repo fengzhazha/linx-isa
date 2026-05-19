@@ -1,0 +1,32 @@
+[
+    {
+        "####": "C.SETRET",
+        "name": 0,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 2,
+        "type": 10
+    },
+    {
+        "name": "uimm5",
+        "bits": 5,
+        "type": 6
+    },
+    {
+        "name": 10,
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": "",
+        "bits": 16
+    }
+]

@@ -1,0 +1,60 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "attr": "W",
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "attr": "Opc1",
+        "type": 10
+    },
+    {
+        "name": "DstTile",
+        "bits": 3,
+        "type": 3
+    },
+    {
+        "name": "S0R",
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "S1R",
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "Func",
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "imm4",
+        "bits": 4,
+        "type": 6
+    },
+    {
+        "name": "L",
+        "bits": 1,
+        "type": 6
+    },
+    {
+        "name": "SrcTile0",
+        "bits": 6,
+        "type": 23
+    },
+    {
+        "name": "SrcTile1",
+        "bits": 6,
+        "type": 23
+    }
+]

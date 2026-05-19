@@ -1,0 +1,378 @@
+[
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 16,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "TILE-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "TILE-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "TSP0",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 17,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "TILE-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "TILE-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "TSP0",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 18,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "TILE-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "TILE-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "TSP0",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": 3,
+        "bits": 4,
+        "type": 2
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 25
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "src-col",
+        "bits": 5,
+        "type": 8
+    },
+    {
+        "name": "src-row",
+        "bits": 5,
+        "type": 1
+    },
+    {
+        "name": 19,
+        "bits": 7
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 36
+    },
+    {
+        "name": 0,
+        "bits": 2,
+        "type": 2
+    },
+    {
+        "name": 5,
+        "bits": 4,
+        "type": 5
+    },
+    {
+        "name": "TILE-DST",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "TILE-LINK",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": "TSP0",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 3
+    },
+    {
+        "name": "DataType",
+        "bits": 5,
+        "type": 12
+    }
+]

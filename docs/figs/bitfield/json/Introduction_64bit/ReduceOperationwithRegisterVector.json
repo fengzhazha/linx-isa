@@ -1,0 +1,668 @@
+[
+    {
+        "####": "V.RDADD",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDAND",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDOR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDXOR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDFADD",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 4,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDMAX",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDMIN",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDFMAX",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "####": "V.RDFMIN",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 6,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[4:0]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 3,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "SrcL[4:0]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 7,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "RegDst[9:5]",
+        "bits": 5,
+        "type": 3
+    },
+    {
+        "name": 1,
+        "bits": 1,
+        "type": 4
+    },
+    {
+        "name": "vlen",
+        "bits": 2,
+        "type": 18
+    },
+    {
+        "name": "SrcL[9:5]",
+        "bits": 5,
+        "type": 23
+    },
+    {
+        "name": 0,
+        "bits": 12
+    }
+]

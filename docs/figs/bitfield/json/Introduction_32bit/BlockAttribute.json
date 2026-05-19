@@ -1,0 +1,128 @@
+[
+    {
+        "####": "B.ATTR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "DataLayout",
+        "bits": 5,
+        "type": 13
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "rl",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "aq",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "atom",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "far",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "T",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "SrcType",
+        "bits": 5,
+        "type": 13
+    },
+    {
+        "name": "C",
+        "bits": 1,
+        "type": 23
+    },
+    {
+        "name": "DR",
+        "bits": 1,
+        "type": 23
+    },
+    {
+        "name": "PadValue",
+        "bits": 5,
+        "type": 13
+    },
+    {
+        "####": "B.CACR",
+        "name": 1,
+        "bits": 1,
+        "type": 17
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 5
+    },
+    {
+        "name": 2,
+        "bits": 3,
+        "type": 10
+    },
+    {
+        "name": "BlockType",
+        "bits": 5,
+        "type": 13
+    },
+    {
+        "name": 1,
+        "bits": 3,
+        "type": 4
+    },
+    {
+        "name": "acr0",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "acr1",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "acr2",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "acr3",
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": 0,
+        "bits": 1,
+        "type": 14
+    },
+    {
+        "name": "reserve",
+        "bits": 12
+    }
+]

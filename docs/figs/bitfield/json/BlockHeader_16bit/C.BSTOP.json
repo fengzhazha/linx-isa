@@ -1,0 +1,22 @@
+[
+    {
+        "name": 0,
+        "bits": 1,
+        "attr": "W",
+        "type": 20
+    },
+    {
+        "name": 0,
+        "bits": 3,
+        "attr": "Opcode",
+        "type": 5
+    },
+    {
+        "name": 0,
+        "bits": 12
+    },
+    {
+        "name": "",
+        "bits": 16
+    }
+]
