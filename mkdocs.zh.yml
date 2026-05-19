@@ -15,6 +15,7 @@ exclude_docs: |
 theme:
   name: material
   language: zh
+  font: false
   logo: assets/linxisa-logo.svg
   favicon: assets/linxisa-favicon.svg
   palette:
