@@ -11,11 +11,10 @@
 
 | | |
 |---|---|
-| **ISA Version** | v0.56.2 |
 | **Total Instruction Forms** | 740 |
 | **Instruction Groups** | 66 |
 | **Formats** | 16-bit Compressed · 32-bit Base · 48-bit HL · 64-bit Vector |
-| **Specification** | [v0.56 Contract →](architecture/v0.56-architecture-contract.md) |
+| **ISA Specification** | [Architecture Contract →](architecture/v0.56-architecture-contract.md) |
 | **Release Notes** | [v0.56.2 →](releases/v0.56.2.md) |
 
 </div>
@@ -102,12 +101,12 @@
 
 | | |
 |---|---|
-| **ISA Version** | v0.56.2 (see [Hardening Policy](architecture/v0.56-hardening-policy.md)) |
 | **Source** | [github.com/LinxISA/linx-isa](https://github.com/LinxISA/linx-isa) |
+| **ISA Specification** | [Architecture Contract](architecture/v0.56-architecture-contract.md) · [Hardening Policy](architecture/v0.56-hardening-policy.md) |
 | **ISA Manual Source** | [docs/architecture/isa-manual/src](https://github.com/LinxISA/linx-isa/tree/main/docs/architecture/isa-manual/src) (AsciiDoc) |
 | **QEMU Emulator** | [avs/qemu](https://github.com/LinxISA/linx-isa/tree/main/avs/qemu) |
-| **LLVM Backend** | [avs/compiler/linx-llvm](https://github.com/LinxISA/linx-isa/tree/main/avs/compiler/linx-llvm) |
-| **glibc Port** | [toolchains/glibc](https://github.com/LinxISA/linx-isa/tree/main/toolchains/glibc) |
-| **musl Port** | [toolchains/musl](https://github.com/LinxISA/linx-isa/tree/main/toolchains/musl) |
+| **LLVM Backend** | [compiler/llvm](https://github.com/LinxISA/linx-isa/tree/main/compiler/llvm) |
+| **glibc Port** | [lib/glibc](https://github.com/LinxISA/linx-isa/tree/main/lib/glibc) |
+| **musl Port** | [lib/musl](https://github.com/LinxISA/linx-isa/tree/main/lib/musl) |
 
-> **Note:** This site is generated from `linxisa-v0.56.json`. To edit the ISA specification, update the JSON source; pages regenerate automatically.
+> **Note:** This site is generated from `isa/v0.56/linxisa-v0.56.json`. To edit the ISA specification, update the JSON source; pages regenerate automatically.
