@@ -44,15 +44,15 @@ fi
 
 # Domain-submodule-only checks
 if [[ -d compiler ]]; then
-  extra="$(find compiler -mindepth 1 -maxdepth 1 -not -name llvm -print -quit)"
+  extra="$(find compiler -mindepth 1 -maxdepth 1 -not -name llvm -not -name ptoas -not -name .omx -print -quit)"
   if [[ -n "$extra" ]]; then
-    echo "error: compiler/ must contain only compiler/llvm (found: $extra)" >&2
+    echo "error: compiler/ contains unexpected entries (allowed: compiler/llvm, compiler/ptoas; found: $extra)" >&2
     fail=1
   fi
 fi
 
 if [[ -d emulator ]]; then
-  extra="$(find emulator -mindepth 1 -maxdepth 1 -not -name qemu -print -quit)"
+  extra="$(find emulator -mindepth 1 -maxdepth 1 -not -name qemu -not -name .omx -print -quit)"
   if [[ -n "$extra" ]]; then
     echo "error: emulator/ must contain only emulator/qemu (found: $extra)" >&2
     fail=1
@@ -60,7 +60,7 @@ if [[ -d emulator ]]; then
 fi
 
 if [[ -d rtl ]]; then
-  extra="$(find rtl -mindepth 1 -maxdepth 1 -not -name LinxCore -not -name README.md -print -quit)"
+  extra="$(find rtl -mindepth 1 -maxdepth 1 -not -name LinxCore -not -name README.md -not -name .omx -print -quit)"
   if [[ -n "$extra" ]]; then
     echo "error: rtl/ contains unexpected entries: $extra" >&2
     fail=1
@@ -73,6 +73,7 @@ fi
 
 expected_submodules=(
   "compiler/llvm"
+  "compiler/ptoas"
   "emulator/qemu"
   "kernel/linux"
   "rtl/LinxCore"

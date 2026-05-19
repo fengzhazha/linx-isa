@@ -411,105 +411,113 @@ def _describe_instruction(mnemonic: str, group: str, asm: str) -> str:
 # Page templates
 # ─────────────────────────────────────────────────────────────────────────────
 
-_INDEX_INTRO = """# LinxISA Instruction Reference
 
-> **ISA Version:** v0.56.2 &nbsp;|&nbsp; **Total forms:** 740 &nbsp;|&nbsp;
-> **Groups:** {n_groups} &nbsp;|&nbsp; **Formats:** 16-bit C. / 32-bit / 48-bit HL. / 64-bit V.
-
----
-
-## Manual Chapters
-
-The LinxISA manual is organized into numbered chapters. Browse instructions by chapter:
-
-| Ch | Chapter | Key Groups |
-|----|---------|-----------|
-| [03](encoding.md) | Encoding Formats | Bit numbering, instruction lengths, decode tags |
-| [04](groups/block_split.md) | Block ISA | `BSTART.*`, `BSTOP`, `B.IOR`, `B.TEXT`, `B.DIM`, tile/SIMT blocks |
-| [11](groups/load_register_offset.md) | AGU | Loads, stores, prefetch, all addressing modes |
-| [12](groups/arithmetic.md) | ALU | `ADD`, `SUB`, `MUL`, `DIV`, shifts, bit manip, `LUI`, `CSEL` |
-| [13](groups/floating_point_arithmetic.md) | FSU | Floating-point arithmetic, FMA, format conversion |
-| [14](groups/atomic.md) | AMO | `LR`/`SC`, atomic fetch-op, `CAS` |
-| [15](groups/c_bstart.md) | BBD | `C.BSTART.*`, `C.BSTOP`, block delimiters |
-| [16](groups/branch.md) | BRU | Branches, `CMP.*`, `SETC.*`, `SETRET`, `ADDTPC` |
-| [17](groups/block_control_attribute.md) | CMD | `B.CATR`, `B.DATR`, `B.HINT`, block attributes |
-| [18](groups/reserve.md) | RSV | `HL.BFI`, `HL.MIADD`, `HL.MISUB` |
-| [19](groups/execution_control.md) | SYS | `FENCE`, barriers, `EBREAK`, `ACR*`, cache/TLB maint. |
-| [20](groups/shuffle.md) | VEC | `V.*` vector forms, shuffles, reductions |
-
-## Browse by Group
-
-| Group | Forms | Group | Forms |
-|-------|-------|-------|-------|
-{group_table}
-
-## Quick Index
-
-Use **Ctrl+F** / **Cmd+F** to search, or browse the [full alphabetical list](instructions/index.md).
-
-### All Instructions ({count} forms)
-
-| Mnemonic | Group | Bits | Description |
-|----------|-------|------|-------------|
-{mnemonic_table}
-
----
-
-## Encoding Formats
-
-LinxISA has four instruction lengths:
-
-| Format | Bits | Composition | Example |
-|--------|------|-------------|---------|
-| **C.** | 16 | Single 16-bit part | `C.ADD`, `C.BSTART.FP` |
-| **Base** | 32 | Single 32-bit part | `ADD`, `LD`, `BSTART CALL` |
-| **HL.** | 48 | 16-bit prefix + 32-bit main | `HL.LDI`, `HL.CASB`, `HL.SETRET` |
-| **V.** | 64 | 32-bit prefix + 32-bit main | `V.ADD`, `V.FMADD`, `V.DIV` |
-
-### Field colour key
-
-![Encoding legend](wavedrom/encoding_legend.svg)
-
-- **Green** — destination register (rd, RegDst)
-- **Cyan** — first source register (rs1, SrcL)
-- **Teal** — second source register (rs2, SrcR)
-- **Orange** — third source / FMA operand (rs3, SrcD)
-- **Purple** — opcode / function field
-- **Pink** — shift amount (shamt)
-- **Amber** — immediate value (imm)
-- **Gray** — reserved / zeroed constant
-
-### Encoding notes
-
-- Bit positions are shown as `[msb:0]` (MSB left, LSB right), matching ARM and RISC-V conventions.
-- Field names are abbreviated inside coloured boxes (`rd`, `rs1`, `rs2`, `imm`, etc.).
-- Constant field values are shown in binary (≤4 bits) or hex (≥5 bits).
-- Gray fields are reserved and must be zero.
-"""
-
-
-def _render_index_page(
+def _build_index_page(
     groups: OrderedDict[str, list[dict]],
     instructions: list[dict],
     out_path: str,
 ) -> None:
-    # Build group table (two columns)
-    group_items = list(groups.items())
-    half = (len(group_items) + 1) // 2
-    left = group_items[:half]
-    right = group_items[half:]
+    """Build the ISA index page with hero, chapter grid, group grid, and mnemonics."""
+    n_groups = len(groups)
+    n_instr = len(instructions)
 
-    table_rows = []
-    for (lg, li), (rg, ri) in zip(left, right + [("", [])]):
-        lc = f"[{_slug(lg)}](groups/{_slug(lg)}.md)" if lg else ""
-        rc = f"[{_slug(rg)}](groups/{_slug(rg)}.md)" if rg else ""
-        table_rows.append(
-            f"| {lc} ({len(li)}) | {len(li)} | {rc} ({len(ri)}) | {len(ri)} |"
+    # ── Hero section ──────────────────────────────────────────────────────────
+    hero = """<!-- Hero Banner -->
+<div class="isa-hero">
+
+**ISA Version:** v0.56.2 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
+
+---
+
+Browse by chapter, instruction group, or search by mnemonic. Each instruction page includes its encoding diagram, assembly syntax, and description.
+
+**Jump to:** [Encoding Formats](encoding.md) · [Groups Index](groups/index.md) · [A–Z Index](instructions/index.md)
+
+</div>
+
+---
+
+## Browse by Chapter
+
+The LinxISA manual is organized into 12 chapters covering distinct functional units. Click any chapter to jump to its first instruction group.
+
+<div class="chapter-grid">
+
+[![](assets/ch03.svg){: style="width:120px;height:80px"} **Ch 03 — Encoding Formats**{.chapter-card style="--ch03-color:#64748b"}
+: Bit numbering, instruction lengths, decode tags, field colour key
+
+[![](assets/ch04.svg){: style="width:120px;height:80px"} **Ch 04 — Block ISA**{.chapter-card style="--ch04-color:#8b5cf6"}
+: BSTART, BSTOP, B.ARG, B.DIM, tile/SIMT control flow
+
+[![](assets/ch11.svg){: style="width:120px;height:80px"} **Ch 11 — AGU**{.chapter-card style="--ch11-color:#059669"}
+: Loads, stores, prefetch, all addressing modes
+
+[![](assets/ch12.svg){: style="width:120px;height:80px"} **Ch 12 — ALU**{.chapter-card style="--ch12-color:#0891b2"}
+: ADD, SUB, MUL, DIV, shifts, bit manip, LUI, CSEL
+
+[![](assets/ch13.svg){: style="width:120px;height:80px"} **Ch 13 — FSU**{.chapter-card style="--ch13-color:#0ea5e9"}
+: Floating-point arithmetic, FMA, format conversion
+
+[![](assets/ch14.svg){: style="width:120px;height:80px"} **Ch 14 — AMO**{.chapter-card style="--ch14-color:#e11d48"}
+: LR/SC, atomic fetch-op, CAS
+
+[![](assets/ch15.svg){: style="width:120px;height:80px"} **Ch 15 — BBD**{.chapter-card style="--ch15-color:#8b5cf6"}
+: C.BSTART, C.BSTOP, block delimiters
+
+[![](assets/ch16.svg){: style="width:120px;height:80px"} **Ch 16 — BRU**{.chapter-card style="--ch16-color:#7c3aed"}
+: Branches, CMP, SETC, SETRET, ADDTPC
+
+[![](assets/ch17.svg){: style="width:120px;height:80px"} **Ch 17 — CMD**{.chapter-card style="--ch17-color:#6366f1"}
+: B.CATR, B.DATR, B.HINT, block attributes
+
+[![](assets/ch18.svg){: style="width:120px;height:80px"} **Ch 18 — RSV**{.chapter-card style="--ch18-color:#a16207"}
+: HL.BFI, HL.MIADD, HL.MISUB
+
+[![](assets/ch19.svg){: style="width:120px;height:80px"} **Ch 19 — SYS**{.chapter-card style="--ch19-color:#dc2626"}
+: FENCE, barriers, EBREAK, ACR*, cache/TLB maintenance
+
+[![](assets/ch20.svg){: style="width:120px;height:80px"} **Ch 20 — VEC**{.chapter-card style="--ch20-color:#2563eb"}
+: V.* vector forms, shuffles, reductions, division
+
+</div>
+
+---
+
+## Browse by Group
+
+<div class="group-card-grid">
+"""
+
+    # ── Group card grid ─────────────────────────────────────────────────────
+    all_items = sorted(groups.items(), key=lambda x: x[0])
+    grid_items_html = []
+    for group, insts in all_items:
+        slug = _slug(group)
+        cnt = len(insts)
+        grid_items_html.append(
+            f"[{group} ({cnt})](groups/{slug}.md){{.group-card}}"
         )
-    if len(left) > len(right):
-        table_rows.append(f"| [{_slug(left[-1][0])}](groups/{_slug(left[-1][0])}.md) ({len(left[-1][1])}) | {len(left[-1][1])} | | |")
 
-    # Mnemonic table (first 3 per group for overview)
+    # 4 per row — join into groups of 4
+    grid_chunks = [grid_items_html[i:i+4] for i in range(0, len(grid_items_html), 4)]
+    grid_lines = [" ".join(chunk) for chunk in grid_chunks]
+    group_grid = hero + "\n".join(grid_lines) + """
+
+</div>
+
+See also: [Groups Index (detailed)](groups/index.md) · [All Instructions A–Z](instructions/index.md)
+
+---
+
+## Instruction Quick Index
+
+Use **Ctrl+F** / **Cmd+F** to search, or browse the [full alphabetical list](instructions/index.md).
+
+| Mnemonic | Group | Bits | Description |
+|----------|-------|------|-------------|
+"""
+
+    # ── Mnemonic table ───────────────────────────────────────────────────────
     mnem_rows = []
     for group, insts in groups.items():
         seen: set[str] = set()
@@ -520,21 +528,35 @@ def _render_index_page(
             seen.add(m)
             desc = _describe_instruction(m, group, inst.get("asm", ""))
             gslug = _slug(group)
+            bits = inst.get("length_bits", "?")
             mnem_rows.append(
-                f"| [{m}](instructions/{_slug(m)}.md) | {gslug} | {inst.get('length_bits', '?')} | {_collapse_ws(desc)} |"
+                f"| [{m}](instructions/{_slug(m)}.md) | {gslug} | {bits} | {_collapse_ws(desc)} |"
             )
             if len(seen) >= 5:
                 break
 
-    content = _INDEX_INTRO.format(
-        group_table="\n".join(table_rows),
-        mnemonic_table="\n".join(mnem_rows),
-        count=len(instructions),
-        n_groups=len(groups),
-    )
+    # Build full content
+    content_parts = [
+        "# LinxISA Instruction Reference",
+        "",
+        group_grid,
+        "\n".join(mnem_rows),
+        "",
+        "[View all 740 instructions →](instructions/index.md)",
+    ]
+
+    full_content = "\n".join(content_parts)
 
     with open(out_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(full_content)
+
+
+def _render_index_page(
+    groups: OrderedDict[str, list[dict]],
+    instructions: list[dict],
+    out_path: str,
+) -> None:
+    _build_index_page(groups, instructions, out_path)
 
 
 _ENCODING_PAGE = """# Instruction Encoding Formats
@@ -634,7 +656,6 @@ conflict-free allocation table.
 - [Instruction reference index](index.md)
 - [Encoding Space Analysis](../reference/encoding_space_report.md)
 """
-
 
 def _render_encoding_page(out_path: str) -> None:
     with open(out_path, "w", encoding="utf-8") as f:

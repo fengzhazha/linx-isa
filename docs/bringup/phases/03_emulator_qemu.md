@@ -10,6 +10,9 @@ Linx patch lineage is maintained in the LinxISA QEMU fork history, then pinned h
 
 1. Build Linx test object/executable.
 2. Run with `qemu-system-linx64 -machine virt -kernel <image>`.
+   For the merged Linx64 recovery lane, direct kernel/rootfs runs are
+   firmwareless by default and should include `-bios none` unless a specific
+   firmware artifact is intentionally under test.
 3. Validate output and exit status through AVS suites.
 
 ## Test entrypoints

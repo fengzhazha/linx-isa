@@ -7,7 +7,7 @@ This is the canonical navigation contract for contributors and agents.
 - `README.md` — workspace overview
 - `AGENTS.md` — agent-facing routing and guardrails
 - `avs/` — architectural verification suite
-- `compiler/` — upstream LLVM submodule (`compiler/llvm`)
+- `compiler/` — compiler-side submodules (`compiler/llvm`, `compiler/ptoas`)
 - `emulator/` — upstream QEMU submodule (`emulator/qemu`)
 - `kernel/` — upstream Linux submodule (`kernel/linux`)
 - `rtl/` — LinxCore submodule (`rtl/LinxCore`) + rtl notes
@@ -27,6 +27,7 @@ This is the canonical navigation contract for contributors and agents.
 
 - Freestanding libc support used by AVS/tests: `avs/runtime/freestanding/`
 - Linux libc source forks: `lib/glibc/`, `lib/musl/`
+- PTO assembler fork: `compiler/ptoas/`
 - PTO kernels/tools/headers (submodule): `workloads/pto_kernels/`
 - PTO header include root: `workloads/pto_kernels/include/`
 - LLVM opcode sync helper: `tools/isa/sync_generated_opcodes.sh`

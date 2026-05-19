@@ -22,12 +22,12 @@
 - [ ] ID: INT-004 Require `strict_cross_repo.sh` pass in strict closure.
   Command: `bash tools/regression/strict_cross_repo.sh`
   Done means: regression row is `pass` or explicitly waived via ledger.
-  Status: ❌ FAIL (2026-05-15) - the latest canonical run `2026-04-18-r9-pin-linuxlibc-refresh` still records `Regression::strict_cross_repo.sh` as fail because the required BusyBox rootfs gate fails in the same run. A diagnostic rerun that skips BusyBox (`docs/bringup/gates/logs/2026-04-17-r7-pin-recovery/pin/reg_strict_cross_repo.log`) reaches the downstream TSVC QEMU timeout, but that does not replace canonical release evidence.
+  Status: ❌ FAIL (2026-05-19 local) - the latest canonical run `2026-04-18-r9-pin-linuxlibc-refresh` still records `Regression::strict_cross_repo.sh` as fail because the required BusyBox rootfs gate fails in the same run. Current local follow-up moved the blocker chain forward again: the rootfs lane must use firmwareless QEMU boot (`-bios none`), the old `arch/linx/include/asm/bug.h` directive failure is fixed locally, the immediate SMP/VDSO source collisions are cleared, and the rebuilt kernel now advances beyond the first Linx MM/core API drifts, the earlier `fs/nfs` and `fs/lockd` SelectionDAG crashes, and the follow-on `lib/random32.o` crash. There is still no newer canonical strict-closure proof because the current first stop is later in the same backend crash family at `lib/hexdump.o` (`hex_to_bin`).
 
 - [ ] ID: INT-005 Emit per-run multi-agent closure summary JSON.
   Artifact: `docs/bringup/gates/logs/<run-id>/<lane>/multi_agent_summary.json`
   Done means: summary exists, `ok=true`, and includes waiver decisions.
-  Status: ❌ FAIL (2026-05-15) - the latest canonical summary exists, but it records `ok=false` because `Kernel::Linux busybox rootfs boot` is still failing without a waiver (artifact: `docs/bringup/gates/logs/2026-04-18-r9-pin-linuxlibc-refresh/pin/multi_agent_summary.json`). The later recovery probes did not emit a replacement `multi_agent_summary.json`, so there is still no newer green closure pack.
+  Status: ❌ FAIL (2026-05-17) - the latest canonical summary exists, but it records `ok=false` because `Kernel::Linux busybox rootfs boot` is still failing without a waiver (artifact: `docs/bringup/gates/logs/2026-04-18-r9-pin-linuxlibc-refresh/pin/multi_agent_summary.json`). The later recovery probes did not emit a replacement `multi_agent_summary.json`, so there is still no newer green closure pack. The 2026-05-17 local smoke iterations only provide non-canonical blocker triage for the post-`rest_init()` task-creation lane.
 
 - [x] ID: INT-006 Keep `docs/bringup/GATE_STATUS.md` generated from canonical JSON report.
   Command: `python3 tools/bringup/gate_report.py render --report docs/bringup/gates/latest.json --out-md docs/bringup/GATE_STATUS.md`

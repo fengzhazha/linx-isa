@@ -11,7 +11,7 @@ This document defines the navigation rules for AI agents and contributors workin
 
 ```
 avs/         # Architecture Validation Suite
-compiler/    # LLVM submodule
+compiler/    # LLVM + PTOAS submodules
 emulator/    # QEMU submodule
 kernel/      # Linux kernel submodule
 rtl/         # LinxCore RTL submodule
@@ -47,7 +47,7 @@ lib/         # Standard libraries (glibc, musl)
 | `emulator/linx-qemu` | Replaced by `emulator/qemu` submodule |
 | `examples/` | Replaced by `docs/reference/examples/` |
 | `models/` | Replaced by `tools/pyCircuit/` |
-| `toolchain/` | Replaced by `compiler/llvm` |
+| `toolchain/` | Replaced by `compiler/llvm` and `compiler/ptoas` |
 | `tests/` | Replaced by `avs/` |
 | `docs/validation/avs/` | Deprecated |
 | `tools/ctuning/` | Deprecated |
@@ -71,6 +71,7 @@ git submodule update --init --recursive
 # Pull latest from upstream remotes
 git submodule update --remote \
     compiler/llvm \
+    compiler/ptoas \
     emulator/qemu \
     kernel/linux \
     rtl/LinxCore \

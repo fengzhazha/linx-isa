@@ -1,75 +1,100 @@
 # LinxISA Instruction Reference
 
-> **ISA Version:** v0.56.2 &nbsp;|&nbsp; **Total forms:** 740 &nbsp;|&nbsp;
-> **Groups:** 66 &nbsp;|&nbsp; **Formats:** 16-bit C. / 32-bit / 48-bit HL. / 64-bit V.
+<!-- Hero Banner -->
+<div class="isa-hero">
+
+**ISA Version:** v0.56.2 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
 
 ---
 
-## Manual Chapters
+Browse by chapter, instruction group, or search by mnemonic. Each instruction page includes its encoding diagram, assembly syntax, and description.
 
-The LinxISA manual is organized into numbered chapters. Browse instructions by chapter:
+**Jump to:** [Encoding Formats](encoding.md) · [Groups Index](groups/index.md) · [A–Z Index](instructions/index.md)
 
-| Ch | Chapter | Key Groups |
-|----|---------|-----------|
-| [03](encoding.md) | Encoding Formats | Bit numbering, instruction lengths, decode tags |
-| [04](groups/block_split.md) | Block ISA | `BSTART.*`, `BSTOP`, `B.IOR`, `B.TEXT`, `B.DIM`, tile/SIMT blocks |
-| [11](groups/load_register_offset.md) | AGU | Loads, stores, prefetch, all addressing modes |
-| [12](groups/arithmetic.md) | ALU | `ADD`, `SUB`, `MUL`, `DIV`, shifts, bit manip, `LUI`, `CSEL` |
-| [13](groups/floating_point_arithmetic.md) | FSU | Floating-point arithmetic, FMA, format conversion |
-| [14](groups/atomic.md) | AMO | `LR`/`SC`, atomic fetch-op, `CAS` |
-| [15](groups/c_bstart.md) | BBD | `C.BSTART.*`, `C.BSTOP`, block delimiters |
-| [16](groups/branch.md) | BRU | Branches, `CMP.*`, `SETC.*`, `SETRET`, `ADDTPC` |
-| [17](groups/block_control_attribute.md) | CMD | `B.CATR`, `B.DATR`, `B.HINT`, block attributes |
-| [18](groups/reserve.md) | RSV | `HL.BFI`, `HL.MIADD`, `HL.MISUB` |
-| [19](groups/execution_control.md) | SYS | `FENCE`, barriers, `EBREAK`, `ACR*`, cache/TLB maint. |
-| [20](groups/shuffle.md) | VEC | `V.*` vector forms, shuffles, reductions |
+</div>
+
+---
+
+## Browse by Chapter
+
+The LinxISA manual is organized into 12 chapters covering distinct functional units. Click any chapter to jump to its first instruction group.
+
+<div class="chapter-grid">
+
+[![](assets/ch03.svg){: style="width:120px;height:80px"} **Ch 03 — Encoding Formats**{.chapter-card style="--ch03-color:#64748b"}
+: Bit numbering, instruction lengths, decode tags, field colour key
+
+[![](assets/ch04.svg){: style="width:120px;height:80px"} **Ch 04 — Block ISA**{.chapter-card style="--ch04-color:#8b5cf6"}
+: BSTART, BSTOP, B.ARG, B.DIM, tile/SIMT control flow
+
+[![](assets/ch11.svg){: style="width:120px;height:80px"} **Ch 11 — AGU**{.chapter-card style="--ch11-color:#059669"}
+: Loads, stores, prefetch, all addressing modes
+
+[![](assets/ch12.svg){: style="width:120px;height:80px"} **Ch 12 — ALU**{.chapter-card style="--ch12-color:#0891b2"}
+: ADD, SUB, MUL, DIV, shifts, bit manip, LUI, CSEL
+
+[![](assets/ch13.svg){: style="width:120px;height:80px"} **Ch 13 — FSU**{.chapter-card style="--ch13-color:#0ea5e9"}
+: Floating-point arithmetic, FMA, format conversion
+
+[![](assets/ch14.svg){: style="width:120px;height:80px"} **Ch 14 — AMO**{.chapter-card style="--ch14-color:#e11d48"}
+: LR/SC, atomic fetch-op, CAS
+
+[![](assets/ch15.svg){: style="width:120px;height:80px"} **Ch 15 — BBD**{.chapter-card style="--ch15-color:#8b5cf6"}
+: C.BSTART, C.BSTOP, block delimiters
+
+[![](assets/ch16.svg){: style="width:120px;height:80px"} **Ch 16 — BRU**{.chapter-card style="--ch16-color:#7c3aed"}
+: Branches, CMP, SETC, SETRET, ADDTPC
+
+[![](assets/ch17.svg){: style="width:120px;height:80px"} **Ch 17 — CMD**{.chapter-card style="--ch17-color:#6366f1"}
+: B.CATR, B.DATR, B.HINT, block attributes
+
+[![](assets/ch18.svg){: style="width:120px;height:80px"} **Ch 18 — RSV**{.chapter-card style="--ch18-color:#a16207"}
+: HL.BFI, HL.MIADD, HL.MISUB
+
+[![](assets/ch19.svg){: style="width:120px;height:80px"} **Ch 19 — SYS**{.chapter-card style="--ch19-color:#dc2626"}
+: FENCE, barriers, EBREAK, ACR*, cache/TLB maintenance
+
+[![](assets/ch20.svg){: style="width:120px;height:80px"} **Ch 20 — VEC**{.chapter-card style="--ch20-color:#2563eb"}
+: V.* vector forms, shuffles, reductions, division
+
+</div>
+
+---
 
 ## Browse by Group
 
-| Group | Forms | Group | Forms |
-|-------|-------|-------|-------|
-| [execution_control](groups/execution_control.md) (10) | 10 | [atomic](groups/atomic.md) (4) | 4 |
-| [arithmetic_operation_64bit](groups/arithmetic_operation_64bit.md) (21) | 21 | [concat](groups/concat.md) (2) | 2 |
-| [arithmetic_operation_32bit](groups/arithmetic_operation_32bit.md) (21) | 21 | [load_pc_relative](groups/load_pc_relative.md) (7) | 7 |
-| [pc_relative](groups/pc_relative.md) (4) | 4 | [load_post_index](groups/load_post_index.md) (19) | 19 |
-| [block_argument](groups/block_argument.md) (9) | 9 | [load_pre_index](groups/load_pre_index.md) (19) | 19 |
-| [block_control_attribute](groups/block_control_attribute.md) (1) | 1 | [load_long_offset](groups/load_long_offset.md) (12) | 12 |
-| [block_data_attribute](groups/block_data_attribute.md) (1) | 1 | [load_pair](groups/load_pair.md) (19) | 19 |
-| [branch](groups/branch.md) (10) | 10 | [long_immediate](groups/long_immediate.md) (2) | 2 |
-| [block_hint](groups/block_hint.md) (2) | 2 | [immediate](groups/immediate.md) (2) | 2 |
-| [block_input_output](groups/block_input_output.md) (5) | 5 | [prefetch](groups/prefetch.md) (4) | 4 |
-| [block_offset](groups/block_offset.md) (1) | 1 | [general](groups/general.md) (3) | 3 |
-| [cache_maintain](groups/cache_maintain.md) (16) | 16 | [store_pc_relative](groups/store_pc_relative.md) (4) | 4 |
-| [bit_operation](groups/bit_operation.md) (8) | 8 | [store_post_index](groups/store_post_index.md) (14) | 14 |
-| [block_split](groups/block_split.md) (45) | 45 | [store_pre_index](groups/store_pre_index.md) (14) | 14 |
-| [bstart](groups/bstart.md) (11) | 11 | [store_long_offset](groups/store_long_offset.md) (7) | 7 |
-| [arithmetic_operation](groups/arithmetic_operation.md) (20) | 20 | [store_pair](groups/store_pair.md) (14) | 14 |
-| [arithmetic](groups/arithmetic.md) (1) | 1 | [ssr_access](groups/ssr_access.md) (7) | 7 |
-| [block_dimension](groups/block_dimension.md) (2) | 2 | [load_register_offset](groups/load_register_offset.md) (22) | 22 |
-| [c_bstart](groups/c_bstart.md) (7) | 7 | [load_symbol](groups/load_symbol.md) (7) | 7 |
-| [c_tinst](groups/c_tinst.md) (6) | 6 | [atomic_operation](groups/atomic_operation.md) (68) | 68 |
-| [load_immediate_offset](groups/load_immediate_offset.md) (23) | 23 | [load_unscaled](groups/load_unscaled.md) (16) | 16 |
-| [move](groups/move.md) (3) | 3 | [store_register_offset](groups/store_register_offset.md) (21) | 21 |
-| [store_immediate_offset](groups/store_immediate_offset.md) (9) | 9 | [store_symbol](groups/store_symbol.md) (4) | 4 |
-| [set_commit_argument](groups/set_commit_argument.md) (26) | 26 | [bit_manipulation](groups/bit_manipulation.md) (8) | 8 |
-| [c_unary](groups/c_unary.md) (7) | 7 | [three_source_integer](groups/three_source_integer.md) (2) | 2 |
-| [compare_instruction](groups/compare_instruction.md) (40) | 40 | [division](groups/division.md) (2) | 2 |
-| [compound_operation](groups/compound_operation.md) (1) | 1 | [floating_point_arithmetic](groups/floating_point_arithmetic.md) (5) | 5 |
-| [multi_cycle_alu](groups/multi_cycle_alu.md) (28) | 28 | [three_source_floating_point](groups/three_source_floating_point.md) (8) | 8 |
-| [floating_point_arithmetic](groups/floating_point_arithmetic.md) (12) | 12 | [two_source_floating_point](groups/two_source_floating_point.md) (12) | 12 |
-| [format_convert](groups/format_convert.md) (12) | 12 | [general_manager](groups/general_manager.md) (2) | 2 |
-| [floating_point_compare](groups/floating_point_compare.md) (8) | 8 | [reduce_operation_with_register](groups/reduce_operation_with_register.md) (9) | 9 |
-| [max_min](groups/max_min.md) (6) | 6 | [store_offset](groups/store_offset.md) (14) | 14 |
-| [reserve](groups/reserve.md) (3) | 3 | [shuffle](groups/shuffle.md) (8) | 8 |
+<div class="group-card-grid">
+[Arithmetic (1)](groups/arithmetic.md){.group-card} [Arithmetic Operation (20)](groups/arithmetic_operation.md){.group-card} [Arithmetic Operation 32bit (21)](groups/arithmetic_operation_32bit.md){.group-card} [Arithmetic Operation 64bit (21)](groups/arithmetic_operation_64bit.md){.group-card}
+[Atomic (4)](groups/atomic.md){.group-card} [Atomic Operation (68)](groups/atomic_operation.md){.group-card} [BSTART (11)](groups/bstart.md){.group-card} [Bit Manipulation (8)](groups/bit_manipulation.md){.group-card}
+[Bit Operation (8)](groups/bit_operation.md){.group-card} [Block Argument (9)](groups/block_argument.md){.group-card} [Block Control Attribute (1)](groups/block_control_attribute.md){.group-card} [Block Data Attribute (1)](groups/block_data_attribute.md){.group-card}
+[Block Dimension (2)](groups/block_dimension.md){.group-card} [Block Hint (2)](groups/block_hint.md){.group-card} [Block Input & Output (5)](groups/block_input_output.md){.group-card} [Block Offset (1)](groups/block_offset.md){.group-card}
+[Block Split (45)](groups/block_split.md){.group-card} [Branch (10)](groups/branch.md){.group-card} [C.BSTART (7)](groups/c_bstart.md){.group-card} [C.TINST (6)](groups/c_tinst.md){.group-card}
+[C.UNARY (7)](groups/c_unary.md){.group-card} [Cache Maintain (16)](groups/cache_maintain.md){.group-card} [Compare Instruction (40)](groups/compare_instruction.md){.group-card} [Compound Operation (1)](groups/compound_operation.md){.group-card}
+[Concat (2)](groups/concat.md){.group-card} [Division (2)](groups/division.md){.group-card} [Execution Control (10)](groups/execution_control.md){.group-card} [Floating Point Arithmetic (5)](groups/floating_point_arithmetic.md){.group-card}
+[Floating-point Arithmetic (12)](groups/floating_point_arithmetic.md){.group-card} [Floating-point Compare (8)](groups/floating_point_compare.md){.group-card} [Format Convert (12)](groups/format_convert.md){.group-card} [General (3)](groups/general.md){.group-card}
+[General Manager (2)](groups/general_manager.md){.group-card} [Immediate (2)](groups/immediate.md){.group-card} [Load Immediate Offset (23)](groups/load_immediate_offset.md){.group-card} [Load Long Offset (12)](groups/load_long_offset.md){.group-card}
+[Load PC-Relative (7)](groups/load_pc_relative.md){.group-card} [Load Pair (19)](groups/load_pair.md){.group-card} [Load Post-Index (19)](groups/load_post_index.md){.group-card} [Load Pre-Index (19)](groups/load_pre_index.md){.group-card}
+[Load Register Offset (22)](groups/load_register_offset.md){.group-card} [Load Symbol (7)](groups/load_symbol.md){.group-card} [Load UnScaled (16)](groups/load_unscaled.md){.group-card} [Long Immediate (2)](groups/long_immediate.md){.group-card}
+[Max-Min (6)](groups/max_min.md){.group-card} [Move (3)](groups/move.md){.group-card} [Multi-Cycle ALU (28)](groups/multi_cycle_alu.md){.group-card} [PC-Relative (4)](groups/pc_relative.md){.group-card}
+[Prefetch (4)](groups/prefetch.md){.group-card} [RESERVE (3)](groups/reserve.md){.group-card} [Reduce Operation with Register (9)](groups/reduce_operation_with_register.md){.group-card} [SSR Access (7)](groups/ssr_access.md){.group-card}
+[Set Commit Argument (26)](groups/set_commit_argument.md){.group-card} [Shuffle (8)](groups/shuffle.md){.group-card} [Store Immediate Offset (9)](groups/store_immediate_offset.md){.group-card} [Store Long Offset (7)](groups/store_long_offset.md){.group-card}
+[Store Offset (14)](groups/store_offset.md){.group-card} [Store PC-Relative (4)](groups/store_pc_relative.md){.group-card} [Store Pair (14)](groups/store_pair.md){.group-card} [Store Post-Index (14)](groups/store_post_index.md){.group-card}
+[Store Pre-Index (14)](groups/store_pre_index.md){.group-card} [Store Register Offset (21)](groups/store_register_offset.md){.group-card} [Store Symbol (4)](groups/store_symbol.md){.group-card} [Three Source Integer (2)](groups/three_source_integer.md){.group-card}
+[Three-Source Floating Point (8)](groups/three_source_floating_point.md){.group-card} [Two-Source Floating Point (12)](groups/two_source_floating_point.md){.group-card}
 
-## Quick Index
+</div>
+
+See also: [Groups Index (detailed)](groups/index.md) · [All Instructions A–Z](instructions/index.md)
+
+---
+
+## Instruction Quick Index
 
 Use **Ctrl+F** / **Cmd+F** to search, or browse the [full alphabetical list](instructions/index.md).
 
-### All Instructions (740 forms)
-
 | Mnemonic | Group | Bits | Description |
 |----------|-------|------|-------------|
+
 | [ACRC](instructions/acrc.md) | execution_control | 32 | Architectural control (ring call). Calls an implementation-defined ACR. |
 | [ACRE](instructions/acre.md) | execution_control | 32 | Architectural control (ring entry). Enters an implementation-defined ACR. |
 | [ASSERT](instructions/assert.md) | execution_control | 32 | Architectural assertion. Traps if the condition register is zero. |
@@ -340,35 +365,4 @@ Use **Ctrl+F** / **Cmd+F** to search, or browse the [full alphabetical list](ins
 | [V.SHFL.UP](instructions/v_shfl_up.md) | shuffle | 64 | [64-bit V.] Instruction from the Shuffle group. |
 | [V.SHFLI.BFLY](instructions/v_shfli_bfly.md) | shuffle | 64 | [64-bit V.] Instruction from the Shuffle group. |
 
----
-
-## Encoding Formats
-
-LinxISA has four instruction lengths:
-
-| Format | Bits | Composition | Example |
-|--------|------|-------------|---------|
-| **C.** | 16 | Single 16-bit part | `C.ADD`, `C.BSTART.FP` |
-| **Base** | 32 | Single 32-bit part | `ADD`, `LD`, `BSTART CALL` |
-| **HL.** | 48 | 16-bit prefix + 32-bit main | `HL.LDI`, `HL.CASB`, `HL.SETRET` |
-| **V.** | 64 | 32-bit prefix + 32-bit main | `V.ADD`, `V.FMADD`, `V.DIV` |
-
-### Field colour key
-
-![Encoding legend](wavedrom/encoding_legend.svg)
-
-- **Green** — destination register (rd, RegDst)
-- **Cyan** — first source register (rs1, SrcL)
-- **Teal** — second source register (rs2, SrcR)
-- **Orange** — third source / FMA operand (rs3, SrcD)
-- **Purple** — opcode / function field
-- **Pink** — shift amount (shamt)
-- **Amber** — immediate value (imm)
-- **Gray** — reserved / zeroed constant
-
-### Encoding notes
-
-- Bit positions are shown as `[msb:0]` (MSB left, LSB right), matching ARM and RISC-V conventions.
-- Field names are abbreviated inside coloured boxes (`rd`, `rs1`, `rs2`, `imm`, etc.).
-- Constant field values are shown in binary (≤4 bits) or hex (≥5 bits).
-- Gray fields are reserved and must be zero.
+[View all 740 instructions →](instructions/index.md)

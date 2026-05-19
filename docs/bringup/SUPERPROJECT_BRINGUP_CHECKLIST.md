@@ -34,15 +34,15 @@ checklists for the module-specific closure criteria.
 
 | Area | Gate / ID | Current state | Triage note |
 | --- | --- | --- | --- |
-| Kernel | `Kernel::Linux busybox rootfs boot` / `LINUX-004` | Active blocker | Clean pinned QEMU/rootfs helpers run, but boot still trips kernel `E_BLOCK` after `/sbin/init`, currently at `__submit_bio` on `FRET.STK` with `ra=0`. |
-| Kernel | `Kernel::Linux \`vmlinux\` build closure` / `LINUX-005` | Not blocked | The clean-build helper passes in the April 18 canonical run. |
-| LLVM Linx target | `Compiler::AVS compile suites` + coverage | Not blocked | The active Bisheng compiler surface is `linx64`; the current in-repo compiler AVS lane and coverage are green for that registered target set. |
+| Kernel | `Kernel::Linux busybox rootfs boot` / `LINUX-004` | Active blocker | The rootfs lane still needs firmwareless boot (`-bios none`). Local follow-up has now cleared the earlier Linx parser/VDSO/page-table/API blockers, moved through the first `fs/nfs` and `fs/lockd` SelectionDAG crashes plus the follow-on `lib/random32.o` crash, and still has no new rootfs verdict because the rebuilt kernel stops later at `lib/hexdump.o`. |
+| Kernel | `Kernel::Linux \`vmlinux\` build closure` / `LINUX-005` | Active dependency | The April 18 canonical run is still the last green proof. Current local revalidation advances well beyond the old assembler, VDSO, and MM glue blockers; the current deterministic stop is now a later repeat of the same Linx SelectionDAG crash family in `lib/hexdump.o` (`hex_to_bin`) after local object-scoped vectorizer workarounds for earlier `fs/nfs`, `fs/lockd`, and `lib/random32.o` failures. |
+| LLVM Linx target | `Compiler::AVS compile suites` + coverage | Active dependency | The AVS/coverage lane remains green, and the local integrated-assembler compatibility gap is fixed for `.option push/pop/norelax` plus `.word/.half/.dword` parsing. The current compiler-side blocker for Linux closure is no longer parser acceptance; it is backend codegen stability on larger C files in `fs/nfs`. |
 | Strict closure | `Regression::strict_cross_repo.sh` / `INT-004` | Active blocker | The row fails because the required BusyBox rootfs gate fails in the same run. Do not revive the stale March Sail decode diagnosis unless it reproduces. |
 | Mixed tile + SIMT workloads | `Regression::PTO kernel parity` / `INT-020` | Not blocked | The April 18 canonical run records PTO parity as pass. |
 | SIMT autovec | `Regression::TSVC strict coverage gate` / `INT-025` | PR not blocked | PR closure uses compile-only strict coverage at `148/151`; QEMU runtime remains a separate nightly/runtime follow-up. |
 | QEMU baseline | `Emulator::QEMU all suites` + `QEMU strict system` | Not blocked | Baseline runtime/system gates are green; the remaining QEMU issue for this lane is TSVC runtime reproduction, not broad decode expansion. |
 | Superproject breadth | `ISA::AVS tier closure` / `INT-016` | PR not blocked | PR-tier closure is green at `31/31`; nightly breadth remains `32/54`. |
-| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-003` | Nightly/runtime blocker | The PR run leaves this row opt-in; known follow-up remains 9p `E_BLOCK` in `___slab_alloc` and initramfs child-startup failure. |
+| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-003` | Nightly/runtime blocker | The PR run leaves this row opt-in. Current 2026-05-17 non-canonical evidence is split: static `999.specrand_ir` now reaches the same late kernel task-creation stall as smoke bring-up, while dynamic `531.deepsjeng_r` is still blocked earlier because `phase-c` hosted musl packaging has no `libc.so`. |
 
 ## 1. Keep Gate Truth Current
 
@@ -85,7 +85,7 @@ Exit criteria:
     --target vmlinux
   ```
 
-- [ ] Reproduce the current BusyBox rootfs failure with the clean helper path:
+- [ ] Reproduce the current BusyBox rootfs failure with the clean helper path and firmwareless QEMU boot:
 
   ```bash
   QEMU="$(bash tools/bringup/run_qemu_build_clean.sh \
@@ -96,11 +96,11 @@ Exit criteria:
     --linux-root "$PWD/kernel/linux" \
     --out-dir /tmp/linx-linux-rootfs-clean-out \
     --llvm-build "$PWD/compiler/llvm/build-linxisa-clang")" \
-  SKIP_BUILD=1 QEMU="$QEMU" \
+  SKIP_BUILD=1 QEMU="$QEMU" QEMU_EXTRA_ARGS='-bios none' \
     python3 kernel/linux/tools/linxisa/busybox_rootfs/boot.py
   ```
 
-- [ ] Keep initramfs smoke/full boot green while iterating:
+- [ ] Keep initramfs smoke/full boot green while iterating, and treat them as the proof that the blocker is specific to the virtio-blk/ext2 userspace lane rather than the minimal BusyBox binary.
 
   ```bash
   python3 kernel/linux/tools/linxisa/initramfs/smoke.py

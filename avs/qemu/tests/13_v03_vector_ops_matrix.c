@@ -8,6 +8,24 @@
 
 #include "linx_test.h"
 
+#define LINX_V03_ASM_WRAPPER(name, body, cont) \
+    __asm__(                                   \
+        ".p2align 2\n"                         \
+        ".globl " #name "\n"                   \
+        #name ":\n"                            \
+        body                                   \
+        "  C.BSTART DIRECT, " #name "_cont\n"  \
+        "  C.BSTOP\n"                          \
+        #name "_cont:\n"                       \
+        "  C.BSTART.STD\n"                     \
+        cont                                   \
+        "  C.BSTART DIRECT, " #name "_ret\n"   \
+        "  C.BSTOP\n"                          \
+        #name "_ret:\n"                        \
+        "  C.BSTART.STD RET\n"                 \
+        "  c.setc.tgt ra\n"                    \
+        "  C.BSTOP\n");
+
 __asm__(
     ".p2align 3\n"
     ".globl __linx_v03_ops_add_sub_body\n"
@@ -39,6 +57,46 @@ __asm__(
     "  v.sw.brg vt#1.sd, [ri0.sd, lc0<<2, zero.sd]\n"
     "  C.BSTOP\n");
 
+extern void linx_v03_launch_ops_add_sub(uint64_t a_base, uint64_t b_base,
+                                        uint64_t sum_base,
+                                        uint64_t diff_base);
+LINX_V03_ASM_WRAPPER(
+    linx_v03_launch_ops_add_sub,
+    "  C.BSTART\n"
+    "  BSTART.MSEQ 0\n"
+    "  B.TEXT __linx_v03_ops_add_sub_body\n"
+    "  B.IOR [a0, a1, a2],[]\n"
+    "  B.IOR [a3],[]\n"
+    "  C.B.DIMI 32, ->lb0\n"
+    "  C.BSTART\n",
+    "")
+
+extern void linx_v03_launch_ops_float(uint64_t src_base, uint64_t dst_base,
+                                      uint64_t add_f32, uint64_t mul_f32);
+LINX_V03_ASM_WRAPPER(
+    linx_v03_launch_ops_float,
+    "  C.BSTART\n"
+    "  BSTART.MSEQ 0\n"
+    "  B.TEXT __linx_v03_ops_float_body\n"
+    "  B.IOR [a0, a1, a2],[]\n"
+    "  B.IOR [a3],[]\n"
+    "  C.B.DIMI 32, ->lb0\n"
+    "  C.BSTART\n",
+    "")
+
+extern uint64_t linx_v03_launch_ops_mixed_pred(uint64_t out_base,
+                                               uint64_t threshold);
+LINX_V03_ASM_WRAPPER(
+    linx_v03_launch_ops_mixed_pred,
+    "  C.BSTART\n"
+    "  addi zero, 0, ->a7\n"
+    "  BSTART.MSEQ 0\n"
+    "  B.TEXT __linx_v03_ops_mixed_pred_body\n"
+    "  B.IOR [a0, a1],[]\n"
+    "  C.B.DIMI 32, ->lb0\n"
+    "  C.BSTART\n",
+    "  add a7, zero, ->a0\n")
+
 static void test_v_add_sub_matrix(void)
 {
     enum { N = 32 };
@@ -60,16 +118,7 @@ static void test_v_add_sub_matrix(void)
     const uint64_t sum_base = (uint64_t)(uintptr_t)&sum[0];
     const uint64_t diff_base = (uint64_t)(uintptr_t)&diff[0];
 
-    __asm__ volatile(
-        "BSTART.MSEQ 0\n"
-        "B.TEXT __linx_v03_ops_add_sub_body\n"
-        "B.IOR [%0, %1, %2],[]\n"
-        "B.IOR [%3],[]\n"
-        "C.B.DIMI 32, ->lb0\n"
-        "C.BSTART\n"
-        :
-        : "r"(a_base), "r"(b_base), "r"(sum_base), "r"(diff_base)
-        : "memory");
+    linx_v03_launch_ops_add_sub(a_base, b_base, sum_base, diff_base);
 
     for (unsigned i = 0; i < N; i++) {
         TEST_EQ32(sum[i], a[i] + b[i], 0x1301u + i);
@@ -94,16 +143,7 @@ static void test_v_float_matrix(void)
     const uint64_t add_f32 = 0x3f800000u; /* +1.0f */
     const uint64_t mul_f32 = 0x40000000u; /* *2.0f */
 
-    __asm__ volatile(
-        "BSTART.MSEQ 0\n"
-        "B.TEXT __linx_v03_ops_float_body\n"
-        "B.IOR [%0, %1, %2],[]\n"
-        "B.IOR [%3],[]\n"
-        "C.B.DIMI 32, ->lb0\n"
-        "C.BSTART\n"
-        :
-        : "r"(src_base), "r"(dst_base), "r"(add_f32), "r"(mul_f32)
-        : "memory");
+    linx_v03_launch_ops_float(src_base, dst_base, add_f32, mul_f32);
 
     for (unsigned i = 0; i < N; i++) {
         union {
@@ -127,19 +167,8 @@ static void test_v_mixed_scalar_vector_predicate(void)
 
     const uint64_t out_base = (uint64_t)(uintptr_t)&out[0];
     const uint64_t threshold = 12u;
-    uint64_t lane_counter = 0u;
-
-    __asm__ volatile(
-        "addi zero, 0, ->a7\n"
-        "BSTART.MSEQ 0\n"
-        "B.TEXT __linx_v03_ops_mixed_pred_body\n"
-        "B.IOR [%1, %2],[]\n"
-        "C.B.DIMI 32, ->lb0\n"
-        "C.BSTART\n"
-        "add a7, zero, ->%0\n"
-        : "=r"(lane_counter)
-        : "r"(out_base), "r"(threshold)
-        : "a7", "memory");
+    const uint64_t lane_counter =
+        linx_v03_launch_ops_mixed_pred(out_base, threshold);
 
     TEST_EQ64(lane_counter, N, 0x1360);
 

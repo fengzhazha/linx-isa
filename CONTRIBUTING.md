@@ -8,7 +8,7 @@ compiler (LLVM), emulator (QEMU), Linux, RTL, libc, and validation suites.
 - Follow the repository navigation policy: `docs/project/navigation.md`
 - Do **not** introduce new top-level directories (CI enforces layout)
 - Prefer **submodule-first** changes:
-  1. Land the change in the appropriate repo (e.g. `emulator/qemu`, `compiler/llvm`, `kernel/linux`)
+  1. Land the change in the appropriate repo (e.g. `emulator/qemu`, `compiler/llvm`, `compiler/ptoas`, `kernel/linux`)
   2. Bump the submodule SHA in this superproject
 
 ## Local checks (required for PRs)

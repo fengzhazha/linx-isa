@@ -58,18 +58,41 @@
 
 <div class="chapter-grid">
 
-[![](assets/ch03.svg) **Ch 03 — Encoding Formats** — Bit numbering, instruction lengths, decode tags](isa/encoding.md) {.chapter-card style="--ch03-color:#64748b"}
-[![](assets/ch04.svg) **Ch 04 — Block ISA** — BSTART, BSTOP, B.ARG, B.DIM, tile/SIMT control flow](isa/groups/block_split.md) {.chapter-card style="--ch04-color:#8b5cf6"}
-[![](assets/ch11.svg) **Ch 11 — AGU** — Loads, stores, prefetch, all addressing modes](isa/groups/load_register_offset.md) {.chapter-card style="--ch11-color:#059669"}
-[![](assets/ch12.svg) **Ch 12 — ALU** — ADD, SUB, MUL, DIV, shifts, bit manip, LUI, CSEL](isa/groups/arithmetic.md) {.chapter-card style="--ch12-color:#0891b2"}
-[![](assets/ch13.svg) **Ch 13 — FSU** — Floating-point arithmetic, FMA, format conversion](isa/groups/floating_point_arithmetic.md) {.chapter-card style="--ch13-color:#0ea5e9"}
-[![](assets/ch14.svg) **Ch 14 — AMO** — LR/SC, atomic fetch-op, CAS](isa/groups/atomic.md) {.chapter-card style="--ch14-color:#e11d48"}
-[![](assets/ch15.svg) **Ch 15 — BBD** — C.BSTART, C.BSTOP, block delimiters](isa/groups/c_bstart.md) {.chapter-card style="--ch15-color:#8b5cf6"}
-[![](assets/ch16.svg) **Ch 16 — BRU** — Branches, CMP, SETC, SETRET, ADDTPC](isa/groups/branch.md) {.chapter-card style="--ch16-color:#7c3aed"}
-[![](assets/ch17.svg) **Ch 17 — CMD** — B.CATR, B.DATR, B.HINT, block attributes](isa/groups/block_control_attribute.md) {.chapter-card style="--ch17-color:#6366f1"}
-[![](assets/ch18.svg) **Ch 18 — RSV** — HL.BFI, HL.MIADD, HL.MISUB](isa/groups/reserve.md) {.chapter-card style="--ch18-color:#a16207"}
-[![](assets/ch19.svg) **Ch 19 — SYS** — FENCE, barriers, EBREAK, ACR\*, cache/TLB maintenance](isa/groups/execution_control.md) {.chapter-card style="--ch19-color:#dc2626"}
-[![](assets/ch20.svg) **Ch 20 — VEC** — V.\* vector forms, shuffles, reductions, division](isa/groups/shuffle.md) {.chapter-card style="--ch20-color:#2563eb"}
+[![](assets/ch03.svg){: style="width:120px;height:80px"} **Ch 03 — Encoding Formats**{.chapter-card style="--ch03-color:#64748b"}
+: Bit numbering, instruction lengths, decode tags, field colour key
+
+[![](assets/ch04.svg){: style="width:120px;height:80px"} **Ch 04 — Block ISA**{.chapter-card style="--ch04-color:#8b5cf6"}
+: BSTART, BSTOP, B.ARG, B.DIM, tile/SIMT control flow
+
+[![](assets/ch11.svg){: style="width:120px;height:80px"} **Ch 11 — AGU**{.chapter-card style="--ch11-color:#059669"}
+: Loads, stores, prefetch, all addressing modes
+
+[![](assets/ch12.svg){: style="width:120px;height:80px"} **Ch 12 — ALU**{.chapter-card style="--ch12-color:#0891b2"}
+: ADD, SUB, MUL, DIV, shifts, bit manip, LUI, CSEL
+
+[![](assets/ch13.svg){: style="width:120px;height:80px"} **Ch 13 — FSU**{.chapter-card style="--ch13-color:#0ea5e9"}
+: Floating-point arithmetic, FMA, format conversion
+
+[![](assets/ch14.svg){: style="width:120px;height:80px"} **Ch 14 — AMO**{.chapter-card style="--ch14-color:#e11d48"}
+: LR/SC, atomic fetch-op, CAS
+
+[![](assets/ch15.svg){: style="width:120px;height:80px"} **Ch 15 — BBD**{.chapter-card style="--ch15-color:#8b5cf6"}
+: C.BSTART, C.BSTOP, block delimiters
+
+[![](assets/ch16.svg){: style="width:120px;height:80px"} **Ch 16 — BRU**{.chapter-card style="--ch16-color:#7c3aed"}
+: Branches, CMP, SETC, SETRET, ADDTPC
+
+[![](assets/ch17.svg){: style="width:120px;height:80px"} **Ch 17 — CMD**{.chapter-card style="--ch17-color:#6366f1"}
+: B.CATR, B.DATR, B.HINT, block attributes
+
+[![](assets/ch18.svg){: style="width:120px;height:80px"} **Ch 18 — RSV**{.chapter-card style="--ch18-color:#a16207"}
+: HL.BFI, HL.MIADD, HL.MISUB
+
+[![](assets/ch19.svg){: style="width:120px;height:80px"} **Ch 19 — SYS**{.chapter-card style="--ch19-color:#dc2626"}
+: FENCE, barriers, EBREAK, ACR\*, cache/TLB maintenance
+
+[![](assets/ch20.svg){: style="width:120px;height:80px"} **Ch 20 — VEC**{.chapter-card style="--ch20-color:#2563eb"}
+: V.\* vector forms, shuffles, reductions, division
 
 </div>
 
