@@ -1,4 +1,8 @@
 /* Hide the Material secondary table-of-contents pane. */
+:root {
+  --linx-bitfield-row-height: 5.5rem;
+}
+
 .md-sidebar--secondary {
   display: none !important;
 }
@@ -151,12 +155,40 @@
   display: block;
   height: auto;
   max-width: 100%;
-  width: 100%;
+  width: auto;
 }
 
 .md-typeset p:has(> img[src*="figs/bitfield/svg/"]) {
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
   margin: 1.1rem 0;
   width: 100%;
+}
+
+.md-typeset img[src*="figs/bitfield/svg/BlockHeader_16bit/"],
+.md-typeset img[src*="figs/bitfield/svg/BlockHeader_32bit/"],
+.md-typeset img[src*="figs/bitfield/svg/DecodeType_16bit/"],
+.md-typeset img[src*="figs/bitfield/svg/DecodeType_32bit/"],
+.md-typeset img[src*="figs/bitfield/svg/Instruction_16bit/"],
+.md-typeset img[src*="figs/bitfield/svg/Instruction_32bit/"],
+.md-typeset img[src*="figs/bitfield/svg/Instruction_48bit_16/"],
+.md-typeset img[src*="figs/bitfield/svg/Instruction_48bit_32/"] {
+  height: var(--linx-bitfield-row-height);
+  max-width: none;
+  width: auto;
+}
+
+.md-typeset img[src*="figs/bitfield/svg/BlockHeader_64bit/"],
+.md-typeset img[src*="figs/bitfield/svg/Instruction_64bit/"] {
+  height: calc(var(--linx-bitfield-row-height) * 2);
+  max-width: none;
+  width: auto;
+}
+
+.md-typeset img[src*="figs/bitfield/svg/Sysregs/"] {
+  height: calc(var(--linx-bitfield-row-height) * 1.5);
+  max-width: none;
+  width: auto;
 }
 
 .linx-home-encoding {
@@ -178,8 +210,9 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   display: block;
-  height: auto;
-  width: 100%;
+  height: var(--linx-bitfield-row-height);
+  max-width: none;
+  width: auto;
 }
 
 .linx-home-encoding figcaption {
