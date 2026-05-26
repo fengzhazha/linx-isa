@@ -6,12 +6,12 @@ header instruction of the vector data block is used to define the execution mode
 
 header for vector parallel block:
 ```asm
-VPAR .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc,
+VPAR .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc0, DepSrc1, DepSrc2,
                                           ->DstTile0<TileSize0>, ..., DstTile3<TileSize3>, [BSetList], DepDst
 ```
 header for vector serial block:
 ```asm
-VSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc,
+VSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc0, DepSrc1, DepSrc2,
                                           ->DstTile0<TileSize0>, ..., DstTile3<TileSize3>, [BSetList], DepDst
 ```
 
@@ -31,7 +31,7 @@ Each assembly parameter is described as follows:
 | **TileSize0, ..., TileSize3** | Indicates the space size of each output Tile register respectively. The parameter can be passed through a `立即数` or `全局寄存器`. | Depends on DstTile |
 | **[BGetList]** | Global register [GGPR](../../register/common/ggpr.md) input list. | Yes |
 | **[BSetList]** | Global register [GGPR](../../register/common/ggpr.md) output list. | Yes |
-| **DepSrc** | Indicates the dependence of this block instruction on the previous block instruction output to D. | Yes |
+| **DepSrc0, DepSrc1, DepSrc2** | Up to three dependency-source slots that refer to previous block-instruction outputs to `D`. | Yes |
 | **DepDst** | Indicates the barrier of this block instruction to the block instruction that references this identifier in subsequent sequences. | Yes |
 
 ## Encoding method
@@ -47,7 +47,7 @@ A complete vector data block instructionheader needs to be split into the follow
 - [B.IOR](../../header/B.IOR.md) `RegSrc0, RegSrc1, RegSrc2, ->RegDst0`
 - `...`
 - [B.IOR](../../header/B.IOR.md) `RegSrc9, RegSrc10, RegSrc11, ->RegDst4`
-- [B.IOD](../../header/B.IOD.md) `DepSrc, ->DepDst`.
+- [B.IOD](../../header/B.IOD.md) `DepSrc0, DepSrc1, DepSrc2, ->DepDst`.
 
 Among them, the encoding format of the BSTART.VPAR instruction is as follows:
 

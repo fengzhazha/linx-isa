@@ -6,7 +6,7 @@ Since the vector data block does not support direct access to the memory space i
 
 How to apply for register for header:
 
-- Like other types of Tile registers, block instruction applies to use the S register through the [B.IOT/B.IOTI] (../../header/B.IOT.md) instruction.
+- Like other Tile-register classes, a block allocates S-register capacity through the canonical [B.IOT](../../header/B.IOT.md) descriptor.
 - The S register is private to the block instruction that applied for it, that is, the S register is only visible to this block and not to other blocks.
 - The S register is released with the commit of the block instruction that requested it.
 - The B.IOT instruction applies for the stack space size used within a Group, and the total space size of the S register requires hardware calculation.
@@ -30,8 +30,8 @@ VPAR <LB0:64, LB1:64>, T#1, U#1, ->T<16KB>, S<8KB>
 BSTART.VPAR
 B.DIM zero, 64,  ->LB0
 B.DIM zero, 64,  ->LB1
-B.IOTI T#1, U#1, ->T<16KB>
-B.IOTI last,     ->S<8KB>    # 每个group申请的S-Tile空间8KB
+B.IOT T#1, U#1, ->T<16KB>
+B.IOT last,     ->S<8KB>    # 每个group申请的S-Tile空间8KB
 ```
 
 Access memory within the block through the formal parameter TS:

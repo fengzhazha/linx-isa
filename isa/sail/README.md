@@ -1,10 +1,10 @@
-# LinxISA Sail Model (v0.56.2)
+# LinxISA Sail Model (v0.56.4)
 
-This directory contains the active **Sail** formal and executable model for the canonical LinxISA `v0.56.2` profile.
+This directory contains the active **Sail** formal and executable model for the canonical LinxISA `v0.56.4` profile.
 
 Scope policy:
 
-- The Sail model is an executable reference for `v0.56.2` semantics and legality checks.
+- The Sail model is an executable reference for `v0.56.4` semantics and legality checks.
 - Semantic readiness is tracked only in `isa/sail/semantics_status.json`.
 - Coverage is tracked as data in `isa/sail/coverage.json`.
 

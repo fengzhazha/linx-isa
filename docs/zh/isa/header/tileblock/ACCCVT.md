@@ -15,7 +15,7 @@
 ## 汇编语法
 
 ```asm
-ACCCVT Layout.{canon, normal}, <LB0:Row, LB1:Col, SrcType, DstType>, ACC, [RegSrc], DepSrc,
+ACCCVT Layout.{canon, normal}, <LB0:Row, LB1:Col, SrcType, DstType>, ACC, [RegSrc], DepSrc0, DepSrc1, DepSrc2,
                                ->DstTile0<TileSize0>, DstTile1<TileSize1>, DepDst
 ```
 
@@ -34,7 +34,7 @@ ACCCVT Layout.{canon, normal}, <LB0:Row, LB1:Col, SrcType, DstType>, ACC, [RegSr
 - **DstTile1**：指示第二个输出的[Tile 寄存器](../../register/common/tilereg.md)类型，可选T, U, M, N。用于存储RowMax结果，如果不执行RowMax则缺省。
 - **TileSize0**：指示第一个输出[Tile 寄存器](../../register/common/tilereg.md)的空间大小，可以通过立即数或者全局寄存器传参。
 - **TileSize1**：指示第二个输出[Tile 寄存器](../../register/common/tilereg.md)的空间大小，可以通过立即数或者全局寄存器传参。跟随DstTile1缺省。
-- **DepSrc**：表示本块指令对前序输出至D的块指令的依赖。
+- **DepSrc0 / DepSrc1 / DepSrc2**：表示本块指令最多显式记录 3 个前序 `D` 依赖槽位。
 - **DepDst**：表示本块指令对后序引用该标识的块指令的屏障。
 
 输入ACC寄存器中元素的数据格式（SrcType）可以是以下几种：
@@ -72,7 +72,7 @@ ACCCVT Layout.{canon, normal}, <LB0:Row, LB1:Col, SrcType, DstType>, ACC, [RegSr
 - [B.IOT](../../header/B.IOT.md) , ->DstTile0< TileSize0>
 - [B.IOT](../../header/B.IOT.md) last, ->DstTile1< TileSize1>
 - [B.IOR](../../header/B.IOR.md) RegSrc
-- [B.IOD](../../header/B.IOD.md) DepSrc, ->DepDst
+- [B.IOD](../../header/B.IOD.md) DepSrc0, DepSrc1, DepSrc2, ->DepDst
 
 ## 布局与数据类型
 

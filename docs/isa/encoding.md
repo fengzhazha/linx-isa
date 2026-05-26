@@ -1,6 +1,6 @@
 # Instruction Encoding Formats
 
-> **ISA Version:** v0.56.2 &nbsp;|&nbsp; **Chapter 03** of the ISA Manual
+> **ISA Version:** v0.56.4 &nbsp;|&nbsp; **Chapter 03** of the ISA Manual
 
 LinxISA v0.56 supports four instruction lengths in a little-endian
 halfword-oriented model. Bit positions are shown as `[msb:0]`

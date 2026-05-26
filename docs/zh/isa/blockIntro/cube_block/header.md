@@ -5,7 +5,7 @@
 ## 汇编格式
 
 ```asm
-TileOp <LB0:arg0, LB1:arg1, LB2:arg2, DataType>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, DepSrc, 
+TileOp <LB0:arg0, LB1:arg1, LB2:arg2, DataType>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, DepSrc0, DepSrc1, DepSrc2, 
                                      ->DstTile0<TileSize0>, ..., DstTile3<TileSize3>, DepDst
 ```
 
@@ -22,7 +22,7 @@ TileOp <LB0:arg0, LB1:arg1, LB2:arg2, DataType>, SrcTile0<.reuse>, ..., SrcTile7
 | **reuse** | 当本指令执行结束后相应的输入Tile寄存器不允许被释放则需要增加该标识。如无此标识，则表示允许硬件释放本寄存器。 | 是 |
 | **DstTile0, ..., DstTile3** | 分别指示最多4个输出Tile寄存器类型 | 可选T, U, M, N或ACC。 | 是 |
 | **TileSize0, ..., TileSize3** | 分别指示每个输出Tile寄存器的空间大小，可以通过一个 `立即数`或者`全局寄存器`传参。 | 取决于DstTile |
-| **DepSrc** | 表示本块指令对前序输出至D的块指令的依赖。 | 是 |
+| **DepSrc0, DepSrc1, DepSrc2** | 表示本块指令最多显式记录 3 个前序 `D` 依赖槽位。 | 是 |
 | **DepDst** | 表示本块指令对后序引用该标识的块指令的屏障。 | 是 |
 
 ## 编码方式
@@ -37,7 +37,7 @@ TileOp <LB0:arg0, LB1:arg1, LB2:arg2, DataType>, SrcTile0<.reuse>, ..., SrcTile7
 - [B.IOT](../../header/B.IOT.md) SrcTile0<.reuse>, SrcTile1<.reuse>, ->DstTile0< TileSize0>
 - ...
 - [B.IOT](../../header/B.IOT.md) SrcTile6<.reuse>, SrcTile7<.reuse>, last, ->DstTile3< TileSize3>
-- [B.IOD](../../header/B.IOD.md) DepSrc, ->DepDst
+- [B.IOD](../../header/B.IOD.md) DepSrc0, DepSrc1, DepSrc2, ->DepDst
 
 其中，BSTART.CUBE指令的编码格式如下：
 

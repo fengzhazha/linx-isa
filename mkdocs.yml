@@ -1197,7 +1197,9 @@ nav:
             - TSTORE: isa/header/tileblock/TSTORE.md
             - TMOV: isa/header/tileblock/TMOV.md
             - MGATHER: isa/header/tileblock/MGATHER.md
+            - MGATHER.MASK: isa/header/tileblock/MGATHER.MASK.md
             - MSCATTER: isa/header/tileblock/MSCATTER.md
+            - MSCATTER.MASK: isa/header/tileblock/MSCATTER.MASK.md
         - 复杂操作:
             - THISTOGRAM: isa/header/tileblock/THISTOGRAM.md
     - 模版指令集:
@@ -1234,7 +1236,7 @@ nav:
                 #- Block类型伪指令: compiler/assembly_manual/block_type.md
                 #- 输入寄存器伪指令bget: compiler/assembly_manual/bget.md
                 #- 输出到寄存器伪指令bset: compiler/assembly_manual/bset.md
-                - 块属性伪指令B.ATTR: compiler/assembly_manual/battr.md
+                - 块控制属性伪指令B.CATR: compiler/assembly_manual/battr.md
                 #- 提示信息伪指令bhint: compiler/assembly_manual/bhint.md
                 #- 内存写入投机屏障伪指令: compiler/assembly_manual/bsbar.md
                 - 块头示例: compiler/assembly_manual/example.md

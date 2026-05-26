@@ -11,12 +11,12 @@
 
 | | |
 |---|---|
-| **ISA Version** | v0.56.2 |
+| **ISA Version** | v0.56.4 |
 | **Total Instruction Forms** | 740 |
 | **Instruction Groups** | 66 |
 | **Formats** | 16-bit Compressed · 32-bit Base · 48-bit HL · 64-bit Vector |
 | **Specification** | [v0.56 Contract →](architecture/v0.56-architecture-contract.md) |
-| **Release Notes** | [v0.56.2 →](releases/v0.56.2.md) |
+| **Release Notes** | [v0.56.4 →](releases/v0.56.4.md) |
 
 </div>
 
@@ -102,7 +102,7 @@
 
 | | |
 |---|---|
-| **ISA Version** | v0.56.2 (see [Hardening Policy](architecture/v0.56-hardening-policy.md)) |
+| **ISA Version** | v0.56.4 (see [Hardening Policy](architecture/v0.56-hardening-policy.md)) |
 | **Source** | [github.com/LinxISA/linx-isa](https://github.com/LinxISA/linx-isa) |
 | **ISA Manual Source** | [docs/architecture/isa-manual/src](https://github.com/LinxISA/linx-isa/tree/main/docs/architecture/isa-manual/src) (AsciiDoc) |
 | **QEMU Emulator** | [avs/qemu](https://github.com/LinxISA/linx-isa/tree/main/avs/qemu) |

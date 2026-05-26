@@ -75,7 +75,7 @@ Indicates whether the conditional jump meets the conditions:
 
 ### 7. **AQ,RL**
 
-Record the execution sequence attributes of this block and other block instruction, set by header instruction[B.ATTR](../../header/B.ATTR.md).
+Record the execution sequence attributes of this block and other block instructions, set by the header instruction [B.CATR](../../header/B.CATR.md).
 
 ### 8. **RegDst0~3**
 

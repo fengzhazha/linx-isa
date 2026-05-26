@@ -8,7 +8,7 @@
 ## 汇编语法
 
 ```asm
-    TSCATTER <Row:arg0, Col:arg1, Dep:arg2, DataType>, SrcTile0<.reuse>, SrcTile1<.reuse>, DepSrc, ->DstTile<TileSize>, DepDst
+    TSCATTER <Row:arg0, Col:arg1, Dep:arg2, DataType>, SrcTile0<.reuse>, SrcTile1<.reuse>, DepSrc0, DepSrc1, DepSrc2, ->DstTile<TileSize>, DepDst
 ```
 
 ## 汇编符号
@@ -23,7 +23,7 @@
 - **reuse**（后缀）：指示当前指令提交后保留寄存器（若无此标识，允许硬件自动释放）。
 - **DstTile**：指示输出的[Tile 寄存器](../../register/common/tilereg.md)。
 - **TileSize**：指示输出的Tile寄存器的空间大小，可以通过`立即数`或者`全局寄存器`设置。
-- **DepSrc**：表示本块指令对前序输出至D的块指令的依赖。
+- **DepSrc0 / DepSrc1 / DepSrc2**：表示本块指令最多显式记录 3 个前序 `D` 依赖槽位。
 - **DepDst**：表示本块指令对后序引用该标识的块指令的屏障。
 
 | DataType | 说明 |

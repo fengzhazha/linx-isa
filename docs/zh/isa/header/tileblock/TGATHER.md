@@ -8,7 +8,7 @@
 ## 汇编语法
 
 ```asm
-    TGATHER <Row:arg0, Col:arg1, Dep:arg2, DataType>, SrcTile0<.reuse>, SrcTile1<.reuse>, DepSrc, ->DstTile, DepDst
+    TGATHER <Row:arg0, Col:arg1, Dep:arg2, DataType>, SrcTile0<.reuse>, SrcTile1<.reuse>, DepSrc0, DepSrc1, DepSrc2, ->DstTile, DepDst
 ```
 
 ## 汇编符号
@@ -23,7 +23,7 @@
 - **SrcTile1**：指示第二个输入的[Tile 寄存器](../../register/common/tilereg.md)。
 - **reuse**（后缀）：指示当前指令提交后保留寄存器（若无此标识，允许硬件自动释放）。
 - **DstTile**：指示输出的[Tile 寄存器](../../register/common/tilereg.md)。
-- **DepSrc**：表示本块指令对前序输出至D的块指令的依赖。
+- **DepSrc0 / DepSrc1 / DepSrc2**：表示本块指令最多显式记录 3 个前序 `D` 依赖槽位。
 - **DepDst**：表示本块指令对后序引用该标识的块指令的屏障。
 
 | DataType | 说明 |
@@ -50,7 +50,7 @@
 - [B.DIM](../../header/B.DIM.md) `reg, imm, ->Col`。
 - [B.DIM](../../header/B.DIM.md) `reg, imm, ->Dep`。
 - [B.IOT](../../header/B.IOT.md) `SrcTile<.reuse>, group=0, ->DstTile<TileSize>`。
-- [B.IOD](../../header/B.IOD.md) `DepSrc, ->DepDst`。
+- [B.IOD](../../header/B.IOD.md) `DepSrc0, DepSrc1, DepSrc2, ->DepDst`。
  -->
 
 ## 执行模型

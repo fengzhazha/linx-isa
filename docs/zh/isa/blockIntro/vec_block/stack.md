@@ -6,7 +6,7 @@
 
 块头申请寄存器的方法：
 
-- 与其他类型的Tile寄存器一样，块指令通过[B.IOT/B.IOTI](../../header/B.IOT.md)指令来申请使用S寄存器。
+- 与其他类型的 Tile 寄存器一样，块指令通过规范的 [B.IOT](../../header/B.IOT.md) 描述符来申请使用 S 寄存器。
 - S寄存器被申请它的块指令所私有，即S寄存器只对本块可见，其他块不可见。
 - S寄存器随着申请它的块指令提交而释放。
 - B.IOT指令上申请的是一个Group内使用的栈空间大小，S寄存器总空间大小需要硬件计算。
@@ -30,8 +30,8 @@ VPAR <LB0:64, LB1:64>, T#1, U#1, ->T<16KB>, S<8KB>
 BSTART.VPAR
 B.DIM zero, 64,  ->LB0
 B.DIM zero, 64,  ->LB1
-B.IOTI T#1, U#1, ->T<16KB>
-B.IOTI last,     ->S<8KB>    # 每个group申请的S-Tile空间8KB
+B.IOT T#1, U#1, ->T<16KB>
+B.IOT last,     ->S<8KB>    # 每个group申请的S-Tile空间8KB
 ```
 
 块内通过形参TS访存：

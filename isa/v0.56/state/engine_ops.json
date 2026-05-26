@@ -93,7 +93,7 @@
       "7": "RHB"
     }
   },
-  "note": "Authoritative semantic catalog for accelerator engine ops in LinxISA v0.56.2.",
+  "note": "Authoritative semantic catalog for accelerator engine ops in LinxISA v0.56.4.",
   "profile": "v0.56",
   "tepl": {
     "kind": "TileOpcode",
