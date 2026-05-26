@@ -10,19 +10,19 @@ B.IOD(*Block Input and Output Dependency*)<br>
 ## 汇编语法
 
 ```asm
-    B.IOD DepSrc, ->DepDst
+    B.IOD DepSrc0, DepSrc1, DepSrc2, ->DepDst
 ```
 
 ## 汇编符号
 
-- **DepSrc**：表示本块指令对前序输出至D的块指令的依赖。
+- **DepSrc0 / DepSrc1 / DepSrc2**：表示本块指令最多可显式记录 3 个前序 D 依赖槽位。未使用的槽位编码为 0。
 - **DepDst**：表示本块指令对后序引用该标识的块指令的屏障。
 
 ## 编码格式
 
 ![B.IOD](../../figs/bitfield/svg/BlockHeader_32bit/B.IOD.svg)
 
-依赖关系表:
+依赖关系表（单个依赖槽位的编码含义）:
 
 | 输入输出编码 | DepSrc  | DepDst  |
 |-------------|---------|---------|
@@ -39,13 +39,5 @@ B.IOD(*Block Input and Output Dependency*)<br>
 
 ## 汇编示例
 
-示例：
-```asm
-    ...
-    TSTORE T#1, [a2], ->D            ; I0
-    TLOAD [a3], D#1,  ->T<64B>       ; I1, 等待I0提交后执行
-    TABS    T#1,        ->T<64B>       ; I2
-    TLOAD [a3], D#1,  ->T<128B>, D   ; I3, 等待I0提交后执行
-    ...
-    TSTORE T#1, [a0], D#1            ; I4, 等待I3提交后执行
-```
+当前 v0.56 golden 将 `B.IOD` 建模为 3 个显式依赖输入槽位加 1 个输出屏障槽位。
+高层块语法如果只表达单个 `D#n` 依赖，应在编码时映射到 `DepSrc0`，其余依赖槽位置 0。

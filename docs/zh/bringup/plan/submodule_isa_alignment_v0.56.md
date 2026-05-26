@@ -39,6 +39,61 @@
 6. 仅在经过必要的检查和门控证据后才压缩合并超级项目 PR
    是绿色的。
 
+## 立即执行的 v0.56.4 更新车道
+
+### LLVM repin 车道（`ea930273ec2acffa98491bf7057894dbd3f54c90`）
+
+目标：把编译器车道从目录版本对齐推进到可 repin 的候选提交，同时保持现有
+编译闭包不回退，并清掉当前剩余的编译侧阻塞项。
+
+1. 先把 `compiler/llvm` 规范化到正确的上游分支，再处理本地 cherry-pick
+   或重生成产物。
+2. 将刷新后的 `isa/v0.56/linxisa-v0.56.json` 目录重新导入 LLVM 后端里
+   消费操作码/寄存器元数据的表面。
+3. 重新运行当前 pin 已通过的编译证明集：
+   `avs/compiler/linx-llvm/tests/run.sh`（`linx32`、`linx64`），
+   `analyze_coverage.py` 100%，以及辅助工具构建
+   （`llvm-ar`、`llvm-nm`、`llvm-readelf`、`llvm-strip`）。
+4. 排查当前严格 PR 车道的剩余编译侧阻塞项：
+   `python3 workloads/tsvc/run_tsvc.py ... --no-run-qemu`。
+5. 只有在 LLVM 自有仓库先落上游提交，并且保持上述证明集与 TSVC gate
+   通过后，才回 pin 超级项目。
+
+退出条件：
+
+- `linx32` / `linx64` 编译 AVS 通过；
+- 编译覆盖率保持 100%；
+- LLVM 辅助工具构建通过；
+- TSVC 严格 gate 在候选提交上通过。
+
+### QEMU repin 车道（`12b28e847e2e94bed322da122b147f00a9633727`）
+
+目标：落地运行时侧的 `v0.56.4` 目录更新，并清掉当前阻止 repin 的严格 PR
+车道运行时阻塞项。
+
+1. 先从刷新后的 `isa/v0.56/linxisa-v0.56.json` 目录重生成 QEMU 侧的
+   opcode/decode 元数据，再改运行时行为。
+2. 使用
+   `tools/bringup/run_qemu_build_clean.sh --qemu-root emulator/qemu`
+   重新构建候选 QEMU。
+3. 重新运行运行时证明集：
+   `avs/qemu/run_tests.sh --all --timeout 10` 和
+   `avs/qemu/check_system_strict.sh`。
+4. 把当前 all-suites timeout 作为第一优先级的运行时 repin 阻塞项。严格
+   车道在当前 pin 已经能稳定走到这个失败点。
+5. BusyBox / 全系统启动回归仍然保留在范围内，但在 PR stop path 的超时
+   问题解决后再继续推进。当前仓库注记把该回归定位在
+   `finish_task_switch` / `FRET.STK` 附近。
+6. 只有在 QEMU 自有仓库先落上游提交，并且运行时 AVS 与 strict-system
+   gate 清绿后，才回 pin 超级项目。
+
+退出条件：
+
+- 候选提交可干净重建 QEMU；
+- `avs/qemu/run_tests.sh --all --timeout 10` 通过；
+- `avs/qemu/check_system_strict.sh` 通过；
+- Linux 启动后续检查没有新增回归。
+
 ## 当前风险
 
 - 多个实现子模块当前包含未提交的本地编辑；

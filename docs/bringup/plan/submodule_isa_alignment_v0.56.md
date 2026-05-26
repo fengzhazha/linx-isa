@@ -39,6 +39,62 @@ stack with the canonical v0.56 ISA manual and generated encoding catalog.
 6. Squash-merge the superproject PR only after required checks and gate evidence
    are green.
 
+## Immediate v0.56.4 Update Tracks
+
+### LLVM repin track (`ea930273ec2acffa98491bf7057894dbd3f54c90`)
+
+Goal: move the compiler lane from catalog-version parity to a repin candidate
+that still holds the current compile closure and clears the remaining
+regression-side blocker.
+
+1. Normalize `compiler/llvm` onto its intended upstream branch before any local
+   cherry-picks or regenerated artifacts are staged.
+2. Re-import the refreshed `isa/v0.56/linxisa-v0.56.json` catalog into the
+   backend surfaces that consume opcode/register metadata.
+3. Re-run the compiler proof set that already passes at the current pin:
+   `avs/compiler/linx-llvm/tests/run.sh` for both `linx32` and `linx64`,
+   `analyze_coverage.py` at 100%, and the auxiliary tool build
+   (`llvm-ar`, `llvm-nm`, `llvm-readelf`, `llvm-strip`).
+4. Investigate the remaining PR-lane compiler-side regression gate:
+   `python3 workloads/tsvc/run_tsvc.py ... --no-run-qemu`, which is the next
+   blocker reached by the strict lane after the current fixes.
+5. Only repin the superproject after the owning LLVM repository has an upstream
+   commit that preserves the compiler proof set and the TSVC gate.
+
+Exit criteria:
+
+- compile AVS passes for `linx32` and `linx64`,
+- compiler coverage remains 100%,
+- LLVM auxiliary tools build cleanly,
+- TSVC strict gate passes at the candidate commit.
+
+### QEMU repin track (`12b28e847e2e94bed322da122b147f00a9633727`)
+
+Goal: land the runtime-side `v0.56.4` catalog update and clear the strict PR
+lane blockers that are still stopping repin readiness.
+
+1. Regenerate the QEMU-side opcode/decode metadata from the refreshed
+   `isa/v0.56/linxisa-v0.56.json` catalog before changing runtime behavior.
+2. Rebuild the pinned emulator with
+   `tools/bringup/run_qemu_build_clean.sh --qemu-root emulator/qemu`.
+3. Re-run the runtime proof set:
+   `avs/qemu/run_tests.sh --all --timeout 10` and
+   `avs/qemu/check_system_strict.sh`.
+4. Treat the current all-suites timeout as the first runtime repin blocker.
+   The strict lane already reaches this failure at the current pin.
+5. Keep the BusyBox/full-OS regression in scope, but treat it as a follow-on
+   runtime blocker after the PR-stop-path timeout is resolved. Current repo
+   notes localize that regression near `finish_task_switch` / `FRET.STK`.
+6. Only repin after the owning QEMU repository has an upstream commit that
+   clears the AVS runtime and strict-system gates.
+
+Exit criteria:
+
+- clean QEMU rebuild from the candidate commit,
+- `avs/qemu/run_tests.sh --all --timeout 10` passes,
+- `avs/qemu/check_system_strict.sh` passes,
+- no new regression is introduced in the Linux boot follow-on checks.
+
 ## Current Risks
 
 - Several implementation submodules currently contain uncommitted local edits;

@@ -27,7 +27,7 @@ LinxISA 把程序组织成一组组块指令。每个块同时说明控制流、
 
 <section class="linx-home-strip" markdown="1">
 <div markdown="1">
-**v0.56.2**
+**v0.56.4**
 : 当前公开规范版本
 </div>
 <div markdown="1">

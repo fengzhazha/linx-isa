@@ -3,7 +3,7 @@
 <!-- Hero Banner -->
 <div class="isa-hero">
 
-**ISA Version:** v0.56.2 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
+**ISA Version:** v0.56.4 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
 
 ---
 

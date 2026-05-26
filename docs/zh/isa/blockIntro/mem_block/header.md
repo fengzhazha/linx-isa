@@ -6,12 +6,12 @@
 
 访存并行块的块头：
 ```asm
-MPAR .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc,
+MPAR .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc0, DepSrc1, DepSrc2,
                                           ->DstTile0<TileSize0>, ..., DstTile3<TileSize3>, [BSetList], DepDst
 ```
 访存串行块的块头：
 ```asm
-MSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc,
+MSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., SrcTile7<.reuse>, [BGetList], DepSrc0, DepSrc1, DepSrc2,
                                           ->DstTile0<TileSize0>, ..., DstTile3<TileSize3>, [BSetList], DepDst
 ```
 
@@ -31,7 +31,7 @@ MSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., Sr
 | **TileSize0, ..., TileSize3** | 分别指示每个输出Tile寄存器的空间大小，可以通过一个 `立即数`或者`全局寄存器`传参。 | 取决于DstTile |
 | **[BGetList]** | 全局寄存器[GGPR](../../register/common/ggpr.md)输入列表。 | 是 |
 | **[BSetList]** | 全局寄存器[GGPR](../../register/common/ggpr.md)输出列表。 | 是 |
-| **DepSrc** | 表示本块指令对前序输出至D的块指令的依赖。 | 是 |
+| **DepSrc0, DepSrc1, DepSrc2** | 表示本块指令最多显式记录 3 个前序 `D` 依赖槽位。 | 是 |
 | **DepDst** | 表示本块指令对后序引用该标识的块指令的屏障。 | 是 |
 
 ## 编码方式
@@ -49,7 +49,7 @@ MSEQ .body, <LB0:arg0, LB1:arg1, LB2:arg2, VSize, DR>, SrcTile0<.reuse>, ..., Sr
 - [B.IOR](../../header/B.IOR.md) `RegSrc0, RegSrc1, RegSrc2, ->RegDst0`
 - `...`
 - [B.IOR](../../header/B.IOR.md) `RegSrc9, RegSrc10, RegSrc11, ->RegDst4`
-- [B.IOD](../../header/B.IOD.md) `DepSrc, ->DepDst`。
+- [B.IOD](../../header/B.IOD.md) `DepSrc0, DepSrc1, DepSrc2, ->DepDst`。
 
 其中，BSTART.MPAR指令的编码格式如下：
 

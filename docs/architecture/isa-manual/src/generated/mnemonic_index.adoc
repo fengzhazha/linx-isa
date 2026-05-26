@@ -3,7 +3,7 @@
 [[mnemonic-index]]
 === Mnemonic index
 
-This table lists unique mnemonics in the v0.56.2 catalog. Each mnemonic may have multiple encodable forms (different lengths, operand layouts, or suffix variants).
+This table lists unique mnemonics in the v0.56.4 catalog. Each mnemonic may have multiple encodable forms (different lengths, operand layouts, or suffix variants).
 
 [cols="2,3,1,1",options="header"]
 |===

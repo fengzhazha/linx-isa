@@ -54,8 +54,6 @@ def canonicalize_mnemonic(mnemonic: str) -> str:
         ):
             s = candidate
     s = s.upper()
-    if s == "B.ATTR":
-        return "B.ARG"
     if s == "BSTART.AUX":
         return "BSTART.SYS"
     if s == "C.BSTART.AUX":

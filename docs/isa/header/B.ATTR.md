@@ -1,3 +1,10 @@
-# Imported Placeholder
+# B.ATTR
 
-This compatibility page is retained so older internal references continue to resolve while the standalone manual structure stays stable.
+This page is retained only as a compatibility placeholder for older links.
+
+`B.ATTR` is not a live v0.56 descriptor. The canonical split is:
+
+- [B.CATR](B.CATR.md) for block control attributes
+- [B.DATR](B.DATR.md) for block data attributes
+
+Do not use `B.ATTR` in new v0.56 golden, docs, or tooling updates.

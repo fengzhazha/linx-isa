@@ -153320,7 +153320,7 @@
       "allocation_model": "dynamic_per_descriptor",
       "count": 64,
       "depth_per_hand": 16,
-      "description": "LinxISA v0.56.2 tile registers. 64 logical tiles organized as T/U/M/N hands with 16 queue entries per hand; each active tile has dynamic descriptor-defined capacity under the per-thread total-capacity limit.",
+      "description": "LinxISA v0.56.4 tile registers. 64 logical tiles organized as T/U/M/N hands with 16 queue entries per hand; each active tile has dynamic descriptor-defined capacity under the per-thread total-capacity limit.",
       "entries": [
         {
           "code": 0,
@@ -153716,14 +153716,14 @@
       "max_size_bytes": 262144,
       "min_size_bytes": 256,
       "notes": [
-        "v0.56.2 architectural tile register file: 64 logical tiles (T/U/M/N hands x depth 16).",
+        "v0.56.4 architectural tile register file: 64 logical tiles (T/U/M/N hands x depth 16).",
         "Source tile fields in B.IOT are 6-bit values: T#1..T#16=0..15, U#1..U#16=16..31, M#1..M#16=32..47, N#1..N#16=48..63.",
         "Single active tile capacity is descriptor-defined in the range 256B..256KB for normal non-empty tiles; imm4=0 denotes an empty 0B output tile.",
         "All active tiles in one thread must fit within 512KB total tile capacity.",
-        "The legacy zero-based tile names names are not canonical in v0.56.2."
+        "The legacy zero-based tile names names are not canonical in v0.56.4."
       ],
       "physical_contiguity": "each active tile occupies contiguous physical storage",
-      "source": "/Users/zhoubot/Documents/linxisa.csv plus LinxISA 0.56/0.56.1/0.56.2 changelog",
+      "source": "/Users/zhoubot/Documents/linxisa.csv plus LinxISA 0.56/0.56.1/0.56.2/0.56.4 changelog",
       "total_active_bytes_max": 524288
     }
   },
@@ -153734,8 +153734,8 @@
         "Architectural state is intentionally minimal here: this repo treats the compiled catalog as the primary machine-readable source.",
         "v0.56 keeps the v0.2 architectural baseline and promotes the canonical shader-kernel and rendering contracts.",
         "Contradictory raw legacy fragments are archived history only and are reserved/illegal in canonical v0.56.",
-        "v0.56.2 updates PRED so each lane carries plen[1:0] plus p0..p3 mask bits.",
-        "v0.56.2 replaces the fixed 32-tile/4KB model with 64 logical tiles and dynamic capacity descriptors."
+        "v0.56.4 keeps PRED with plen[1:0] plus p0..p3 mask bits.",
+        "v0.56.4 keeps the 64-logical-tile model with dynamic capacity descriptors."
       ],
       "state": {
         "block_control_predicate": {
@@ -154008,7 +154008,7 @@
           "7": "RHB"
         }
       },
-      "note": "Authoritative semantic catalog for accelerator engine ops in LinxISA v0.56.2.",
+      "note": "Authoritative semantic catalog for accelerator engine ops in LinxISA v0.56.4.",
       "profile": "v0.56",
       "tepl": {
         "kind": "TileOpcode",
@@ -155605,7 +155605,7 @@
         "v0.56 staged profile system registers (SSR) and trap envelope definitions.",
         "v0.56 staged profile preserves the v0.2 ACR/EBARG/TRAPNO baseline while integrating reconciled AI-extension semantics.",
         "This file is the canonical source for SSR IDs, EBARG layout, and TRAPNO encoding used by the ISA manual, QEMU, Linux, and LLVM.",
-        "v0.56.2 assigns SSR 0x0050 to BLOCKNUM and 0x0051 to BLOCKID.",
+        "v0.56.4 assigns SSR 0x0050 to BLOCKNUM and 0x0051 to BLOCKID.",
         "Prior LB/LC SSR IDs are not reused in this profile without an explicit v0.56 assignment source."
       ],
       "ssr": {
@@ -155854,7 +155854,7 @@
             "description": "Loop/lane boundary register 0 (bring-up).",
             "id": "0x0050",
             "name": "LB0",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           },
           {
@@ -155862,7 +155862,7 @@
             "description": "Loop/lane boundary register 1 (bring-up).",
             "id": "0x0051",
             "name": "LB1",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           },
           {
@@ -155870,7 +155870,7 @@
             "description": "Loop/lane boundary register 2 (bring-up).",
             "id": "0x0052",
             "name": "LB2",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           },
           {
@@ -155878,7 +155878,7 @@
             "description": "Loop/lane counter register 0 (bring-up).",
             "id": "0x0053",
             "name": "LC0",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           },
           {
@@ -155886,7 +155886,7 @@
             "description": "Loop/lane counter register 1 (bring-up).",
             "id": "0x0054",
             "name": "LC1",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           },
           {
@@ -155894,7 +155894,7 @@
             "description": "Loop/lane counter register 2 (bring-up).",
             "id": "0x0055",
             "name": "LC2",
-            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.2",
+            "v0.56_status": "reserved_pending_architectural_id_assignment; 0x0050/0x0051 are BLOCKNUM/BLOCKID in v0.56.4",
             "width_bits": 64
           }
         ]
@@ -156002,5 +156002,5 @@
       "xlen_bits": 64
     }
   },
-  "version": "0.56.2"
+  "version": "0.56.4"
 }

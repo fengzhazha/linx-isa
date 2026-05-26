@@ -4,73 +4,70 @@
 
 **内存聚集（Gather from Memory to Tile）**
 
-`MGATHER` 用于从离散的内存空间中聚集数据，并连续写入输出数据块（Tile）中。 
+`MGATHER` 是一条基于间接寻址的数据聚集指令。它以基地址寄存器
+（`RegSrc`）为内存起始地址，以输入 Tile（`SrcTile`）中存储的一组偏移量
+（offset）为索引，从离散的内存位置逐一读取数据元素，并按 offset 在
+`SrcTile` 中的行列顺序连续写入输出 Tile（`DstTile`）的对应位置，从而将
+稀疏分布的内存数据聚合为稠密的二维 Tile 数据块。
+
+该指令只对 `[0, validRow) x [0, validCol)` 的有效区域执行访存；超出有效
+区域的输出位置写入 `PadValue`。
 
 ## 汇编语法
 
 ```asm
-MGATHER <LB0:Col, LB1:Row, DataType>, SrcTile<.reuse>, [RegSrc], DepSrc, ->DstTile<Size>, DepDst
+MGATHER <LB0:validCol, LB1:validRow, LB2:Col, DataType, PadValue>, SrcTile<.reuse>, [RegSrc], ->DstTile<Size>
 ```
 
 ## 汇编符号
 
 | 参数 | 说明 | 是否可选 |
 |------|-----|-----------|
-| **Col** | 输出Tile寄存器中数据的列数，也是输入Tile寄存器中offset的列数。该值可以通过全局寄存器[GGPR](../../register/common/ggpr.md)加立即数的方式进行设置，并存储到LB0寄存器。 | 否 |
-| **Row** | 输出Tile寄存器中数据的行数，也是输入Tile寄存器中offset的行数。该值可以通过全局寄存器[GGPR](../../register/common/ggpr.md)加`立即数`的方式进行设置，存储到LB1寄存器。 | 是，默认为1 |
+| **validCol** | 有效列数，表示输出 Tile 中有效数据的列数，也是输入 Tile 中有效 offset 的列数。该值通过 `LB0` 传入。 | 否 |
+| **validRow** | 有效行数，表示输出 Tile 中有效数据的行数，也是输入 Tile 中有效 offset 的行数。该值通过 `LB1` 传入。 | 是，默认为 1 |
+| **Col** | 输出 Tile 每行的物理列数（包含填充列）。该值通过 `LB2` 传入。 | 是，默认等于 `validCol` |
+| **Row** | 输出 Tile 的物理行数（包含填充行）。硬件通过 `Size / (Col * sizeof(DataType))` 自动推导。 | 否（硬件推导） |
 | **DataType** | 从内存中收集的元素的数据类型/格式。 | 否 |
-| **RegSrc** | 输入全局寄存器GGPR，用于存储收集数据的内存基地址baseAddress。 | 否 |
-| **SrcTile** | 输入Tile 寄存器，用于存储一组基于baseAddress的偏移(offset)。 | 否 |
-| **DstTile** | 输出Tile 寄存器，用于存储聚集得到的数据。 | 否 |
-| **Size** | 指示输出Tile寄存器的大小。该值必须大于等于Row * Col * sizeof(DataType) | 否 |
-| **DepSrc** | 表示本块指令对前序输出至D的块指令的依赖。 | 是 |
-| **DepDst** | 表示本块指令对后序引用该标识的块指令的屏障。 | 是 |
+| **PadValue** | DstTile 中位于有效区域之外的填充值。可选值为 `Null`、`Zero`、`Max`、`Min`。 | 是，默认 `Null` |
+| **RegSrc** | 输入全局寄存器 GGPR，用于存储收集数据的内存基地址 `baseAddress`。 | 否 |
+| **SrcTile** | 输入 Tile 寄存器，用于存储一组基于 `baseAddress` 的偏移量。 | 否 |
+| **DstTile** | 输出 Tile 寄存器，用于存储聚集得到的数据。 | 否 |
+| **Size** | 输出 Tile 的大小，必须等于 `Row * Col * sizeof(DataType)`。 | 否 |
 
-其中DataType的可选类型如下表：
-
-| 数据位宽 | 类型列表 |
-|----------|------------|
-| b64 | S64, U64, FP64 |
-| b32 | S32, U32, FP32, TF32, HF32 |
-| b16 | S16, U16, FP16, BF16 |
-| b8  | S8,  U8,  FP8(E4M3, E5M2), E8M0, HiF8, HiF4x2, E1M2x2, E2M1x2, S4x2, U4x2 |
-
----
+`SrcTile` 中 offset 的位宽由写入该 Tile 时使用的元素位宽决定，规范形式
+支持 `u16`、`u32` 和 `u64`。
 
 ## 编码格式
 
-该TileOp编码为以下指令：
+该 TileOp 编码为以下指令：
 
 - [BSTART.TMA](../../blockIntro/tma_block/header.md) `MGATHER, DataType`
-- [B.DIM](../../header/B.DIM.md) `reg, imm, ->LB0`
-- [B.DIM](../../header/B.DIM.md) `reg, imm, ->LB1`
+- [B.DATR](../../header/B.DATR.md) `PadValue` *（可选）*
+- [B.DIM](../../header/B.DIM.md) `reg, imm, ->LB0` *（`validCol`）*
+- [B.DIM](../../header/B.DIM.md) `reg, imm, ->LB1` *（`validRow`）*
+- [B.DIM](../../header/B.DIM.md) `reg, imm, ->LB2` *（`Col`，可选）*
 - [B.IOT](../../header/B.IOT.md) `SrcTile<.reuse>, last, ->DstTile<Size>`
 - [B.IOR](../../header/B.IOR.md) `RegSrc`
-- [B.IOD](../../header/B.IOD.md) `DepSrc, ->DepDst`
-
----
 
 ## 执行模型
 
-本指令执行过程通过伪代码示意如下：
-
 ```c
-// dst：用于存储聚集数据的输出Tile
-// base: 收集数据的基地址
-// src: 存储离散的地址偏移的输入Tile
-void MGATHER(Tile __out__ dst, Scalar __in__ base, Tile __in__ src) {
-  for (int i = 0; i < row; i++)
-    for (int j = 0; j < col; j++) {
-      uint16_t offset = src[i][j];
-      dst[i][j] = Memory[base + offset];
+void MGATHER(Tile dst, Scalar base, Tile src) {
+  for (int i = 0; i < Row; ++i) {
+    for (int j = 0; j < Col; ++j) {
+      if (i < validRow && j < validCol) {
+        offset_t offset = src[i][j];
+        dst[i][j] = Memory[base + offset];
+      } else {
+        dst[i][j] = PadValue;
+      }
     }
+  }
 }
 ```
 
-图示如下：
-
-![MGATHER](../../../figs/isa/tileop/MGATHER.png){ width="800" }
-
 ## 注意事项
 
-输入数据数据块（SrcTile）中offset的存储格式必须是**uint16**格式，否则硬件不保证执行正确性。
+- `validCol <= Col`，`validRow <= Row`。
+- `Size` 必须是 `Col * sizeof(DataType)` 的整数倍。
+- 超出有效区域的位置不产生访存，直接写入 `PadValue`。

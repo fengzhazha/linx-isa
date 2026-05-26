@@ -425,7 +425,7 @@ def _build_index_page(
     hero = """<!-- Hero Banner -->
 <div class="isa-hero">
 
-**ISA Version:** v0.56.2 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
+**ISA Version:** v0.56.4 &nbsp;·&nbsp; **740 instruction forms** &nbsp;·&nbsp; **66 groups** &nbsp;·&nbsp; **4 encoding formats**
 
 ---
 
@@ -561,7 +561,7 @@ def _render_index_page(
 
 _ENCODING_PAGE = """# Instruction Encoding Formats
 
-> **ISA Version:** v0.56.2 &nbsp;|&nbsp; **Chapter 03** of the ISA Manual
+> **ISA Version:** v0.56.4 &nbsp;|&nbsp; **Chapter 03** of the ISA Manual
 
 LinxISA v0.56 supports four instruction lengths in a little-endian
 halfword-oriented model. Bit positions are shown as `[msb:0]`
