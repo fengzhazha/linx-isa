@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .bit-label { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">V64 Encoding Space (64-bit)</text>
+  <text x="10" y="45" class="label">32-bit prefix + 32-bit main instruction</text>
+
+  <!-- Full instruction structure -->
+  <g transform="translate(50, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">Instruction Layout:</text>
+
+    <!-- Prefix box (32 bits) -->
+    <rect x="0" y="10" width="250" height="80" fill="#45B7D1" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="125" y="40" text-anchor="middle" class="label" fill="white" font-weight="bold">Prefix</text>
+    <text x="125" y="60" text-anchor="middle" class="bit-label" fill="white">[63:32]</text>
+    <text x="125" y="100" text-anchor="middle" class="label">32-bit vector</text>
+
+    <!-- Main box (32 bits) -->
+    <rect x="260" y="10" width="250" height="80" fill="#4ECDC4" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="385" y="40" text-anchor="middle" class="label" fill="white" font-weight="bold">Main</text>
+    <text x="385" y="60" text-anchor="middle" class="bit-label" fill="white">[31:0]</text>
+    <text x="385" y="100" text-anchor="middle" class="label">32-bit standard</text>
+  </g>
+
+  <!-- Prefix breakdown -->
+  <g transform="translate(50, 170)">
+    <text x="0" y="0" class="label" font-weight="bold">Prefix [63:32] Fields:</text>
+
+    <rect x="0" y="10" width="80" height="50" fill="#FF6B6B" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="40" y="35" text-anchor="middle" class="label" fill="white">V</text>
+    <text x="40" y="75" text-anchor="middle" class="bit-label">[31:30]</text>
+
+    <rect x="90" y="10" width="80" height="50" fill="#9370DB" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="130" y="35" text-anchor="middle" class="label" fill="white">vsz</text>
+    <text x="130" y="75" text-anchor="middle" class="bit-label">[29:27]</text>
+
+    <rect x="180" y="10" width="60" height="50" fill="#FFE4B5" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="210" y="35" text-anchor="middle" class="label">ext</text>
+    <text x="210" y="75" text-anchor="middle" class="bit-label">[26:24]</text>
+
+    <rect x="250" y="10" width="180" height="50" fill="#E8E8E8" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="340" y="35" text-anchor="middle" class="label">imm32</text>
+    <text x="340" y="75" text-anchor="middle" class="bit-label">[23:0]</text>
+  </g>
+</svg>

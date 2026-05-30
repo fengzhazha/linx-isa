@@ -6,7 +6,7 @@ The **P (Predicate Mask)** register is the lane mask register in the parallel bl
 
 Each bit mask of this register corresponds to Lane one-to-one, controlling the validity of the corresponding Lane calculation results. When the mask is 1, the calculation result of the lane is valid; when it is 0, it is invalid.
 
-![lanemask](../../../figs/isa/arch/pred.png){ width="800" }
+![lanemask](../../../figs/isa/arch/pred.svg){ width="800" }
 
 As shown in the figure above, assuming that `0~9 bit` in the P register is all 1 and the high bits are all 0, it means that `lane0 ~ lane9` in the current Group is a valid lane, and the remaining lanes are invalid and the calculation results will be masked.
 

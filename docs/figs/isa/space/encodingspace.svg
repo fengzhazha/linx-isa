@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 20px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .format-label { font-size: 14px; font-weight: bold; fill: white; }
+    .bits-label { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">LinxISA v0.56 Instruction Encoding Space</text>
+
+  <!-- Row of format boxes -->
+  <g transform="translate(50, 50)">
+    <!-- C16: 16-bit -->
+    <rect x="0" y="0" width="150" height="180" fill="#FF6B6B" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="75" y="30" text-anchor="middle" class="format-label">C16</text>
+    <text x="75" y="55" text-anchor="middle" class="label" fill="white">16-bit</text>
+    <text x="75" y="100" text-anchor="middle" class="bits-label">[15:0]</text>
+    <text x="75" y="140" text-anchor="middle" class="label">Compressed</text>
+    <text x="75" y="160" text-anchor="middle" class="label">Format</text>
+
+    <!-- LX32: 32-bit -->
+    <rect x="170" y="0" width="180" height="180" fill="#4ECDC4" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="260" y="30" text-anchor="middle" class="format-label">LX32</text>
+    <text x="260" y="55" text-anchor="middle" class="label" fill="white">32-bit</text>
+    <text x="260" y="100" text-anchor="middle" class="bits-label">[31:0]</text>
+    <text x="260" y="140" text-anchor="middle" class="label">Standard</text>
+    <text x="260" y="160" text-anchor="middle" class="label">Format</text>
+
+    <!-- HL48: 48-bit with prefix -->
+    <rect x="370" y="0" width="220" height="180" fill="#45B7D1" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="480" y="30" text-anchor="middle" class="format-label">HL48</text>
+    <text x="480" y="55" text-anchor="middle" class="label" fill="white">48-bit</text>
+    <text x="430" y="100" text-anchor="middle" class="bits-label">[47:32]</text>
+    <text x="530" y="100" text-anchor="middle" class="bits-label">[31:0]</text>
+    <text x="430" y="130" text-anchor="middle" class="label">16-bit</text>
+    <text x="530" y="130" text-anchor="middle" class="label">32-bit</text>
+    <text x="430" y="145" text-anchor="middle" class="label">prefix</text>
+    <text x="530" y="145" text-anchor="middle" class="label">main</text>
+    <text x="480" y="170" text-anchor="middle" class="label">Half-Load</text>
+
+    <!-- V64: 64-bit with prefix -->
+    <rect x="610" y="0" width="250" height="180" fill="#96CEB4" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="735" y="30" text-anchor="middle" class="format-label">V64</text>
+    <text x="735" y="55" text-anchor="middle" class="label" fill="white">64-bit</text>
+    <text x="660" y="100" text-anchor="middle" class="bits-label">[63:32]</text>
+    <text x="810" y="100" text-anchor="middle" class="bits-label">[31:0]</text>
+    <text x="660" y="130" text-anchor="middle" class="label">32-bit</text>
+    <text x="810" y="130" text-anchor="middle" class="label">32-bit</text>
+    <text x="660" y="145" text-anchor="middle" class="label">prefix</text>
+    <text x="810" y="145" text-anchor="middle" class="label">main</text>
+    <text x="735" y="170" text-anchor="middle" class="label">Vector</text>
+  </g>
+
+  <!-- Legend at bottom -->
+  <g transform="translate(50, 260)">
+    <rect x="0" y="0" width="20" height="20" fill="#FF6B6B" rx="2"/>
+    <text x="30" y="15" class="label">Compressed (16-bit)</text>
+
+    <rect x="180" y="0" width="20" height="20" fill="#4ECDC4" rx="2"/>
+    <text x="210" y="15" class="label">Standard (32-bit)</text>
+
+    <rect x="350" y="0" width="20" height="20" fill="#45B7D1" rx="2"/>
+    <text x="380" y="15" class="label">Half-Load (48-bit)</text>
+
+    <rect x="530" y="0" width="20" height="20" fill="#96CEB4" rx="2"/>
+    <text x="560" y="15" class="label">Vector (64-bit)</text>
+  </g>
+</svg>

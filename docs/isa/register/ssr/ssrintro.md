@@ -23,7 +23,7 @@ The 16-bit addressing space is allocated to different functions in sections of 2
 | 0x2F00-0x2FFF | Main system user priority space | system register space defined by ACR2 |
 | 0xnF00-0xnFFF | Other priority spaces (n=3, 4, ..., F) | system register space defined for ACR3-ACRf |
 
-![ssr space](../../../figs/intro/ssrspace.png){ width="600" }
+![ssr space](../../../figs/isa/arch/ssrspace.svg){ width="600" }
 
 ## Access rules
 

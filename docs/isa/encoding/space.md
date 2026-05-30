@@ -6,20 +6,20 @@ The instruction space chapter is used to explain the usage of the overall coding
 
 The instruction spaces of different lengths in LinxISA are shown in the figure below:
 
-![Coding space](../../figs/isa/space/encodingspace.png)
+![Coding space](../../figs/isa/space/encodingspace.svg)
 
 ## Compress instruction space
 
-![Coding space](../../figs/isa/space/space-16bit.png){ width="900" }
+![Coding space](../../figs/isa/space/space-16bit.svg){ width="900" }
 
 ## Standard command space
 
-![Coding space](../../figs/isa/space/space-32bit.png){ width="900" }
+![Coding space](../../figs/isa/space/space-32bit.svg){ width="900" }
 
 ## Enhance command space
 
-![Coding space](../../figs/isa/space/space-48bit.png){ width="900" }
+![Coding space](../../figs/isa/space/space-48bit.svg){ width="900" }
 
 ## Extra long instruction space
 
-![Coding space](../../figs/isa/space/space-64bit.png){ width="900" }
+![Coding space](../../figs/isa/space/space-64bit.svg){ width="900" }

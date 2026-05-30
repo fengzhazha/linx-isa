@@ -44,16 +44,16 @@ Storage layout formats include the following:
 | **NZ** | Large N and small z, large fractals are stored in **column priority**, small fractals are stored in **row priority** |
 | **NN** | Large N and small n, large fractals are stored in **column priority**, small fractals are stored in **column priority** |
 
-![d-layout](../../../figs/isa/arch/d-layout.png){ width="700" }
+![d-layout](../../../figs/isa/arch/d-layout.svg){ width="700" }
 
-![z-layout](../../../figs/isa/arch/z-layout.png){ width="700" }
+![z-layout](../../../figs/isa/arch/z-layout.svg){ width="700" }
 
-![n-layout](../../../figs/isa/arch/n-layout.png){ width="700" }For example, there is a `4行4列` matrix that needs to be stored in the Tile register, and the entire matrix is divided into multiple fractal matrices with 2 rows and 2 columns for storage. Then, under different layouts, the data storage method is as follows:
+![n-layout](../../../figs/isa/arch/n-layout.svg){ width="700" }For example, there is a `4行4列` matrix that needs to be stored in the Tile register, and the entire matrix is divided into multiple fractal matrices with 2 rows and 2 columns for storage. Then, under different layouts, the data storage method is as follows:
 ```c
     Matrix A = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16}};
 ```
 
-![layout](../../../figs/isa/arch/layout.png){ width="900" }
+![layout](../../../figs/isa/arch/layout.svg){ width="900" }
 
 ## Register attributes
 

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; fill: #666; font-style: italic; }
+    .formula { font-size: 14px; fill: #333; font-family: "Courier New", monospace; }
+  </style>
+
+  <text x="10" y="25" class="title">HiF8/HiF4: Shared Exponent Scaling</text>
+  <text x="10" y="45" class="subtitle">A group of values share a single exponent field</text>
+
+  <!-- HiF8 section -->
+  <g transform="translate(10, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">HiF8: 8 values × 7-bit mantissa + 1 shared 8-bit exponent</text>
+
+    <!-- Group box -->
+    <rect x="0" y="10" width="720" height="100" fill="#F5F5F5" rx="5" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+
+    <!-- Shared exponent -->
+    <rect x="10" y="20" width="50" height="80" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="35" y="55" text-anchor="middle" fill="white" font-size="12">Exp</text>
+    <text x="35" y="115" text-anchor="middle" class="label">8-bit shared</text>
+
+    <!-- 8 mantissa values -->
+    <g transform="translate(80, 20)">
+      <rect x="0" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="35" y="45" text-anchor="middle" fill="white">M0[6:0]</text>
+
+      <rect x="80" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="115" y="45" text-anchor="middle" fill="white">M1[6:0]</text>
+
+      <rect x="160" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="195" y="45" text-anchor="middle" fill="white">M2[6:0]</text>
+
+      <rect x="240" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="275" y="45" text-anchor="middle" fill="white">M3[6:0]</text>
+
+      <rect x="320" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="355" y="45" text-anchor="middle" fill="white">M4[6:0]</text>
+
+      <rect x="400" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="435" y="45" text-anchor="middle" fill="white">M5[6:0]</text>
+
+      <rect x="480" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="515" y="45" text-anchor="middle" fill="white">M6[6:0]</text>
+
+      <rect x="560" y="0" width="70" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="595" y="45" text-anchor="middle" fill="white">M7[6:0]</text>
+    </g>
+
+    <text x="400" y="150" text-anchor="middle" class="formula">= 8 + 56 = 64 bits total</text>
+  </g>
+
+  <!-- HiF4 section -->
+  <g transform="translate(10, 180)">
+    <text x="0" y="0" class="label" font-weight="bold">HiF4: 16 values × 4-bit mantissa + 1 shared 8-bit exponent</text>
+
+    <!-- Group box -->
+    <rect x="0" y="10" width="720" height="100" fill="#F5F5F5" rx="5" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+
+    <!-- Shared exponent -->
+    <rect x="10" y="20" width="50" height="80" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="35" y="55" text-anchor="middle" fill="white" font-size="12">Exp</text>
+    <text x="35" y="115" text-anchor="middle" class="label">8-bit shared</text>
+
+    <!-- 16 mantissa values (4x4 grid) -->
+    <g transform="translate(80, 25)">
+      <rect x="0" y="0" width="70" height="70" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="35" y="40" text-anchor="middle" fill="white" font-size="11">M[3:0]</text>
+      <text x="35" y="55" text-anchor="middle" fill="white" font-size="10">× 16</text>
+    </g>
+
+    <text x="400" y="150" text-anchor="middle" class="formula">= 8 + 64 = 72 bits total</text>
+  </g>
+</svg>

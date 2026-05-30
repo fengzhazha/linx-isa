@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .bit-label { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">LX32 Encoding Space (32-bit)</text>
+  <text x="10" y="45" class="label">6 major opcode bits [31:26] divide space into 64 slots</text>
+
+  <!-- Bit positions at top -->
+  <g transform="translate(50, 60)">
+    <text x="0" y="0" class="bit-label">31</text>
+    <text x="90" y="0" class="bit-label">26</text>
+    <text x="120" y="0" class="bit-label">25</text>
+    <text x="330" y="0" class="bit-label">0</text>
+
+    <!-- Opcode field highlight -->
+    <rect x="0" y="10" width="100" height="60" fill="#FFE4B5" rx="3" stroke="#333" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="50" y="45" text-anchor="middle" class="label" font-weight="bold">opcode</text>
+    <text x="50" y="60" text-anchor="middle" class="bit-label">[31:26]</text>
+
+    <!-- Remaining bits -->
+    <rect x="100" y="10" width="220" height="60" fill="#E8E8E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="210" y="45" text-anchor="middle" class="label">operands/imm</text>
+    <text x="210" y="60" text-anchor="middle" class="bit-label">[25:0]</text>
+  </g>
+
+  <!-- 64 opcode slots grid (8x8) -->
+  <g transform="translate(50, 100)">
+    <text x="0" y="15" class="label" font-weight="bold">64 Opcode Slots (6-bit opcode):</text>
+
+    <!-- Row 1 -->
+    <rect x="0" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="50" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000000</text>
+
+    <rect x="110" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="160" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000001</text>
+
+    <rect x="220" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="270" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000010</text>
+
+    <rect x="330" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="380" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000011</text>
+
+    <rect x="440" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="490" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000100</text>
+
+    <rect x="550" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="600" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000101</text>
+
+    <rect x="660" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="710" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000110</text>
+
+    <rect x="770" y="25" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="820" y="45" text-anchor="middle" class="label" fill="white" font-size="10">000111</text>
+
+    <!-- Row 2 -->
+    <rect x="0" y="60" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="50" y="80" text-anchor="middle" class="label" fill="white" font-size="10">001000</text>
+
+    <rect x="110" y="60" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="160" y="80" text-anchor="middle" class="label" fill="white" font-size="10">001001</text>
+
+    <!-- ... more slots ... -->
+    <text x="430" y="80" text-anchor="middle" class="bit-label">...</text>
+
+    <rect x="770" y="60" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="820" y="80" text-anchor="middle" class="label" fill="white" font-size="10">001111</text>
+
+    <!-- More rows as dotted area -->
+    <rect x="0" y="95" width="870" height="50" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="435" y="125" text-anchor="middle" class="label">...</text>
+
+    <!-- Last row -->
+    <rect x="0" y="150" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="50" y="170" text-anchor="middle" class="label" fill="white" font-size="10">111000</text>
+
+    <rect x="770" y="150" width="100" height="30" fill="#4ECDC4" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="820" y="170" text-anchor="middle" class="label" fill="white" font-size="10">111111</text>
+  </g>
+</svg>

@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .bit { font-size: 10px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">Predicate Register P[63:0]</text>
+  <text x="10" y="45" class="label">64-bit mask register for conditional execution</text>
+
+  <!-- Main register box -->
+  <g transform="translate(10, 60)">
+    <!-- Register container -->
+    <rect x="0" y="0" width="760" height="80" fill="#F5F5F5" rx="3" stroke="#333" stroke-width="2"/>
+
+    <!-- 64 bit cells -->
+    <g transform="translate(5, 5)">
+      <rect x="0" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="22" y="12" text-anchor="middle" class="bit">0</text>
+      <text x="22" y="24" text-anchor="middle" class="bit" fill="#666">P0</text>
+      <rect x="46" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="68" y="12" text-anchor="middle" class="bit">1</text>
+      <text x="68" y="24" text-anchor="middle" class="bit" fill="#666">P1</text>
+      <rect x="92" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="114" y="12" text-anchor="middle" class="bit">2</text>
+      <text x="114" y="24" text-anchor="middle" class="bit" fill="#666">P2</text>
+      <rect x="138" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="160" y="12" text-anchor="middle" class="bit">3</text>
+      <text x="160" y="24" text-anchor="middle" class="bit" fill="#666">P3</text>
+      <rect x="184" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="206" y="12" text-anchor="middle" class="bit">4</text>
+      <text x="206" y="24" text-anchor="middle" class="bit" fill="#666">P4</text>
+      <rect x="230" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="252" y="12" text-anchor="middle" class="bit">5</text>
+      <text x="252" y="24" text-anchor="middle" class="bit" fill="#666">P5</text>
+      <rect x="276" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="298" y="12" text-anchor="middle" class="bit">6</text>
+      <text x="298" y="24" text-anchor="middle" class="bit" fill="#666">P6</text>
+      <rect x="322" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="344" y="12" text-anchor="middle" class="bit">7</text>
+      <text x="344" y="24" text-anchor="middle" class="bit" fill="#666">P7</text>
+      <rect x="368" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="390" y="12" text-anchor="middle" class="bit">8</text>
+      <text x="390" y="24" text-anchor="middle" class="bit" fill="#666">P8</text>
+      <rect x="414" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="436" y="12" text-anchor="middle" class="bit">9</text>
+      <text x="436" y="24" text-anchor="middle" class="bit" fill="#666">P9</text>
+      <rect x="460" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="482" y="12" text-anchor="middle" class="bit">10</text>
+      <text x="482" y="24" text-anchor="middle" class="bit" fill="#666">P10</text>
+      <rect x="506" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="528" y="12" text-anchor="middle" class="bit">11</text>
+      <text x="528" y="24" text-anchor="middle" class="bit" fill="#666">P11</text>
+      <rect x="552" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="574" y="12" text-anchor="middle" class="bit">12</text>
+      <text x="574" y="24" text-anchor="middle" class="bit" fill="#666">P12</text>
+      <rect x="598" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="620" y="12" text-anchor="middle" class="bit">13</text>
+      <text x="620" y="24" text-anchor="middle" class="bit" fill="#666">P13</text>
+      <rect x="644" y="0" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="666" y="12" text-anchor="middle" class="bit">14</text>
+      <text x="666" y="24" text-anchor="middle" class="bit" fill="#666">P14</text>
+      <rect x="690" y="0" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="712" y="12" text-anchor="middle" class="bit">15</text>
+      <text x="712" y="24" text-anchor="middle" class="bit" fill="#666">P15</text>
+      <rect x="0" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="22" y="47" text-anchor="middle" class="bit">16</text>
+      <text x="22" y="59" text-anchor="middle" class="bit" fill="#666">P16</text>
+      <rect x="46" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="68" y="47" text-anchor="middle" class="bit">17</text>
+      <text x="68" y="59" text-anchor="middle" class="bit" fill="#666">P17</text>
+      <rect x="92" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="114" y="47" text-anchor="middle" class="bit">18</text>
+      <text x="114" y="59" text-anchor="middle" class="bit" fill="#666">P18</text>
+      <rect x="138" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="160" y="47" text-anchor="middle" class="bit">19</text>
+      <text x="160" y="59" text-anchor="middle" class="bit" fill="#666">P19</text>
+      <rect x="184" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="206" y="47" text-anchor="middle" class="bit">20</text>
+      <text x="206" y="59" text-anchor="middle" class="bit" fill="#666">P20</text>
+      <rect x="230" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="252" y="47" text-anchor="middle" class="bit">21</text>
+      <text x="252" y="59" text-anchor="middle" class="bit" fill="#666">P21</text>
+      <rect x="276" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="298" y="47" text-anchor="middle" class="bit">22</text>
+      <text x="298" y="59" text-anchor="middle" class="bit" fill="#666">P22</text>
+      <rect x="322" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="344" y="47" text-anchor="middle" class="bit">23</text>
+      <text x="344" y="59" text-anchor="middle" class="bit" fill="#666">P23</text>
+      <rect x="368" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="390" y="47" text-anchor="middle" class="bit">24</text>
+      <text x="390" y="59" text-anchor="middle" class="bit" fill="#666">P24</text>
+      <rect x="414" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="436" y="47" text-anchor="middle" class="bit">25</text>
+      <text x="436" y="59" text-anchor="middle" class="bit" fill="#666">P25</text>
+      <rect x="460" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="482" y="47" text-anchor="middle" class="bit">26</text>
+      <text x="482" y="59" text-anchor="middle" class="bit" fill="#666">P26</text>
+      <rect x="506" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="528" y="47" text-anchor="middle" class="bit">27</text>
+      <text x="528" y="59" text-anchor="middle" class="bit" fill="#666">P27</text>
+      <rect x="552" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="574" y="47" text-anchor="middle" class="bit">28</text>
+      <text x="574" y="59" text-anchor="middle" class="bit" fill="#666">P28</text>
+      <rect x="598" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="620" y="47" text-anchor="middle" class="bit">29</text>
+      <text x="620" y="59" text-anchor="middle" class="bit" fill="#666">P29</text>
+      <rect x="644" y="35" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="666" y="47" text-anchor="middle" class="bit">30</text>
+      <text x="666" y="59" text-anchor="middle" class="bit" fill="#666">P30</text>
+      <rect x="690" y="35" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="712" y="47" text-anchor="middle" class="bit">31</text>
+      <text x="712" y="59" text-anchor="middle" class="bit" fill="#666">P31</text>
+      <rect x="0" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="22" y="82" text-anchor="middle" class="bit">32</text>
+      <text x="22" y="94" text-anchor="middle" class="bit" fill="#666">P32</text>
+      <rect x="46" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="68" y="82" text-anchor="middle" class="bit">33</text>
+      <text x="68" y="94" text-anchor="middle" class="bit" fill="#666">P33</text>
+      <rect x="92" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="114" y="82" text-anchor="middle" class="bit">34</text>
+      <text x="114" y="94" text-anchor="middle" class="bit" fill="#666">P34</text>
+      <rect x="138" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="160" y="82" text-anchor="middle" class="bit">35</text>
+      <text x="160" y="94" text-anchor="middle" class="bit" fill="#666">P35</text>
+      <rect x="184" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="206" y="82" text-anchor="middle" class="bit">36</text>
+      <text x="206" y="94" text-anchor="middle" class="bit" fill="#666">P36</text>
+      <rect x="230" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="252" y="82" text-anchor="middle" class="bit">37</text>
+      <text x="252" y="94" text-anchor="middle" class="bit" fill="#666">P37</text>
+      <rect x="276" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="298" y="82" text-anchor="middle" class="bit">38</text>
+      <text x="298" y="94" text-anchor="middle" class="bit" fill="#666">P38</text>
+      <rect x="322" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="344" y="82" text-anchor="middle" class="bit">39</text>
+      <text x="344" y="94" text-anchor="middle" class="bit" fill="#666">P39</text>
+      <rect x="368" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="390" y="82" text-anchor="middle" class="bit">40</text>
+      <text x="390" y="94" text-anchor="middle" class="bit" fill="#666">P40</text>
+      <rect x="414" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="436" y="82" text-anchor="middle" class="bit">41</text>
+      <text x="436" y="94" text-anchor="middle" class="bit" fill="#666">P41</text>
+      <rect x="460" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="482" y="82" text-anchor="middle" class="bit">42</text>
+      <text x="482" y="94" text-anchor="middle" class="bit" fill="#666">P42</text>
+      <rect x="506" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="528" y="82" text-anchor="middle" class="bit">43</text>
+      <text x="528" y="94" text-anchor="middle" class="bit" fill="#666">P43</text>
+      <rect x="552" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="574" y="82" text-anchor="middle" class="bit">44</text>
+      <text x="574" y="94" text-anchor="middle" class="bit" fill="#666">P44</text>
+      <rect x="598" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="620" y="82" text-anchor="middle" class="bit">45</text>
+      <text x="620" y="94" text-anchor="middle" class="bit" fill="#666">P45</text>
+      <rect x="644" y="70" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="666" y="82" text-anchor="middle" class="bit">46</text>
+      <text x="666" y="94" text-anchor="middle" class="bit" fill="#666">P46</text>
+      <rect x="690" y="70" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="712" y="82" text-anchor="middle" class="bit">47</text>
+      <text x="712" y="94" text-anchor="middle" class="bit" fill="#666">P47</text>
+      <rect x="0" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="22" y="117" text-anchor="middle" class="bit">48</text>
+      <text x="22" y="129" text-anchor="middle" class="bit" fill="#666">P48</text>
+      <rect x="46" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="68" y="117" text-anchor="middle" class="bit">49</text>
+      <text x="68" y="129" text-anchor="middle" class="bit" fill="#666">P49</text>
+      <rect x="92" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="114" y="117" text-anchor="middle" class="bit">50</text>
+      <text x="114" y="129" text-anchor="middle" class="bit" fill="#666">P50</text>
+      <rect x="138" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="160" y="117" text-anchor="middle" class="bit">51</text>
+      <text x="160" y="129" text-anchor="middle" class="bit" fill="#666">P51</text>
+      <rect x="184" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="206" y="117" text-anchor="middle" class="bit">52</text>
+      <text x="206" y="129" text-anchor="middle" class="bit" fill="#666">P52</text>
+      <rect x="230" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="252" y="117" text-anchor="middle" class="bit">53</text>
+      <text x="252" y="129" text-anchor="middle" class="bit" fill="#666">P53</text>
+      <rect x="276" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="298" y="117" text-anchor="middle" class="bit">54</text>
+      <text x="298" y="129" text-anchor="middle" class="bit" fill="#666">P54</text>
+      <rect x="322" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="344" y="117" text-anchor="middle" class="bit">55</text>
+      <text x="344" y="129" text-anchor="middle" class="bit" fill="#666">P55</text>
+      <rect x="368" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="390" y="117" text-anchor="middle" class="bit">56</text>
+      <text x="390" y="129" text-anchor="middle" class="bit" fill="#666">P56</text>
+      <rect x="414" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="436" y="117" text-anchor="middle" class="bit">57</text>
+      <text x="436" y="129" text-anchor="middle" class="bit" fill="#666">P57</text>
+      <rect x="460" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="482" y="117" text-anchor="middle" class="bit">58</text>
+      <text x="482" y="129" text-anchor="middle" class="bit" fill="#666">P58</text>
+      <rect x="506" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="528" y="117" text-anchor="middle" class="bit">59</text>
+      <text x="528" y="129" text-anchor="middle" class="bit" fill="#666">P59</text>
+      <rect x="552" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="574" y="117" text-anchor="middle" class="bit">60</text>
+      <text x="574" y="129" text-anchor="middle" class="bit" fill="#666">P60</text>
+      <rect x="598" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="620" y="117" text-anchor="middle" class="bit">61</text>
+      <text x="620" y="129" text-anchor="middle" class="bit" fill="#666">P61</text>
+      <rect x="644" y="105" width="44" height="30" fill="#E8E8E8" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="666" y="117" text-anchor="middle" class="bit">62</text>
+      <text x="666" y="129" text-anchor="middle" class="bit" fill="#666">P62</text>
+      <rect x="690" y="105" width="44" height="30" fill="#D0D0D0" rx="2" stroke="#999" stroke-width="1"/>
+      <text x="712" y="117" text-anchor="middle" class="bit">63</text>
+      <text x="712" y="129" text-anchor="middle" class="bit" fill="#666">P63</text>
+    </g>
+
+    <!-- Labels -->
+    <text x="380" y="100" text-anchor="middle" class="label">P[63]</text>
+    <text x="10" y="100" text-anchor="start" class="label">P[0]</text>
+  </g>
+
+  <!-- Note -->
+  <text x="10" y="180" class="label">Note: P[0] is always 1 (always execute)</text>
+</svg>

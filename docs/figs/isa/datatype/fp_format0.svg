@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="300" viewBox="0 0 700 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .format-label { font-size: 11px; fill: #333; }
+    .bits-label { font-size: 10px; fill: #666; }
+  </style>
+
+  <text x="10" y="25" class="title">Floating-Point Format Overview</text>
+  <text x="10" y="45" class="label">All supported FP formats with relative bit widths</text>
+
+  <!-- Format bars -->
+  <g transform="translate(20, 60)">
+    <rect x="0" y="0" width="640" height="22" fill="#4169E1" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="650" y="16" class="format-label">FP64</text>
+    <text x="5" y="15" class="format-label" fill="white">64bit</text>
+    <rect x="0" y="26" width="320" height="22" fill="#9370DB" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="330" y="42" class="format-label">TF32</text>
+    <text x="5" y="41" class="format-label" fill="white">32bit</text>
+    <rect x="0" y="52" width="320" height="22" fill="#4169E1" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="330" y="68" class="format-label">FP32</text>
+    <text x="5" y="67" class="format-label" fill="white">32bit</text>
+    <rect x="0" y="78" width="160" height="22" fill="#FFB347" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="170" y="94" class="format-label">BF16</text>
+    <text x="5" y="93" class="format-label" fill="white">16bit</text>
+    <rect x="0" y="104" width="160" height="22" fill="#FF6B6B" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="170" y="120" class="format-label">FP16</text>
+    <text x="5" y="119" class="format-label" fill="white">16bit</text>
+    <rect x="0" y="130" width="80" height="22" fill="#A5D6A7" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="90" y="146" class="format-label">FP8</text>
+    <text x="5" y="145" class="format-label" fill="white">8bit</text>
+    <rect x="0" y="156" width="60" height="22" fill="#E8E8E8" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="70" y="172" class="format-label">FP6</text>
+    <text x="5" y="171" class="format-label" fill="white">6bit</text>
+    <rect x="0" y="182" width="40" height="22" fill="#D0D0D0" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="50" y="198" class="format-label">FP4</text>
+    <text x="5" y="197" class="format-label" fill="white">4bit</text>
+  </g>
+
+  <!-- Legend at bottom -->
+  <g transform="translate(20, 270)">
+    <rect x="0" y="0" width="15" height="15" fill="#808080" rx="2"/>
+    <text x="20" y="12" class="label">Sign (S)</text>
+
+    <rect x="80" y="0" width="15" height="15" fill="#4169E1" rx="2"/>
+    <text x="100" y="12" class="label">Exponent (E)</text>
+
+    <rect x="180" y="0" width="15" height="15" fill="#228B22" rx="2"/>
+    <text x="200" y="12" class="label">Mantissa (M)</text>
+
+    <text x="350" y="12" class="label">Total bits = 1 + E + M</text>
+  </g>
+</svg>

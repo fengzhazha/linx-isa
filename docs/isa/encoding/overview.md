@@ -13,11 +13,11 @@ Instructions of different lengths are introduced as follows:
 
 Among them, 48-bit and 64-bit word length instructions are encoded using the splicing combination method of **prefix + suffix**, so as to expand the instruction space and improve the instruction expression ability. At the same time, in order to enable software or programmers to use instructions of any length to implement specified functions in one implementation, we encode instructions with four word lengths in the same set of instruction spaces. The encoding rules are as follows:
 
-![encoding-layer1](../../figs/isa/space/encoding-layer1.png)
+![encoding-layer1](../../figs/isa/space/encoding-layer1.svg)
 
 In the first layer of coding logic, the lowest bit represents the instruction word length Width (abbreviated as W). A Width bit coded as 0 represents a 16-bit instruction, and a Width bit coded as 1 represents a 32-bit instruction.
 
-![encoding-layer2](../../figs/isa/space/encoding-layer2.png)
+![encoding-layer2](../../figs/isa/space/encoding-layer2.svg)
 
 In the second layer of encoding logic, the 16bit and 32bit instruction spaces are further divided into `主指令空间`, `后缀指令空间` and `前缀指令空间` of corresponding word lengths through the Opcode field, which is used to provide combined encoding of longer instructions. The details are as follows:
 

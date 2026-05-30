@@ -48,7 +48,9 @@ Among them, simm24 is a 24-bit signed immediate number, which is expanded to 64-
 
 The instructions are encoded as follows:
 
-![LoadImmediateOffset](../../../figs/bitfield/svg/Introduction_64bit/LoadImmediateOffsetVector.svg)Applicable scenarios: The index is an immediate offset of the number of elements, automatically aligned according to the element bit width, and is often used to access the array base address plus element index.
+![LoadImmediateOffset encoding diagram for V.LBI/V.LHI/V.LWI/V.LDI and unsigned variants with 24-bit signed immediate](../../../figs/bitfield/svg/Introduction_64bit/LoadImmediateOffsetVector.svg)
+
+Applicable scenarios: The index is an immediate offset of the number of elements, automatically aligned according to the element bit width, and is often used to access the array base address plus element index.
 
 ### **Register-Unscaled Literal Addressing**
 
@@ -104,7 +106,9 @@ The instructions are encoded as follows:
 | V.SDI | 8 bytes | SrcL + (simm24<<3) |
 | V.SHI.U | 2 bytes | SrcL + simm24 |
 | V.SWI.U | 4 bytes | SrcL + simm24 |
-| V.SDI.U | 8 bytes | SrcL + simm24 |Among them, the `.U` suffix indicates that the element bit width of the immediate data is not scaled.
+| V.SDI.U | 8 bytes | SrcL + simm24 |
+
+Among them, the `.U` suffix indicates that the element bit width of the immediate data is not scaled.
 
 The instructions are encoded as follows:
 

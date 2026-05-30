@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; fill: #666; font-style: italic; }
+  </style>
+
+  <text x="10" y="25" class="title">HiF4: Block-Floating-Point Format</text>
+  <text x="10" y="45" class="subtitle">4-bit mantissa with shared exponent across group</text>
+
+  <!-- Shared exponent column -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="60" height="100" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="30" y="55" text-anchor="middle" fill="white">Shared</text>
+    <text x="30" y="75" text-anchor="middle" fill="white">Exp</text>
+    <text x="30" y="120" text-anchor="middle" class="label">8-bit</text>
+  </g>
+
+  <!-- Mantissa columns (16 values) -->
+  <g transform="translate(130, 60)">
+    <!-- Value boxes (16 x 4-bit values in 4 rows of 4) -->
+    <rect x="0" y="0" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="20" y="15" text-anchor="middle" fill="white" font-size="10">M0</text>
+
+    <rect x="45" y="0" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="65" y="15" text-anchor="middle" fill="white" font-size="10">M1</text>
+
+    <rect x="90" y="0" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="110" y="15" text-anchor="middle" fill="white" font-size="10">M2</text>
+
+    <rect x="135" y="0" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="155" y="15" text-anchor="middle" fill="white" font-size="10">M3</text>
+
+    <rect x="0" y="27" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="20" y="42" text-anchor="middle" fill="white" font-size="10">M4</text>
+
+    <rect x="45" y="27" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="65" y="42" text-anchor="middle" fill="white" font-size="10">M5</text>
+
+    <rect x="90" y="27" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="110" y="42" text-anchor="middle" fill="white" font-size="10">M6</text>
+
+    <rect x="135" y="27" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="155" y="42" text-anchor="middle" fill="white" font-size="10">M7</text>
+
+    <rect x="0" y="54" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="20" y="69" text-anchor="middle" fill="white" font-size="10">M8</text>
+
+    <rect x="45" y="54" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="65" y="69" text-anchor="middle" fill="white" font-size="10">M9</text>
+
+    <rect x="90" y="54" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="110" y="69" text-anchor="middle" fill="white" font-size="10">M10</text>
+
+    <rect x="135" y="54" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="155" y="69" text-anchor="middle" fill="white" font-size="10">M11</text>
+
+    <rect x="0" y="81" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="20" y="96" text-anchor="middle" fill="white" font-size="10">M12</text>
+
+    <rect x="45" y="81" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="65" y="96" text-anchor="middle" fill="white" font-size="10">M13</text>
+
+    <rect x="90" y="81" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="110" y="96" text-anchor="middle" fill="white" font-size="10">M14</text>
+
+    <rect x="135" y="81" width="40" height="22" fill="#228B22" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="155" y="96" text-anchor="middle" fill="white" font-size="10">M15</text>
+
+    <text x="87" y="120" text-anchor="middle" class="label">16 × 4-bit mantissas = 64 bits</text>
+  </g>
+
+  <!-- Bracket showing shared group -->
+  <g transform="translate(50, 165)">
+    <path d="M 0,0 L 125,0" stroke="#333" stroke-width="1" fill="none"/>
+    <path d="M 0,0 L 0,8" stroke="#333" stroke-width="1" fill="none"/>
+    <path d="M 125,0 L 125,8" stroke="#333" stroke-width="1" fill="none"/>
+    <text x="62" y="18" text-anchor="middle" class="label">Shared Exponent Group</text>
+  </g>
+</svg>

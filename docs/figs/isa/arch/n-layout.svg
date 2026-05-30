@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="500" viewBox="0 0 700 500">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .cell-label { font-size: 24px; font-weight: bold; fill: white; }
+  </style>
+
+  <text x="10" y="25" class="title">N Layout (小N大z)</text>
+
+  <!-- 4x4 Grid of fractal blocks -->
+  <g transform="translate(150, 60)">
+    <rect x="0" y="0" width="100" height="100"
+          fill="#C8E6C9" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="50" y="58"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="108" y="0" width="100" height="100"
+          fill="#A5D6A7" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="158" y="58"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="216" y="0" width="100" height="100"
+          fill="#66BB6A" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="266" y="58"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="324" y="0" width="100" height="100"
+          fill="#2E7D32" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="374" y="58"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="0" y="108" width="100" height="100"
+          fill="#A5D6A7" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="50" y="166"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="108" y="108" width="100" height="100"
+          fill="#66BB6A" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="158" y="166"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="216" y="108" width="100" height="100"
+          fill="#2E7D32" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="266" y="166"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="324" y="108" width="100" height="100"
+          fill="#C8E6C9" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="374" y="166"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="0" y="216" width="100" height="100"
+          fill="#66BB6A" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="50" y="274"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="108" y="216" width="100" height="100"
+          fill="#2E7D32" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="158" y="274"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="216" y="216" width="100" height="100"
+          fill="#C8E6C9" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="266" y="274"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="324" y="216" width="100" height="100"
+          fill="#A5D6A7" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="374" y="274"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="0" y="324" width="100" height="100"
+          fill="#2E7D32" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="50" y="382"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="108" y="324" width="100" height="100"
+          fill="#C8E6C9" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="158" y="382"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="216" y="324" width="100" height="100"
+          fill="#A5D6A7" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="266" y="382"
+          text-anchor="middle" class="cell-label">N</text>
+    <rect x="324" y="324" width="100" height="100"
+          fill="#66BB6A" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="374" y="382"
+          text-anchor="middle" class="cell-label">N</text>
+
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(500, 100)">
+    <text x="0" y="0" class="label" font-weight="bold">Legend:</text>
+    <rect x="0" y="20" width="20" height="20" fill="#C8E6C9" rx="2"/>
+    <text x="30" y="35" class="label">Fractal 0</text>
+    <rect x="0" y="45" width="20" height="20" fill="#A5D6A7" rx="2"/>
+    <text x="30" y="60" class="label">Fractal 1</text>
+    <rect x="0" y="70" width="20" height="20" fill="#66BB6A" rx="2"/>
+    <text x="30" y="85" class="label">Fractal 2</text>
+    <rect x="0" y="95" width="20" height="20" fill="#2E7D32" rx="2"/>
+    <text x="30" y="110" class="label">Fractal 3</text>
+  </g>
+
+  <!-- Description -->
+  <text x="10" y="480" class="label">Each block represents a fractal unit that can contain multiple elements</text>
+</svg>

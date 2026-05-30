@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+  </style>
+
+  <text x="10" y="25" class="title">ACC Register (Accumulator for CUBE)</text>
+  <text x="10" y="45" class="label">Large accumulator register with connections to Tile registers and CUBE unit</text>
+
+  <!-- ACC register -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="200" height="150" fill="#A5D6A7" rx="5" stroke="#2E7D32" stroke-width="2"/>
+    <text x="100" y="40" text-anchor="middle" class="label" fill="#2E7D32" font-weight="bold" font-size="18">ACC</text>
+    <text x="100" y="65" text-anchor="middle" class="label">Accumulator</text>
+    <text x="100" y="90" text-anchor="middle" class="label">4 × Tile size</text>
+    <text x="100" y="115" text-anchor="middle" class="label">Accumulation register</text>
+    <text x="100" y="135" text-anchor="middle" class="label">for matrix multiply</text>
+  </g>
+
+  <!-- Tile registers (inputs) -->
+  <g transform="translate(280, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">Tile Registers</text>
+
+    <rect x="0" y="15" width="80" height="40" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="40" y="40" text-anchor="middle" class="label">D</text>
+
+    <rect x="90" y="15" width="80" height="40" fill="#E6D9F2" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="130" y="40" text-anchor="middle" class="label">Z</text>
+
+    <rect x="180" y="15" width="80" height="40" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="220" y="40" text-anchor="middle" class="label">N</text>
+
+    <text x="130" y="75" text-anchor="middle" class="label">Input matrices</text>
+  </g>
+
+  <!-- CUBE unit -->
+  <g transform="translate(280, 150)">
+    <text x="0" y="0" class="label" font-weight="bold">CUBE Unit</text>
+
+    <rect x="0" y="10" width="260" height="80" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="130" y="40" text-anchor="middle" class="label" fill="white" font-weight="bold">CUBE Multiply</text>
+    <text x="130" y="60" text-anchor="middle" class="label" fill="white">D × Z → partial sums</text>
+    <text x="130" y="80" text-anchor="middle" class="label" fill="white">Accumulate into ACC</text>
+  </g>
+
+  <!-- Arrows showing data flow -->
+  <path d="M 270,90 L 280,90" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="285,90 275,85 275,95" fill="#333"/>
+
+  <path d="M 270,120 L 280,130" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="285,135 275,130 283,128" fill="#333"/>
+
+  <path d="M 350,150 L 350,130" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="350,125 345,135 355,135" fill="#333"/>
+
+  <path d="M 250,135 L 130,135" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="125,135 135,130 135,140" fill="#333"/>
+
+  <text x="400" y="280" text-anchor="middle" class="label">ACC = D × Z + ACC (fused multiply-accumulate)</text>
+</svg>

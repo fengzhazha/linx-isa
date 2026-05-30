@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="500" height="200">
+  <defs>
+    <marker id="a7" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155"/>
+    </marker>
+    <marker id="a7b" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#22c55e"/>
+    </marker>
+  </defs>
+  <rect width="500" height="200" fill="#f8fafc" rx="4"/>
+  <text x="250" y="18" font-family="Helvetica Neue,Arial,sans-serif" font-size="13" font-weight="bold" fill="#1e293b" text-anchor="middle">EBSTATE Save/Restore Model</text>
+  <!-- BSTATE box -->
+  <rect x="20" y="40" width="140" height="80" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/>
+  <text x="90" y="58" font-family="Helvetica Neue,Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e40af" text-anchor="middle">BSTATE</text>
+  <text x="90" y="75" font-family="monospace" font-size="8" fill="#334155" text-anchor="middle">Current Block State</text>
+  <rect x="30" y="82" width="120" height="16" fill="#bfdbfe" rx="3"/>
+  <text x="90" y="93" font-family="monospace" font-size="7" fill="#1e40af" text-anchor="middle">BARG, TPC, SGPR, VGPR, ...</text>
+  <!-- Arrow down to EBSTATE -->
+  <line x1="250" y1="80" x2="250" y2="105" stroke="#ef4444" stroke-width="2" marker-end="url(#a7)"/>
+  <text x="255" y="95" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#dc2626">save on</text>
+  <text x="255" y="105" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#dc2626">exception</text>
+  <!-- EBSTATE box -->
+  <rect x="170" y="115" width="160" height="60" fill="#f3e8ff" stroke="#a855f7" stroke-width="2" rx="8"/>
+  <text x="250" y="133" font-family="Helvetica Neue,Arial,sans-serif" font-size="11" font-weight="bold" fill="#7e22ce" text-anchor="middle">EBSTATE</text>
+  <text x="250" y="148" font-family="monospace" font-size="8" fill="#334155" text-anchor="middle">Exception Block STATE</text>
+  <text x="250" y="162" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#64748b" text-anchor="middle">Saved context for exception handling</text>
+  <!-- Arrow from EBSTATE -->
+  <line x1="330" y1="145" x2="400" y2="145" stroke="#22c55e" stroke-width="2" marker-end="url(#a7b)"/>
+  <text x="365" y="138" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#15803d">restore on</text>
+  <text x="365" y="158" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#15803d">handler exit</text>
+  <!-- Restored state -->
+  <rect x="410" y="115" width="75" height="60" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="8"/>
+  <text x="447" y="133" font-family="Helvetica Neue,Arial,sans-serif" font-size="11" font-weight="bold" fill="#15803d" text-anchor="middle">Handler</text>
+  <text x="447" y="148" font-family="Helvetica Neue,Arial,sans-serif" font-size="11" font-weight="bold" fill="#15803d" text-anchor="middle">Exits</text>
+  <text x="447" y="162" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#64748b" text-anchor="middle">via ERET</text>
+  <!-- Note -->
+  <rect x="20" y="185" width="460" height="20" fill="#fef3c7" stroke="#f59e0b" rx="4"/>
+  <text x="250" y="199" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#92400e" text-anchor="middle">Note: EBSTATE only saved in ACR0/ACR1 (privileged) modes. No-privilege mode skips this step.</text>
+</svg>

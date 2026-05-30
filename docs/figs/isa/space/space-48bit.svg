@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .bit-label { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">HL48 Encoding Space (48-bit)</text>
+  <text x="10" y="45" class="label">16-bit prefix + 32-bit main instruction</text>
+
+  <!-- Full instruction structure -->
+  <g transform="translate(50, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">Instruction Layout:</text>
+
+    <!-- Prefix box (16 bits) -->
+    <rect x="0" y="10" width="200" height="80" fill="#45B7D1" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="100" y="40" text-anchor="middle" class="label" fill="white" font-weight="bold">Prefix</text>
+    <text x="100" y="60" text-anchor="middle" class="bit-label" fill="white">[47:32]</text>
+    <text x="100" y="100" text-anchor="middle" class="label">16-bit half-load</text>
+
+    <!-- Main box (32 bits) -->
+    <rect x="210" y="10" width="300" height="80" fill="#4ECDC4" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="360" y="40" text-anchor="middle" class="label" fill="white" font-weight="bold">Main</text>
+    <text x="360" y="60" text-anchor="middle" class="bit-label" fill="white">[31:0]</text>
+    <text x="360" y="100" text-anchor="middle" class="label">32-bit standard</text>
+  </g>
+
+  <!-- Prefix breakdown -->
+  <g transform="translate(50, 170)">
+    <text x="0" y="0" class="label" font-weight="bold">Prefix [47:32] Fields:</text>
+
+    <rect x="0" y="10" width="80" height="50" fill="#FF6B6B" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="40" y="35" text-anchor="middle" class="label" fill="white">HL</text>
+    <text x="40" y="75" text-anchor="middle" class="bit-label">[15:14]</text>
+
+    <rect x="90" y="10" width="60" height="50" fill="#FFE4B5" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="120" y="35" text-anchor="middle" class="label">ext</text>
+    <text x="120" y="75" text-anchor="middle" class="bit-label">[13:8]</text>
+
+    <rect x="160" y="10" width="120" height="50" fill="#E8E8E8" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="220" y="35" text-anchor="middle" class="label">imm16</text>
+    <text x="220" y="75" text-anchor="middle" class="bit-label">[7:0]</text>
+  </g>
+</svg>

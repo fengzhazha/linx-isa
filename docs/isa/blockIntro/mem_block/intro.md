@@ -25,7 +25,7 @@ Please refer to [Execution Mode] (../../arch/executemode.md) for parallel execut
 
 The number of vectorlane in each Group can be queried through the LaneNum field of the [SSR:LCFR](../../register/ssr/LCFR.md) register.
 
-![memoryblock](../../../figs/intro/memoryblock.png){ width="800" }
+![memoryblock](../../../figs/intro/memoryblock.svg){ width="800" }
 
 ## Block status BSTATE
 
@@ -73,7 +73,7 @@ Since the access data block adopts the structure of separate blocks, it needs to
     - The load/store local between different groups in the memory access parallel block does not allow address overlap. If overlap occurs, the hardware does not guarantee the correctness of execution.
     - The load/store local in the same group in the parallel block is based on address preservation order, and the addresses of different groups are not order preservation.
 - **Fetch serial block constraints**:
-    - The load/store local between different groups in the serial block allows the addresses to overlap, but they need to be modified in order according to the order of the group id. 
+    - The load/store local between different groups in the serial block allows the addresses to overlap, but they need to be modified in order according to the order of the group id.
     - The load/store local in the same group in the serial block is based on address preservation order, and the load/store local in different groups is in global order preservation according to the address order.
 
 **3. Memory access and atomic, order-preserving, and coincidence**

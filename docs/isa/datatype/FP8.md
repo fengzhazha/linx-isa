@@ -14,7 +14,7 @@ The FP8-E4M3 format extends the narrow dynamic range by representing fewer speci
 
 The binary structure of FP8 contains 1 bit sign bit, 4 bit exponent and 3 bit mantissa, abbreviated as **E4M3**. The schematic diagram is as follows:
 
-![e4m3](../../figs/isa/datatype/e4m3.png){ width="800" }
+![e4m3](../../figs/isa/datatype/e4m3.svg){ width="800" }
 
 ### Value range
 
@@ -54,7 +54,7 @@ The value range of FP8-E4M3 is:
 
 The binary structure of FP8-E5M2 includes 1 bit sign bit, 5 bit exponent and 2 bit mantissa, abbreviated as **E5M2**. The schematic diagram is as follows:
 
-![e5m2](../../figs/isa/datatype/e5m2.png){ width="800" }
+![e5m2](../../figs/isa/datatype/e5m2.svg){ width="800" }
 
 ### Value range
 

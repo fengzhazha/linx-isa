@@ -19,7 +19,7 @@ The execution results of a block instruction are divided into two types:
 
 When exception appears in the block, the state BSTATE in the block will be saved to the **EBSTATE** space.
 
-![exe_model](../../figs/isa/arch/ebstate_model.png)
+![exe_model](../../figs/isa/arch/ebstate_model.svg)
 
 !!! check "block instructionexception terminated"
 
@@ -67,7 +67,7 @@ Whether the status of other registers in BSTATE is saved to the Tile register or
 
 ## <span id="blockexception">exception and trap</span>
 
-![interrupt_model](../../figs/isa/arch/interrupt-model.png)
+![interrupt_model](../../figs/isa/arch/interrupt-model.svg)
 
 In some scenarios, after exception appears, subsequent instructions still need to be executed. This kind of exception is solved in a conventional way. The currently executed block state is saved in **EBSTATE**, and the state executed by the block processor is transferred to the higher privilege level ZXTE. Executing in RMZH32QXZ, higher privilege level programs can process, schedule and modify the status of low privilege level exception by accessing **EBSTATE** that was previously interruptblock instruction. The operating system and debugging software are debugged through this interface.
 

@@ -33,7 +33,7 @@ Lane level content is as follows:
 
 This model controls the total number of Lanes through [LB register] (../../register/common/loop.md#LB), uses RI/RO registers to manage global register context, and strictly follows the separated block execution paradigm.
 
-![vectorblock](../../../figs/intro/vectorblock.png){ width="800" }
+![vectorblock](../../../figs/intro/vectorblock.svg){ width="800" }
 
 vector data block How to allocate body to the specified Group under different iterations, please refer to the [Group Mode] (../mem_block/dimmode.md) introduction.
 
@@ -96,14 +96,14 @@ Not applicable scenarios:
 - The global register output by the Reduce instruction in the vector data block is not allowed to be used as the input of this block instruction, otherwise an illegal instruction exception will be reported.
 
 **3.Tile register access address range constraints**
-  
+
 - The address of the **load local instruction in the vector data block cannot exceed the range** of the input/outputtile register in this block, otherwise an illegal out-of-bounds exception report will be reported.
 - The **store local instruction in the vector data block cannot access the address range of the input tile register** and can only access the address of the output tile register, otherwise an illegal out-of-bounds exception report will be reported.
 
 **4. Submission and order preserving/address coincidence rules**
 
 - Only multiple groups are allowed to be submitted in the vector serial block in ascending order of group ids according to program order. After the last group is submitted, the vector serial block is submitted as a whole.
-- The load/store local between different groups in the vector serial block allows address overlap, but needs to be modified in order according to the order of the group id. 
+- The load/store local between different groups in the vector serial block allows address overlap, but needs to be modified in order according to the order of the group id.
 - The load/store local in the same group within the vector serial block is based on address preservation order, and the load/store local in different groups is in global order preservation according to address order.
 - The submission within the vector parallel block needs to wait for all groups to submit. The submission of each group is defined as the submission of the last instruction in the group.
 - The load/store local between different groups in the vector parallel block does not allow address overlap. If overlap occurs, the hardware does not guarantee the correctness of execution.

@@ -10,7 +10,7 @@ The binary structure of HiF4 includes 1 bit sign bit, 1 bit exponent and 2 bit m
 
 The schematic diagram is as follows:
 
-![e1m2](../../figs/isa/datatype/e1m2.png){ width="800" }
+![e1m2](../../figs/isa/datatype/e1m2.svg){ width="800" }
 
 ## Value range
 

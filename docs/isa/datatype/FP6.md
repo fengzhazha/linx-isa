@@ -12,7 +12,7 @@ FP6 contains two storage structures: **E3M2** and **E2M3**.
 
 The binary structure of FP6-E3M2 includes 1 bit sign bit, 3 bit exponent and 2 bit mantissa, abbreviated as **E3M2**. The schematic diagram is as follows:
 
-![e3m2](../../figs/isa/datatype/e3m2.png){ width="800" }
+![e3m2](../../figs/isa/datatype/e3m2.svg){ width="800" }
 
 ### Value range
 
@@ -52,7 +52,7 @@ The value range of FP6-E3M2 is:
 
 The binary structure of FP6-E2M3 includes 1 bit sign bit, 2 bit exponent and 3 bit mantissa, abbreviated as **E2M3**. The schematic diagram is as follows:
 
-![e2m3](../../figs/isa/datatype/e2m3.png){ width="800" }
+![e2m3](../../figs/isa/datatype/e2m3.svg){ width="800" }
 
 ### Value range
 

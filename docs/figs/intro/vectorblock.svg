@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .box-title { font-size: 14px; font-weight: bold; fill: white; }
+  </style>
+
+  <text x="10" y="25" class="title">Vector Data Block Overview</text>
+  <text x="10" y="45" class="label">Two-level execution model: scalarLane + vectorLanes</text>
+
+  <!-- Main block -->
+  <rect x="10" y="60" width="780" height="220" fill="#F5F5F5" rx="5" stroke="#333" stroke-width="2"/>
+
+  <!-- Scalar lane (top) -->
+  <g transform="translate(20, 70)">
+    <rect x="0" y="0" width="180" height="80" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="90" y="35" text-anchor="middle" class="box-title">Scalar Lane</text>
+    <text x="90" y="55" text-anchor="middle" class="label" fill="white">scalarLane[31:0]</text>
+    <text x="90" y="70" text-anchor="middle" class="label" fill="white">Single value</text>
+  </g>
+
+  <!-- Vector lanes (middle) -->
+  <g transform="translate(220, 70)">
+    <rect x="0" y="0" width="560" height="80" fill="#4ECDC4" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="280" y="25" text-anchor="middle" class="box-title">Vector Lanes</text>
+    <text x="280" y="50" text-anchor="middle" class="label" fill="white">vectorLanes[0..15] × 32-bit values</text>
+
+    <!-- Individual lane indicators -->
+    <rect x="20" y="60" width="520" height="15" fill="#3DBDB4" rx="2"/>
+    <text x="280" y="72" text-anchor="middle" class="label" fill="white">16 lanes × 32-bit</text>
+  </g>
+
+  <!-- VGPR / SGPR registers -->
+  <g transform="translate(20, 160)">
+    <rect x="0" y="0" width="200" height="50" fill="#4169E1" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="100" y="30" text-anchor="middle" class="box-title">VGPR</text>
+
+    <rect x="220" y="0" width="200" height="50" fill="#808080" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="320" y="30" text-anchor="middle" class="box-title">SGPR</text>
+
+    <rect x="440" y="0" width="150" height="50" fill="#FF6B6B" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="515" y="30" text-anchor="middle" class="box-title">PRED</text>
+  </g>
+
+  <!-- Loop control -->
+  <g transform="translate(610, 160)">
+    <rect x="0" y="0" width="170" height="50" fill="#FFB347" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="85" y="25" text-anchor="middle" class="label" fill="#333" font-weight="bold">Loop Control</text>
+    <text x="85" y="42" text-anchor="middle" class="label" fill="#333">LB/LC</text>
+  </g>
+
+  <!-- Tile registers at bottom -->
+  <g transform="translate(20, 220)">
+    <text x="0" y="15" class="label" font-weight="bold">Tile Registers (D/Z/N Layouts):</text>
+
+    <rect x="0" y="25" width="120" height="30" fill="#B3D9FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="60" y="45" text-anchor="middle" class="label">D[3:0]</text>
+
+    <rect x="130" y="25" width="120" height="30" fill="#E6D9F2" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="190" y="45" text-anchor="middle" class="label">Z[3:0]</text>
+
+    <rect x="260" y="25" width="120" height="30" fill="#C8E6C9" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="320" y="45" text-anchor="middle" class="label">N[3:0]</text>
+
+    <rect x="390" y="25" width="120" height="30" fill="#A5D6A7" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="450" y="45" text-anchor="middle" class="label">ACC[3:0]</text>
+  </g>
+</svg>

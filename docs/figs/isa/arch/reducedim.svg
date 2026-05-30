@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .dim-label { font-size: 14px; font-weight: bold; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">Reduced-Dimension Mapping</text>
+  <text x="10" y="45" class="label">Memory access blocks with reduced dimensionality</text>
+
+  <!-- 4D tile (source) -->
+  <g transform="translate(20, 60)">
+    <text x="0" y="0" class="dim-label">4D Tensor Tile</text>
+    <rect x="0" y="10" width="150" height="120" fill="#E8E8E8" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="75" y="70" text-anchor="middle" class="label">[D3, D2, D1, D0]</text>
+    <text x="75" y="90" text-anchor="middle" class="label">Full 4D address</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 185,90 L 235,90" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="240,90 230,85 230,95" fill="#333"/>
+
+  <!-- Reduced to 2D -->
+  <g transform="translate(250, 60)">
+    <text x="0" y="0" class="dim-label">2D Tile Register</text>
+    <rect x="0" y="10" width="150" height="120" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="75" y="60" text-anchor="middle" class="label">[D1, D0]</text>
+    <text x="75" y="80" text-anchor="middle" class="label">2D layout</text>
+    <text x="75" y="100" text-anchor="middle" class="label">Reduced</text>
+    <text x="75" y="115" text-anchor="middle" class="label">dimension</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 415,90 L 465,90" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="470,90 460,85 460,95" fill="#333"/>
+
+  <!-- Linear memory -->
+  <g transform="translate(480, 60)">
+    <text x="0" y="0" class="dim-label">Linear Memory</text>
+    <rect x="0" y="10" width="100" height="120" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="2"/>
+    <text x="50" y="70" text-anchor="middle" class="label">[offset]</text>
+    <text x="50" y="90" text-anchor="middle" class="label">1D address</text>
+  </g>
+
+  <!-- Dimension labels at bottom -->
+  <g transform="translate(20, 210)">
+    <rect x="0" y="0" width="560" height="70" fill="#F5F5F5" rx="3" stroke="#999" stroke-width="1"/>
+    <text x="280" y="20" text-anchor="middle" class="label" font-weight="bold">Dimension Mapping Rules:</text>
+    <text x="20" y="40" class="label">• D3, D2: Iterated externally (loop overhead)</text>
+    <text x="20" y="55" class="label">• D1, D0: Iterated internally (vector lanes)</text>
+  </g>
+</svg>

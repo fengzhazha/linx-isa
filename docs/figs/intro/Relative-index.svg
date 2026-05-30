@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="200" viewBox="0 0 900 200">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+  </style>
+
+  <text x="10" y="25" class="title">SGPR Relative Indexing</text>
+  <text x="10" y="45" class="label">Register file with relative addressing support</text>
+
+  <!-- Register file grid -->
+  <g transform="translate(10, 60)">
+    <rect x="0" y="0" width="500" height="120" fill="#F5F5F5" rx="5" stroke="#333" stroke-width="2"/>
+    <text x="250" y="20" text-anchor="middle" class="label" font-weight="bold">Scalar General Purpose Registers (SGPR)</text>
+
+    <!-- 16 SGPR slots -->
+    <rect x="10" y="30" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="35" y="45" text-anchor="middle" class="label" font-weight="bold">S0</text>
+    <text x="35" y="62" text-anchor="middle" class="label">[0]</text>
+    <rect x="70" y="30" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="95" y="45" text-anchor="middle" class="label" font-weight="bold">S1</text>
+    <text x="95" y="62" text-anchor="middle" class="label">[1]</text>
+    <rect x="130" y="30" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="155" y="45" text-anchor="middle" class="label" font-weight="bold">S2</text>
+    <text x="155" y="62" text-anchor="middle" class="label">[2]</text>
+    <rect x="190" y="30" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="215" y="45" text-anchor="middle" class="label" font-weight="bold">S3</text>
+    <text x="215" y="62" text-anchor="middle" class="label">[3]</text>
+    <rect x="250" y="30" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="275" y="45" text-anchor="middle" class="label" font-weight="bold">S4</text>
+    <text x="275" y="62" text-anchor="middle" class="label">[4]</text>
+    <rect x="310" y="30" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="335" y="45" text-anchor="middle" class="label" font-weight="bold">S5</text>
+    <text x="335" y="62" text-anchor="middle" class="label">[5]</text>
+    <rect x="370" y="30" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="395" y="45" text-anchor="middle" class="label" font-weight="bold">S6</text>
+    <text x="395" y="62" text-anchor="middle" class="label">[6]</text>
+    <rect x="430" y="30" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="455" y="45" text-anchor="middle" class="label" font-weight="bold">S7</text>
+    <text x="455" y="62" text-anchor="middle" class="label">[7]</text>
+    <rect x="10" y="80" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="35" y="95" text-anchor="middle" class="label" font-weight="bold">S8</text>
+    <text x="35" y="112" text-anchor="middle" class="label">[8]</text>
+    <rect x="70" y="80" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="95" y="95" text-anchor="middle" class="label" font-weight="bold">S9</text>
+    <text x="95" y="112" text-anchor="middle" class="label">[9]</text>
+    <rect x="130" y="80" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="155" y="95" text-anchor="middle" class="label" font-weight="bold">S10</text>
+    <text x="155" y="112" text-anchor="middle" class="label">[10]</text>
+    <rect x="190" y="80" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="215" y="95" text-anchor="middle" class="label" font-weight="bold">S11</text>
+    <text x="215" y="112" text-anchor="middle" class="label">[11]</text>
+    <rect x="250" y="80" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="275" y="95" text-anchor="middle" class="label" font-weight="bold">S12</text>
+    <text x="275" y="112" text-anchor="middle" class="label">[12]</text>
+    <rect x="310" y="80" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="335" y="95" text-anchor="middle" class="label" font-weight="bold">S13</text>
+    <text x="335" y="112" text-anchor="middle" class="label">[13]</text>
+    <rect x="370" y="80" width="50" height="40" fill="#B8D4E8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="395" y="95" text-anchor="middle" class="label" font-weight="bold">S14</text>
+    <text x="395" y="112" text-anchor="middle" class="label">[14]</text>
+    <rect x="430" y="80" width="50" height="40" fill="#A0C4D8" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="455" y="95" text-anchor="middle" class="label" font-weight="bold">S15</text>
+    <text x="455" y="112" text-anchor="middle" class="label">[15]</text>
+  </g>
+
+  <!-- Arrow and explanation -->
+  <g transform="translate(530, 80)">
+    <text x="0" y="0" class="label" font-weight="bold">Relative Indexing:</text>
+    <text x="0" y="20" class="label">• Base register + offset</text>
+    <text x="0" y="40" class="label">• Dynamic register selection</text>
+    <text x="0" y="60" class="label">• Used for vector register access</text>
+
+    <!-- Example -->
+    <rect x="0" y="80" width="150" height="50" fill="#FFE4B5" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="75" y="105" text-anchor="middle" font-family="Courier New, monospace" font-size="12">S[r10 + 8]</text>
+    <text x="75" y="145" text-anchor="middle" class="label">Example: base + offset</text>
+  </g>
+</svg>

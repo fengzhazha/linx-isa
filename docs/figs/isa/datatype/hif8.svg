@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 13px; fill: #666; font-style: italic; }
+  </style>
+
+  <text x="10" y="25" class="title">HiF8: Block-Floating-Point Format</text>
+  <text x="10" y="45" class="subtitle">Variable exponent + variable mantissa, shared across group</text>
+
+  <!-- Shared exponent column -->
+  <g transform="translate(50, 60)">
+    <rect x="0" y="0" width="60" height="100" fill="#9370DB" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="30" y="55" text-anchor="middle" fill="white">Shared</text>
+    <text x="30" y="75" text-anchor="middle" fill="white">Exp</text>
+    <text x="30" y="120" text-anchor="middle" class="label">8-bit</text>
+  </g>
+
+  <!-- Mantissa columns (8 values) -->
+  <g transform="translate(130, 60)">
+    <!-- Value boxes -->
+    <rect x="0" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="25" y="45" text-anchor="middle" fill="white">M0</text>
+    <text x="25" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="55" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="80" y="45" text-anchor="middle" fill="white">M1</text>
+    <text x="80" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="110" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="135" y="45" text-anchor="middle" fill="white">M2</text>
+    <text x="135" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="165" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="190" y="45" text-anchor="middle" fill="white">M3</text>
+    <text x="190" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="220" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="245" y="45" text-anchor="middle" fill="white">M4</text>
+    <text x="245" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="275" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="300" y="45" text-anchor="middle" fill="white">M5</text>
+    <text x="300" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="330" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="355" y="45" text-anchor="middle" fill="white">M6</text>
+    <text x="355" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <rect x="385" y="0" width="50" height="100" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="410" y="45" text-anchor="middle" fill="white">M7</text>
+    <text x="410" y="65" text-anchor="middle" fill="white">7b</text>
+
+    <text x="217" y="120" text-anchor="middle" class="label">8 × 7-bit mantissas = 56 bits</text>
+  </g>
+
+  <!-- Bracket showing shared group -->
+  <g transform="translate(50, 165)">
+    <path d="M 0,0 L 395,0" stroke="#333" stroke-width="1" fill="none"/>
+    <path d="M 0,0 L 0,8" stroke="#333" stroke-width="1" fill="none"/>
+    <path d="M 395,0 L 395,8" stroke="#333" stroke-width="1" fill="none"/>
+    <text x="197" y="18" text-anchor="middle" class="label">Shared Exponent Group</text>
+  </g>
+</svg>

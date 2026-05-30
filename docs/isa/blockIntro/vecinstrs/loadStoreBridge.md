@@ -11,7 +11,7 @@ The memory access bit width and address calculation method of the bridged memory
 
 The schematic diagram is as follows:
 
-![bridgeTable](../../../figs/isa/arch/bridgetable.png){ width="500" }
+![bridgeTable](../../../figs/isa/arch/bridgetable.svg){ width="500" }
 
 ## Usage scenarios
 
@@ -20,7 +20,7 @@ The schematic diagram is as follows:
 
 For example:
 ```asm
-    v.ldi [vt#1.ud, 32], ->t.d 
+    v.ldi [vt#1.ud, 32], ->t.d
     add t#1, a0, ->t
     v.sdi t#1.ud, [to, 32]
 ```
@@ -45,10 +45,10 @@ Examples are as follows:
     ...
     v.ldi.brg [a0.ud, 32], ->t.d
     v.add t#1.ud, vu#1.ud, ->vt.d       # 非法读取了前序load bridge指令的输出，硬件报ZXTERMZH41QXZ。
-    v.sdi.brg t#1.ud, [to, 32]          
+    v.sdi.brg t#1.ud, [to, 32]
     ...
     v.ldi.brg [a0.ud, 32], ->t.d
-    v.sdi.brg t#1.ud, [to, 16]      
+    v.sdi.brg t#1.ud, [to, 16]
     v.sdi.brg t#2.ud, [to, 32]          # 存在多个store bridge指令与前序load bridge匹配，硬件报ZXTERMZH41QXZ。
     ...
     v.ldi.brg [a0.ud, 32], ->t.d

@@ -13,7 +13,7 @@ Features:
 
 The diagram is as follows:
 
-![reducedim](../../../figs/isa/arch/reducedim.png){ width="1200" }
+![reducedim](../../../figs/isa/arch/reducedim.svg){ width="1200" }
 
 ## Multidimensional mode
 
@@ -26,11 +26,11 @@ Features:
 
 In multi-dimensional mode, if the upper limit of the innermost loop lb0 is less than Group.lanenum, then each innermost loop can be assigned to the same Group for execution. The diagram is as follows:
 
-![multidim](../../../figs/isa/arch/multidim.png){ width="1200" }
+![multidim](../../../figs/isa/arch/multidim.svg){ width="1200" }
 
 If the upper limit of the innermost loop lb0 is greater than Group.lanenum, then each innermost loop needs to be allocated to different Groups in order for execution. The diagram is as follows:
 
-![multidim](../../../figs/isa/arch/multidim1.png){ width="1200" }
+![multidim](../../../figs/isa/arch/multidim1.svg){ width="1200" }
 
 Under the multidimensional model, it must be ensured:
 
@@ -40,7 +40,7 @@ Under the multidimensional model, it must be ensured:
 
 Under this model, the calculation formula for the number of Groups split from a Tile block is:
 ```c++
-if (LB0 % 64 > 0) 
+if (LB0 % 64 > 0)
     innerNum = LB0 / 64 +1;
 else
     innerNum = LB0 / 64;

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .cell { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">Load-Bridge Instruction Classification</text>
+
+  <!-- Table -->
+  <g transform="translate(20, 50)">
+    <!-- Header row -->
+    <rect x="0" y="0" width="460" height="30" fill="#333" rx="3"/>
+    <text x="115" y="20" text-anchor="middle" class="cell" fill="white" font-weight="bold">Variant</text>
+    <text x="230" y="20" text-anchor="middle" class="cell" fill="white" font-weight="bold">Addressing</text>
+    <text x="380" y="20" text-anchor="middle" class="cell" fill="white" font-weight="bold">Description</text>
+
+    <!-- Row 1: Register-Register -->
+    <rect x="0" y="35" width="460" height="40" fill="#E8F4E8" rx="2"/>
+    <text x="115" y="58" text-anchor="middle" class="cell" font-weight="bold">Reg-Reg</text>
+    <text x="230" y="58" text-anchor="middle" class="cell">[base + reg]</text>
+    <text x="380" y="58" text-anchor="middle" class="cell">Base + register offset</text>
+
+    <!-- Row 2: Register-Immediate -->
+    <rect x="0" y="80" width="460" height="40" fill="#FFF0E8" rx="2"/>
+    <text x="115" y="103" text-anchor="middle" class="cell" font-weight="bold">Reg-Imm</text>
+    <text x="230" y="103" text-anchor="middle" class="cell">[base + imm16]</text>
+    <text x="380" y="103" text-anchor="middle" class="cell">Base + 16-bit immediate</text>
+
+    <!-- Row 3: Unscaled -->
+    <rect x="0" y="125" width="460" height="40" fill="#E8E8F4" rx="2"/>
+    <text x="115" y="148" text-anchor="middle" class="cell" font-weight="bold">Unscaled</text>
+    <text x="230" y="148" text-anchor="middle" class="cell">[base + reg × scale]</text>
+    <text x="380" y="148" text-anchor="middle" class="cell">Scaled index register</text>
+
+    <!-- Row 4: PC-Relative -->
+    <rect x="0" y="170" width="460" height="40" fill="#F4E8F4" rx="2"/>
+    <text x="115" y="193" text-anchor="middle" class="cell" font-weight="bold">PC-Rel</text>
+    <text x="230" y="193" text-anchor="middle" class="cell">[PC + imm26]</text>
+    <text x="380" y="193" text-anchor="middle" class="cell">PC-relative load</text>
+
+    <!-- Row 5: Tile -->
+    <rect x="0" y="215" width="460" height="40" fill="#F4F4E8" rx="2"/>
+    <text x="115" y="238" text-anchor="middle" class="cell" font-weight="bold">Tile</text>
+    <text x="230" y="238" text-anchor="middle" class="cell">[tile + D1,D0]</text>
+    <text x="380" y="238" text-anchor="middle" class="cell">Tile register indexed</text>
+  </g>
+
+  <!-- Additional info box -->
+  <g transform="translate(20, 290)">
+    <rect x="0" y="0" width="460" height="90" fill="#F5F5F5" rx="3" stroke="#999" stroke-width="1"/>
+    <text x="10" y="20" class="label" font-weight="bold">Bridge Instructions:</text>
+    <text x="10" y="40" class="label">• LDBR: Load with bridge addressing</text>
+    <text x="10" y="60" class="label">• STBR: Store with bridge addressing</text>
+    <text x="10" y="80" class="label">• Used for cross-tile memory operations</text>
+  </g>
+</svg>

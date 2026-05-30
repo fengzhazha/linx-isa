@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+  </style>
+
+  <text x="10" y="25" class="title">Multi-Dimensional Tile Mapping (Detailed)</text>
+  <text x="10" y="45" class="label">Tile register layout with dimensional indices</text>
+
+  <!-- Tile grid visualization -->
+  <g transform="translate(20, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">Tile Register Grid</text>
+
+    <rect x="0" y="10" width="280" height="200" fill="#F5F5F5" rx="3" stroke="#999" stroke-width="1"/>
+
+    <!-- 4x4 tile grid -->
+    <text x="140" y="30" text-anchor="middle" class="label">D1 dimension (rows)</text>
+    <text x="-10" y="120" text-anchor="middle" class="label" transform="rotate(-90, -10, 120)">D0 dimension (cols)</text>
+
+    <!-- Row 0 -->
+    <rect x="20" y="40" width="50" height="40" fill="#B3D9FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="45" y="65" text-anchor="middle" class="label" font-size="10">[0,0]</text>
+
+    <rect x="80" y="40" width="50" height="40" fill="#B3D9FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="105" y="65" text-anchor="middle" class="label" font-size="10">[0,1]</text>
+
+    <rect x="140" y="40" width="50" height="40" fill="#B3D9FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="165" y="65" text-anchor="middle" class="label" font-size="10">[0,2]</text>
+
+    <rect x="200" y="40" width="50" height="40" fill="#B3D9FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="225" y="65" text-anchor="middle" class="label" font-size="10">[0,3]</text>
+
+    <!-- Row 1 -->
+    <rect x="20" y="90" width="50" height="40" fill="#80C1FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="45" y="115" text-anchor="middle" class="label" font-size="10">[1,0]</text>
+
+    <rect x="80" y="90" width="50" height="40" fill="#80C1FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="105" y="115" text-anchor="middle" class="label" font-size="10">[1,1]</text>
+
+    <rect x="140" y="90" width="50" height="40" fill="#80C1FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="165" y="115" text-anchor="middle" class="label" font-size="10">[1,2]</text>
+
+    <rect x="200" y="90" width="50" height="40" fill="#80C1FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="225" y="115" text-anchor="middle" class="label" font-size="10">[1,3]</text>
+
+    <!-- Row 2 -->
+    <rect x="20" y="140" width="50" height="40" fill="#4DA6FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="45" y="165" text-anchor="middle" class="label" font-size="10">[2,0]</text>
+
+    <rect x="80" y="140" width="50" height="40" fill="#4DA6FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="105" y="165" text-anchor="middle" class="label" font-size="10">[2,1]</text>
+
+    <rect x="140" y="140" width="50" height="40" fill="#4DA6FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="165" y="165" text-anchor="middle" class="label" font-size="10">[2,2]</text>
+
+    <rect x="200" y="140" width="50" height="40" fill="#4DA6FF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="225" y="165" text-anchor="middle" class="label" font-size="10">[2,3]</text>
+
+    <!-- Row 3 -->
+    <rect x="20" y="190" width="50" height="40" fill="#1A8CFF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="45" y="215" text-anchor="middle" class="label" font-size="10">[3,0]</text>
+
+    <rect x="80" y="190" width="50" height="40" fill="#1A8CFF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="105" y="215" text-anchor="middle" class="label" font-size="10">[3,1]</text>
+
+    <rect x="140" y="190" width="50" height="40" fill="#1A8CFF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="165" y="215" text-anchor="middle" class="label" font-size="10">[3,2]</text>
+
+    <rect x="200" y="190" width="50" height="40" fill="#1A8CFF" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="225" y="215" text-anchor="middle" class="label" font-size="10">[3,3]</text>
+  </g>
+
+  <!-- Address formula -->
+  <g transform="translate(320, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">Address Calculation</text>
+
+    <rect x="0" y="10" width="250" height="120" fill="#FFE4B5" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="125" y="40" text-anchor="middle" font-family="Courier New, monospace" font-size="12">
+      addr(D1, D0) = D1 * 4 + D0
+    </text>
+    <text x="125" y="70" text-anchor="middle" class="label" font-size="11">General: D1 * stride1 + D0 * stride0</text>
+    <text x="125" y="100" text-anchor="middle" class="label" font-size="11">For 4×4: stride = 4</text>
+
+    <!-- Register indices -->
+    <text x="0" y="150" class="label" font-weight="bold">Resulting Registers:</text>
+    <rect x="0" y="160" width="250" height="60" fill="#F5F5F5" rx="3"/>
+    <text x="125" y="185" text-anchor="middle" class="label">R[0] = [0,0]</text>
+    <text x="125" y="205" text-anchor="middle" class="label">R[1] = [0,1], R[2] = [0,2], ...</text>
+  </g>
+</svg>

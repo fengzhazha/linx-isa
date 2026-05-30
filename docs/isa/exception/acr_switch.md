@@ -22,7 +22,7 @@ ACR_ENTER is requested through the `acre` instruction and is fired when the bloc
 
 For an ACR_ENTER initiated from ACRn, the specific process is:
 
-1. The ACR state of Linx logic core (LxLC) switches to system register[ECSTATE_ACRn](../register/ssr/ECSTATE.md).ACR. The target ACR must be comparable to the current ACRn, and ACRn p>= ECSTATE_ACRn.ACR. Otherwise this step itself triggers E_INST(EC_PARAM)exception.
+1. The ACR state of Linx logic core (LxLC) switches to system register [ECSTATE_ACRn](../register/ssr/ECSTATE.md).ACR. The target ACR must be comparable to the current ACRn, and ACRn p>= ECSTATE_ACRn.ACR. Otherwise this step itself triggers E_INST(EC_PARAM)exception.
 2. Use the content of `SSR:ECSTATE_ACRn` to restore the current state of `SSR:CSTATE` (that is, make the content of the latter's effective field completely consistent with the former).
 3. Use `SSR:EBPC_ACRn` to restore the contents of the BPC and schedule the execution of the block where the BPC is located.
 4. According to the `ACRE.RRA` parameters, choose whether to use the contents of `SSR:EBARG_ACRn` to restore `BARG`.
@@ -76,7 +76,7 @@ For any SERVICE_REQUEST from ACRn to ACRm, the specific behavior is,
 
 The above actions are completed once inside the Linx logic core (LxLC), and there will be no other actions that change the state of the Linx logic core (LxLC).
 
-<!-- 
+<!--
 需要特别指出的是：如果在ACRn中的管理软件处理SERVICE_REQUEST的时候，触发第二次`SERVICE_REQUEST`，而该次`SERVICE_REQUEST`的目标ACR仍是ACRn，那么ZXTERMZH6QXZ[EBSTATEP](../register/ssr/EBSTATEP.md)指向的`EBSTATE` 会被覆盖，未保存的内容将永远丢失，软件需要通过针对性的设计规避这个问题。
  -->
 
@@ -127,7 +127,7 @@ of.
 
 If a block is interrupted by `SERVICE_REQUEST` during execution, and the corresponding `BSTATE` status is dirty, the content of the `BSTATE` will be saved in the `EBSTATE` specified by `EBSTATEP`, and at the same time, the `SSR:CSTATE`.ebv field is set to 1. On the contrary, if a block is interrupted by `SERVICE_REQUEST` during execution, and the corresponding `BSTATE` status is clean, the `EBSTATE` specified by `EBSTATEP` remains unchanged, and at the same time, the `SSR:CSTATE`.ebv field is set to 0.
 
-<!-- 
+<!--
 .. cnote::
 
   调度软件，比如操作系统，可以通过保存和恢复脏的上下文恢复被打断的块的执行。如
