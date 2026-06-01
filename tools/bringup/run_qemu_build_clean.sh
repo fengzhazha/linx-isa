@@ -91,6 +91,11 @@ reset_clean_tree() {
   rm -rf "$WORKTREE_DIR" "$OUT_DIR"
 }
 
+populate_worktree_submodules() {
+  git -C "$WORKTREE_DIR" submodule sync --recursive >&2
+  git -C "$WORKTREE_DIR" submodule update --init --recursive >&2
+}
+
 tree_is_clean() {
   local tree="$1"
   [[ -z "$(git -C "$tree" status --porcelain --untracked-files=no)" ]]
@@ -98,9 +103,10 @@ tree_is_clean() {
 
 have_qemu_submodule_content() {
   local tree="$1"
-  [[ -f "$tree/capstone/CMakeLists.txt" ]] \
-    && [[ -f "$tree/dtc/meson.build" ]] \
-    && [[ -f "$tree/tests/fp/berkeley-softfloat-3/README.html" ]]
+  [[ -f "$tree/roms/seabios/README" ]] \
+    && [[ -f "$tree/roms/opensbi/README.md" ]] \
+    && [[ -f "$tree/roms/edk2/BaseTools/Edk2ToolsBuild.py" ]] \
+    && [[ -f "$tree/tests/lcitool/libvirt-ci/README.rst" ]]
 }
 
 need_worktree_refresh=0
@@ -117,19 +123,27 @@ if [[ "$need_worktree_refresh" == "1" ]]; then
 fi
 
 CONFIGURE_ROOT="$WORKTREE_DIR"
-CONFIGURE_SUBMODULE_MODE="validate"
 BUILD_FINGERPRINT="$HEAD_SHA:worktree"
 
 if ! have_qemu_submodule_content "$WORKTREE_DIR"; then
   if [[ "$ALLOW_DIRTY_SOURCE_FALLBACK" == "1" ]] && have_qemu_submodule_content "$QEMU_ROOT"; then
     echo "info: clean qemu worktree lacks populated nested submodules; using dirty source tree fallback" >&2
     CONFIGURE_ROOT="$QEMU_ROOT"
-    CONFIGURE_SUBMODULE_MODE="ignore"
+    BUILD_FINGERPRINT="$HEAD_SHA:dirty-source"
+  else
+    echo "info: populating clean qemu worktree submodules" >&2
+    populate_worktree_submodules
+  fi
+fi
+
+if ! have_qemu_submodule_content "$WORKTREE_DIR"; then
+  if [[ "$ALLOW_DIRTY_SOURCE_FALLBACK" == "1" ]] && have_qemu_submodule_content "$QEMU_ROOT"; then
+    echo "info: clean qemu worktree lacks populated nested submodules; using dirty source tree fallback" >&2
+    CONFIGURE_ROOT="$QEMU_ROOT"
     BUILD_FINGERPRINT="$HEAD_SHA:dirty-source"
   elif tree_is_clean "$QEMU_ROOT" && have_qemu_submodule_content "$QEMU_ROOT"; then
     echo "info: clean qemu worktree lacks populated nested submodules; using clean source tree fallback" >&2
     CONFIGURE_ROOT="$QEMU_ROOT"
-    CONFIGURE_SUBMODULE_MODE="ignore"
     BUILD_FINGERPRINT="$HEAD_SHA:source"
   else
     echo "error: clean qemu worktree lacks populated nested submodules and source tree fallback is unavailable" >&2
@@ -152,7 +166,6 @@ if [[ "$need_configure" == "1" ]]; then
     cd "$OUT_DIR"
     LINX_MODEL_INCLUDE="$ROOT/tools/model/include" \
       "$CONFIGURE_ROOT/configure" \
-      --with-git-submodules="$CONFIGURE_SUBMODULE_MODE" \
       --target-list=linx64-softmmu \
       --enable-plugins \
       --disable-docs \
