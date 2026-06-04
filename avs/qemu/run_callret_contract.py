@@ -211,6 +211,8 @@ def main(argv: list[str]) -> int:
             "-monitor",
             "none",
             "-no-reboot",
+            "-bios",
+            "none",
             "-d",
             "guest_errors",
         ]

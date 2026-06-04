@@ -10,7 +10,7 @@ The execution process of block instruction includes three steps:
 
 The schematic diagram of block instructionexecution model is as follows:
 
-![block-execute](../../figs/isa/arch/two-layer-exe-model.png){ width="500" }
+![block-execute](../../figs/isa/arch/two-layer-exe-model.svg){ width="500" }
 
 ## block instruction initialization
 
@@ -83,7 +83,7 @@ Pseudocode example:
     // 建立ZXTERMZH22QXZTile映射关系
     SrcTile0 -> TA;
     SrcTile1 -> TB;
-    ... 
+    ...
     SrcTile7 -> TH;
 
     DstTile0 -> TO;
@@ -168,7 +168,7 @@ block_a:
     BSTART.STD FALL
     inst0 xx, xx, ->t
     inst1 xx,     ->u
-    inst2 xx, xx, ->Rx 
+    inst2 xx, xx, ->Rx
     inst3 xx, xx, ->t
 # block_a执行结束后保留T和U寄存器，继承给后序ZXTERMZH32QXZ
 block_b:

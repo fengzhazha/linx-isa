@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .box-title { font-size: 14px; font-weight: bold; fill: white; }
+  </style>
+
+  <text x="10" y="25" class="title">Memory Access Block Overview</text>
+  <text x="10" y="45" class="label">Two variants: MPAR (parallel) and MSEQ (serial)</text>
+
+  <!-- MPAR Block -->
+  <g transform="translate(10, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">MPAR (Parallel):</text>
+    <rect x="0" y="10" width="380" height="180" fill="#E8F4E8" rx="5" stroke="#2E7D32" stroke-width="2"/>
+
+    <!-- Tile register -->
+    <rect x="10" y="25" width="120" height="60" fill="#4169E1" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="70" y="55" text-anchor="middle" class="box-title">Tile Reg</text>
+    <text x="70" y="72" text-anchor="middle" class="label" fill="white">D/Z/N</text>
+
+    <!-- Arrow -->
+    <path d="M 140,55 L 170,55" stroke="#333" stroke-width="2" fill="none"/>
+    <polygon points="175,55 165,50 165,60" fill="#333"/>
+
+    <!-- Memory unit -->
+    <rect x="180" y="25" width="100" height="60" fill="#FFB347" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="230" y="55" text-anchor="middle" class="box-title" fill="#333">Memory</text>
+    <text x="230" y="72" text-anchor="middle" class="label">Parallel</text>
+
+    <!-- Group/Lane model -->
+    <text x="10" y="110" class="label">Group/Lane Model:</text>
+    <rect x="10" y="120" width="360" height="60" fill="#F5F5F5" rx="3"/>
+    <text x="190" y="145" text-anchor="middle" class="label">Group[0..7] × Lane[0..15]</text>
+    <text x="190" y="165" text-anchor="middle" class="label">8 groups × 16 lanes = 128 parallel accesses</text>
+  </g>
+
+  <!-- MSEQ Block -->
+  <g transform="translate(410, 60)">
+    <text x="0" y="0" class="label" font-weight="bold">MSEQ (Serial):</text>
+    <rect x="0" y="10" width="380" height="180" fill="#FFF0E8" rx="5" stroke="#FF6B6B" stroke-width="2"/>
+
+    <!-- Tile register -->
+    <rect x="10" y="25" width="120" height="60" fill="#4169E1" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="70" y="55" text-anchor="middle" class="box-title">Tile Reg</text>
+    <text x="70" y="72" text-anchor="middle" class="label" fill="white">D/Z/N</text>
+
+    <!-- Arrow -->
+    <path d="M 140,55 L 170,55" stroke="#333" stroke-width="2" fill="none"/>
+    <polygon points="175,55 165,50 165,60" fill="#333"/>
+
+    <!-- Memory unit -->
+    <rect x="180" y="25" width="100" height="60" fill="#FF6B6B" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="230" y="55" text-anchor="middle" class="box-title">Memory</text>
+    <text x="230" y="72" text-anchor="middle" class="label">Serial</text>
+
+    <!-- Sequential model -->
+    <text x="10" y="110" class="label">Sequential Access:</text>
+    <rect x="10" y="120" width="360" height="60" fill="#F5F5F5" rx="3"/>
+    <text x="190" y="145" text-anchor="middle" class="label">Lane[0..127]</text>
+    <text x="190" y="165" text-anchor="middle" class="label">128 sequential scalar accesses</text>
+  </g>
+
+  <!-- Bottom comparison -->
+  <text x="400" y="280" text-anchor="middle" class="label">MPAR: Wide parallel for throughput | MSEQ: Precise control for addresses</text>
+</svg>

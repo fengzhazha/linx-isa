@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="200" viewBox="0 0 1100 200">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .bit { font-size: 11px; fill: #333; }
+  </style>
+
+  <!-- Title -->
+  <text x="10" y="25" class="title">TF32: TensorFloat-32</text>
+
+  <!-- Bit position labels -->
+  <text x="10" y="50" class="label">31</text>
+  <text x="1070" y="50" class="label">0</text>
+  <text x="550" y="50" class="label" text-anchor="middle">11:0</text>
+
+  <!-- Main bit boxes -->
+  <g transform="translate(10, 60)">
+    <!-- Sign bit -->
+    <rect x="0" y="0" width="16" height="80" fill="#808080" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="8" y="45" text-anchor="middle" fill="white" class="bit">S</text>
+    <text x="8" y="100" text-anchor="middle" class="label">1</text>
+
+    <!-- Exponent bits -->
+    <rect x="16" y="0" width="128" height="80" fill="#4169E1" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="80" y="45" text-anchor="middle" fill="white" class="bit">E</text>
+    <text x="80" y="100" text-anchor="middle" class="label">8</text>
+
+    <!-- Mantissa bits -->
+    <rect x="144" y="0" width="160" height="80" fill="#228B22" rx="3" stroke="#333" stroke-width="1"/>
+    <text x="224" y="45" text-anchor="middle" fill="white" class="bit">M</text>
+    <text x="224" y="100" text-anchor="middle" class="label">10</text>
+  </g>
+
+  <!-- Extra label if provided -->
+
+</svg>

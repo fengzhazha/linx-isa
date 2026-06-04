@@ -30,7 +30,7 @@ The matrix data block belongs to the instruction type that only has header but n
 | [TGEMVMX.BIAS](../../header/tileblock/TGEMVMX.BIAS.md) | Universal scaling matrix-vector multiplication, addition with offset, the result is written to the ACC register |
 | [TGEMVMX.ACC](../../header/tileblock/TGEMVMX.ACC.md) | Universal scaling matrix-vector multiplication, the result is accumulated to the ACC register |We provide a special [Tile register] (../../register/common/tilereg.md) - **ACC**, which is mainly used to reduce the data read and write bandwidth of the multiply-accumulate operation in the CUBE unit. This register is a private storage area within the CUBE unit and can only be accessed through matrix operation instructions and ACCCVT instructions.
 
-![acc](../../../figs/isa/arch/acc.png){ width="600" }
+![acc](../../../figs/isa/arch/acc.svg){ width="600" }
 
 Example:
 ```asm
@@ -49,11 +49,11 @@ In the matrix multiplication operation, the multiple input matrices (here repres
 
 Matrix multiplication operation:
 
-![matmul](../../../figs/isa/inst/matmul.png)
+![matmul](../../../figs/isa/inst/matmul.svg)
 
 Matrix multiplication and accumulation operations:
 
-![matmadd](../../../figs/isa/inst/matmadd.png)
+![matmadd](../../../figs/isa/inst/matmadd.svg)
 
 Among them, matrix A and matrix C must be stored in the `大N小z` layout, and matrix B must be stored in the `大Z小n` layout. For layout introduction, please see [Storage Layout](../../register/common/tilereg.md).
 

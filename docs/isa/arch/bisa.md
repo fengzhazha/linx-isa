@@ -6,7 +6,7 @@ Different from the traditional instruction set that executes one by one, Linxblo
 
 Linxblock instruction consists of two parts: **header (Header)** and **body (Body)**. Among them, header is used to describe the scheduling and control information of the block, and body is responsible for performing specific calculations or memory access operations.
 
-![block](../../figs/isa/arch/header_body.png){ width="600" }
+![block](../../figs/isa/arch/header_body.svg){ width="600" }
 
 The instruction used to define header is called "header instruction". This type of instruction marks the start of block instruction, and specifies parameters such as block type, setting jump logic and execution requirements. There are some basic parameters, including:
 
@@ -58,7 +58,7 @@ Among them, the memory access parallel block and the memory access parallel bloc
 
 All block instruction share the same first layer architectural state, but different types of block instruction can have their own unique second layer architectural state, for example, the second layer architectural state of a scalar block can be completely different from a vector block. This design can provide a flexible and adaptable computing framework when processing tasks of different complexity such as scalar operations, vector operations and large-scale parallel operations, helping the processor achieve efficient performance in different scenarios.
 
-Not only that, each specific block instruction can also have its own set of private registers. These registers are allocated when block instruction is initialized, released after block instruction is submitted, and can only be accessed and used by instructions within this block.![block](../../figs/isa/arch/BlockState.png){ width="800" }
+Not only that, each specific block instruction can also have its own set of private registers. These registers are allocated when block instruction is initialized, released after block instruction is submitted, and can only be accessed and used by instructions within this block.![block](../../figs/isa/arch/BlockState.svg){ width="800" }
 
 ## branch parameter
 
@@ -113,7 +113,7 @@ block2:
     B.TEXT .foo
 block3:
     BSTART.SYS FALL
-    add t#1, t#2, ->t      # t#1读取i0的结果，t#2读取i1的结果  
+    add t#1, t#2, ->t      # t#1读取i0的结果，t#2读取i1的结果
     BSTOP
 foo:    # block2的ZXTERMZH40QXZ
     v.lwi [TA, LC0<<2], ->vt.w

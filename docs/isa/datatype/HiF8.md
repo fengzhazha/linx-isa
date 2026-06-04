@@ -6,7 +6,7 @@ The data format is **8-bit low-precision floating-point number representation fo
 
 HiF8 defines an additional point field (D) based on IEEE 754, accounting for 2~4 bits. The D value explicitly indicates the number of bits occupied by the exponent field and implies the mantissa width. Different point fields have different encodings in the HiF8 format, as shown in the figure below.
 
-![hif8](../../figs/isa/datatype/hif8.png){ width="800" }
+![hif8](../../figs/isa/datatype/hif8.svg){ width="800" }
 
 The sign, exponent, and mantissa are abbreviated as "S", "E", and "M" respectively.
 

@@ -2,7 +2,7 @@
 
 ## Encoding format
 
-![E8M0](../../figs/isa/datatype/E8M0.png){ width="600" }
+![E8M0](../../figs/isa/datatype/E8M0.svg){ width="600" }
 
 ## Shared scaling factor mechanism
 

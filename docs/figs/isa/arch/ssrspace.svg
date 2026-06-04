@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <defs>
+    <marker id="a11" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="600" height="200" fill="#f8fafc" rx="4"/>
+  <text x="300" y="18" font-family="Helvetica Neue,Arial,sans-serif" font-size="13" font-weight="bold" fill="#1e293b" text-anchor="middle">SSR (System Status Register) Address Space</text>
+  <!-- Address bar -->
+  <rect x="20" y="40" width="560" height="30" fill="#e2e8f0" rx="4"/>
+  <text x="30" y="60" font-family="monospace" font-size="9" fill="#334155">0x0000</text>
+  <text x="150" y="60" font-family="monospace" font-size="9" fill="#334155">0x0100</text>
+  <text x="280" y="60" font-family="monospace" font-size="9" fill="#334155">0x0800</text>
+  <text x="420" y="60" font-family="monospace" font-size="9" fill="#334155">0x1000</text>
+  <text x="560" y="60" font-family="monospace" font-size="9" fill="#334155">0xFFFF</text>
+  <!-- Common space -->
+  <rect x="20" y="70" width="140" height="55" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="4"/>
+  <text x="90" y="88" font-family="monospace" font-size="10" font-weight="bold" fill="#15803d" text-anchor="middle">0x0000-0x00FF</text>
+  <text x="90" y="102" font-family="Helvetica Neue,Arial,sans-serif" font-size="9" fill="#334155" text-anchor="middle">Common Space</text>
+  <text x="90" y="115" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b" text-anchor="middle">Accessible to all ACRs</text>
+  <!-- Reserved -->
+  <rect x="160" y="70" width="120" height="55" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="4"/>
+  <text x="220" y="100" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#94a3b8" text-anchor="middle">0x0100-0x07FF</text>
+  <text x="220" y="113" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#94a3b8" text-anchor="middle">Reserved</text>
+  <!-- Light core custom -->
+  <rect x="280" y="70" width="120" height="55" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="4"/>
+  <text x="340" y="88" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">0x0800-0x08FF</text>
+  <text x="340" y="102" font-family="Helvetica Neue,Arial,sans-serif" font-size="9" fill="#334155" text-anchor="middle">Light Core Custom</text>
+  <text x="340" y="115" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b" text-anchor="middle">ACR2-accessible</text>
+  <!-- ACR0 space -->
+  <rect x="20" y="130" width="180" height="55" fill="#f3e8ff" stroke="#a855f7" stroke-width="2" rx="4"/>
+  <text x="110" y="148" font-family="monospace" font-size="10" font-weight="bold" fill="#7e22ce" text-anchor="middle">0x0F00-0x0FFF</text>
+  <text x="110" y="162" font-family="Helvetica Neue,Arial,sans-serif" font-size="9" fill="#334155" text-anchor="middle">ACR0 Only</text>
+  <text x="110" y="175" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b" text-anchor="middle">Highest privilege</text>
+  <!-- ACR1 space -->
+  <rect x="210" y="130" width="180" height="55" fill="#fce7f3" stroke="#ec4899" stroke-width="2" rx="4"/>
+  <text x="300" y="148" font-family="monospace" font-size="10" font-weight="bold" fill="#be185d" text-anchor="middle">0x1F00-0x1FFF</text>
+  <text x="300" y="162" font-family="Helvetica Neue,Arial,sans-serif" font-size="9" fill="#334155" text-anchor="middle">ACR1 Only</text>
+  <text x="300" y="175" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b" text-anchor="middle">Supervisor/OS</text>
+  <!-- ACR2 space -->
+  <rect x="400" y="130" width="180" height="55" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="4"/>
+  <text x="490" y="148" font-family="monospace" font-size="10" font-weight="bold" fill="#d97706" text-anchor="middle">0x2F00-0x2FFF</text>
+  <text x="490" y="162" font-family="Helvetica Neue,Arial,sans-serif" font-size="9" fill="#334155" text-anchor="middle">ACR2 Only</text>
+  <text x="490" y="175" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b" text-anchor="middle">User mode</text>
+</svg>

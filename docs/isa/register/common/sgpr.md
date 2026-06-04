@@ -13,7 +13,7 @@ Different from the traditional scalar register, the scalar register inside block
 
 The way to implement each register queue in hardware is to use a sliding window of registers, or a register file with wrap-around. As instructions are executed backward, the results of previous instructions are saved in a windowed manner. The schematic diagram is as follows:
 
-![Relative-index](../../../figs/intro/Relative-index.png){ width="900" }
+![Relative-index](../../../figs/intro/Relative-index.svg){ width="900" }
 
 As shown in the figure above, registers within the window are retained, and registers outside the window can be released and used again.
 

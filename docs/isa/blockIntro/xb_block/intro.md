@@ -47,7 +47,7 @@ The execution process of system-call block is as follows:
 
 The schematic diagram is as follows:
 
-![XB](../../../figs/isa/arch/XB.png)
+![XB](../../../figs/isa/arch/XB.svg)
 
 Distinguish between integrated block and separated block modes:
 

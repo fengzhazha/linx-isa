@@ -10,7 +10,7 @@ In the current version, block instruction with body supports the following three
 | **Sequel mode** | body repeats multiple executions. Iterations within the same group are allowed to be executed in parallel, but different groups must be executed in sequence. |
 | **Parallel mode**| body repeats multiple executions, and parallel execution is allowed between all iterations. |
 
-![](../../figs/intro/execmode.png){ width="900" }
+![Three execution modes: scalar (1 iteration), serial (group-parallel/iteration-serial), parallel (fully parallel)](../../figs/intro/execmode.svg){ width="900" }
 
 ## Detailed explanation of core concepts
 
@@ -38,7 +38,7 @@ The scheduling and mapping relationship is as follows:
     - Normally, Lane `i` corresponds to iteration `base_iter + i` (`base_iter` is the starting iteration number of the current Group);
 - When the total number of iterations is not an integer multiple of the Group size (number of Lanes), only some Lanes in the last Group may perform effective iterations, and the remaining Lanes remain idle or blocked within the Group.
 
-![](../../figs/intro/group.png){ width="900" }
+![Group/Lane scheduling: iterations grouped for parallel execution, each lane executes same instruction stream](../../figs/intro/group.svg){ width="900" }
 
 ---
 
@@ -63,7 +63,7 @@ Execution characteristics:
 Scheduling mechanism:
 ```mermaid
 迭代编号：0  1  2  3  4  5  6  7  8  9  ...
-Group分配： 
+Group分配：
           ┌──Group 0───┐┌──Group 1───┐┌──Group 2──┐
           │ 0  1  2  3 ││ 4  5  6  7 ││ 8  9 ...  │
           └────────────┘└────────────┘└───────────┘

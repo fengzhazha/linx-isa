@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 20px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .subtitle { font-size: 14px; font-weight: bold; fill: #333; }
+    .cell-label { font-size: 20px; font-weight: bold; fill: white; }
+  </style>
+
+  <text x="10" y="25" class="title">Tile Register Layouts</text>
+
+  <!-- D Layout -->
+  <g transform="translate(30, 50)">
+    <text x="0" y="0" class="subtitle" fill="#1A8CFF">D Layout (大N小z)</text>
+
+    <g transform="translate(0, 15)">
+      <rect x="0" y="0" width="65" height="65" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="40" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="70" y="0" width="65" height="65" fill="#80C1FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="40" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="140" y="0" width="65" height="65" fill="#4DA6FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="40" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="210" y="0" width="65" height="65" fill="#1A8CFF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="40" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="0" y="70" width="65" height="65" fill="#80C1FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="110" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="70" y="70" width="65" height="65" fill="#4DA6FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="110" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="140" y="70" width="65" height="65" fill="#1A8CFF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="110" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="210" y="70" width="65" height="65" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="110" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="0" y="140" width="65" height="65" fill="#4DA6FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="180" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="70" y="140" width="65" height="65" fill="#1A8CFF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="180" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="140" y="140" width="65" height="65" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="180" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="210" y="140" width="65" height="65" fill="#80C1FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="180" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="0" y="210" width="65" height="65" fill="#1A8CFF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="250" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="70" y="210" width="65" height="65" fill="#B3D9FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="250" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="140" y="210" width="65" height="65" fill="#80C1FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="250" text-anchor="middle" class="cell-label" font-size="18">D</text>
+      <rect x="210" y="210" width="65" height="65" fill="#4DA6FF" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="250" text-anchor="middle" class="cell-label" font-size="18">D</text>
+    </g>
+  </g>
+
+  <!-- Z Layout -->
+  <g transform="translate(320, 50)">
+    <text x="0" y="0" class="subtitle" fill="#663399">Z Layout (大Z小n)</text>
+
+    <g transform="translate(0, 15)">
+      <rect x="0" y="0" width="65" height="65" fill="#E6D9F2" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="40" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="70" y="0" width="65" height="65" fill="#CCB8E6" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="40" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="140" y="0" width="65" height="65" fill="#9966CC" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="40" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="210" y="0" width="65" height="65" fill="#663399" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="40" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="0" y="70" width="65" height="65" fill="#CCB8E6" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="110" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="70" y="70" width="65" height="65" fill="#9966CC" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="110" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="140" y="70" width="65" height="65" fill="#663399" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="110" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="210" y="70" width="65" height="65" fill="#E6D9F2" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="110" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="0" y="140" width="65" height="65" fill="#9966CC" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="180" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="70" y="140" width="65" height="65" fill="#663399" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="180" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="140" y="140" width="65" height="65" fill="#E6D9F2" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="180" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="210" y="140" width="65" height="65" fill="#CCB8E6" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="180" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="0" y="210" width="65" height="65" fill="#663399" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="250" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="70" y="210" width="65" height="65" fill="#E6D9F2" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="250" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="140" y="210" width="65" height="65" fill="#CCB8E6" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="250" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+      <rect x="210" y="210" width="65" height="65" fill="#9966CC" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="250" text-anchor="middle" class="cell-label" font-size="18">Z</text>
+    </g>
+  </g>
+
+  <!-- N Layout -->
+  <g transform="translate(610, 50)">
+    <text x="0" y="0" class="subtitle" fill="#2E7D32">N Layout (小N大z)</text>
+
+    <g transform="translate(0, 15)">
+      <rect x="0" y="0" width="65" height="65" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="40" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="70" y="0" width="65" height="65" fill="#A5D6A7" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="40" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="140" y="0" width="65" height="65" fill="#66BB6A" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="40" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="210" y="0" width="65" height="65" fill="#2E7D32" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="40" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="0" y="70" width="65" height="65" fill="#A5D6A7" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="110" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="70" y="70" width="65" height="65" fill="#66BB6A" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="110" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="140" y="70" width="65" height="65" fill="#2E7D32" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="110" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="210" y="70" width="65" height="65" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="110" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="0" y="140" width="65" height="65" fill="#66BB6A" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="180" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="70" y="140" width="65" height="65" fill="#2E7D32" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="180" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="140" y="140" width="65" height="65" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="180" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="210" y="140" width="65" height="65" fill="#A5D6A7" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="180" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="0" y="210" width="65" height="65" fill="#2E7D32" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="32" y="250" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="70" y="210" width="65" height="65" fill="#C8E6C9" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="102" y="250" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="140" y="210" width="65" height="65" fill="#A5D6A7" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="172" y="250" text-anchor="middle" class="cell-label" font-size="18">N</text>
+      <rect x="210" y="210" width="65" height="65" fill="#66BB6A" rx="3" stroke="#333" stroke-width="1"/>
+      <text x="242" y="250" text-anchor="middle" class="cell-label" font-size="18">N</text>
+    </g>
+  </g>
+
+  <!-- Description box -->
+  <g transform="translate(30, 370)">
+    <rect x="0" y="0" width="840" height="200" fill="#F5F5F5" rx="5" stroke="#999" stroke-width="1"/>
+
+    <text x="10" y="25" class="label" font-weight="bold">Layout Semantics:</text>
+    <text x="10" y="50" class="label">• D Layout (D = Row-major, 大N小z): Elements organized by row dimension</text>
+    <text x="10" y="70" class="label">• Z Layout (Z = Column-major, 大Z小n): Elements organized by column dimension</text>
+    <text x="10" y="90" class="label">• N Layout (N = Nested, 小N大z): Nested iteration over dimensions</text>
+
+    <text x="10" y="120" class="label" font-weight="bold">Usage:</text>
+    <text x="10" y="140" class="label">• D layout: Matrix A storage in GEMM operations</text>
+    <text x="10" y="160" class="label">• Z layout: Matrix B storage in GEMM operations</text>
+    <text x="10" y="180" class="label">• N layout: Matrix C (accumulator) storage</text>
+  </g>
+</svg>

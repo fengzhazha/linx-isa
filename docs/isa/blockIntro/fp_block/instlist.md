@@ -31,7 +31,7 @@ Floating point data type is defined in the following table:| Floating point form
 
 The schematic diagram of each floating point data type is as follows:
 
-![format](../../../figs/isa/datatype/fp_format0.png)
+![format](../../../figs/isa/datatype/fp_format0.svg)
 
 ## Remarks
 

@@ -12,7 +12,7 @@ FP4 contains two storage structures: **E2M1** and **E1M2**.
 
 The binary structure of FP4-E2M1 includes 1 bit sign bit, 2 bit exponent and 1 bit mantissa, abbreviated as **E2M1**. The schematic diagram is as follows:
 
-![e2m1](../../figs/isa/datatype/e2m1.png){ width="800" }
+![e2m1](../../figs/isa/datatype/e2m1.svg){ width="800" }
 
 ### Value range
 
@@ -51,7 +51,7 @@ The value range of FP4-E2M1 is:
 
 The binary structure of FP4-E1M2 includes 1 bit sign bit, 1 bit exponent and 2 bit mantissa, abbreviated as **E1M2**. The schematic diagram is as follows:
 
-![e1m2](../../figs/isa/datatype/e1m2.png){ width="800" }
+![e1m2](../../figs/isa/datatype/e1m2.svg){ width="800" }
 
 ### Value range
 

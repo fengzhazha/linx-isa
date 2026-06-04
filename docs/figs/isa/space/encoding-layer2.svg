@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="300" viewBox="0 0 700 300">
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; }
+    .title { font-size: 18px; font-weight: bold; fill: #333; }
+    .label { font-size: 12px; fill: #555; }
+    .section-label { font-size: 11px; fill: #333; }
+  </style>
+
+  <text x="10" y="25" class="title">Encoding Layer 2: Opcode Field Division</text>
+
+  <!-- 16-bit path -->
+  <g transform="translate(10, 50)">
+    <text x="0" y="0" class="label" font-weight="bold">16-bit (C16):</text>
+
+    <rect x="0" y="10" width="60" height="50" fill="#FF6B6B" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="30" y="40" text-anchor="middle" fill="white">opcode</text>
+    <text x="30" y="75" text-anchor="middle" class="section-label">[15:13]</text>
+
+    <rect x="70" y="10" width="250" height="50" fill="#E8E8E8" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="195" y="40" text-anchor="middle">operands/imm</text>
+    <text x="195" y="75" text-anchor="middle" class="section-label">[12:0]</text>
+
+    <text x="0" y="110" class="label">Opcode[15:13] = 000-110: Main instruction space (7 slots)</text>
+    <text x="0" y="130" class="label">Opcode[15:13] = 111: Prefix instruction space</text>
+  </g>
+
+  <!-- 32-bit path -->
+  <g transform="translate(10, 180)">
+    <text x="0" y="0" class="label" font-weight="bold">32-bit (LX32):</text>
+
+    <rect x="0" y="10" width="80" height="50" fill="#FF6B6B" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="40" y="40" text-anchor="middle" fill="white">opcode</text>
+    <text x="40" y="75" text-anchor="middle" class="section-label">[31:26]</text>
+
+    <rect x="90" y="10" width="250" height="50" fill="#E8E8E8" rx="2" stroke="#333" stroke-width="1"/>
+    <text x="215" y="40" text-anchor="middle">operands/imm</text>
+    <text x="215" y="75" text-anchor="middle" class="section-label">[25:0]</text>
+
+    <text x="0" y="110" class="label">Opcode[31:26] = 000000-111101: Main instruction space (62 slots)</text>
+    <text x="0" y="130" class="label">Opcode[31:26] = 111110: Prefix instruction space</text>
+    <text x="0" y="150" class="label">Opcode[31:26] = 111111: Suffix instruction space</text>
+  </g>
+</svg>

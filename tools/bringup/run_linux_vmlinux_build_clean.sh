@@ -10,6 +10,7 @@ HOSTCC="${HOSTCC:-/usr/bin/clang}"
 HOSTCXX="${HOSTCXX:-/usr/bin/clang++}"
 TARGET="${TARGET:-vmlinux}"
 KALLSYMS_EXTRA_PASS="${KALLSYMS_EXTRA_PASS:-128}"
+JOBS="${JOBS:-}"
 
 usage() {
   cat <<'USAGE'
@@ -23,6 +24,7 @@ Options:
   --hostcc PATH       Host C compiler (default: /usr/bin/clang)
   --hostcxx PATH      Host C++ compiler (default: /usr/bin/clang++)
   --target NAME       Make target (default: vmlinux)
+  --jobs N            Parallel job count for gmake/make
 
 Behavior:
   Reuses the same O= directory incrementally. It only stashes source-tree
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       TARGET="$2"
       shift 2
       ;;
+    --jobs)
+      JOBS="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -82,6 +88,9 @@ if [[ -z "$GMAKE_BIN" || ! -x "$GMAKE_BIN" ]]; then
 fi
 if [[ -z "$OUT_DIR" ]]; then
   OUT_DIR="$LINUX_ROOT/build-linx-fixed"
+fi
+if [[ -z "$JOBS" ]]; then
+  JOBS="$(sysctl -n hw.ncpu 2>/dev/null || true)"
 fi
 
 stash_dir="$(mktemp -d -t linx-linux-src-stash.XXXXXX)"
@@ -139,6 +148,7 @@ done
 env "PATH=$(dirname "$CLANG_BIN"):$PATH" \
   "$GMAKE_BIN" \
   -C "$LINUX_ROOT" \
+  ${JOBS:+-j"$JOBS"} \
   ARCH=linx \
   LLVM="$(dirname "$CLANG_BIN")/" \
   "CC=$CLANG_BIN --target=linx64-unknown-linux-gnu -fintegrated-as" \

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300">
+  <defs>
+    <marker id="a1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="a2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#22c55e"/>
+    </marker>
+    <marker id="a3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="600" height="300" fill="#f8fafc" rx="4"/>
+  <text x="300" y="18" font-family="Helvetica Neue,Arial,sans-serif" font-size="13" font-weight="bold" fill="#1e293b" text-anchor="middle">Block Instruction Structure</text>
+  <!-- Header box -->
+  <rect x="20" y="32" width="560" height="120" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/>
+  <text x="300" y="50" font-family="Helvetica Neue,Arial,sans-serif" font-size="12" font-weight="bold" fill="#1e40af" text-anchor="middle">HEADER</text>
+  <!-- Header fields -->
+  <rect x="30" y="58" width="90" height="36" fill="#bfdbfe" stroke="#3b82f6" rx="4"/>
+  <text x="75" y="74" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">BSTART</text>
+  <text x="75" y="88" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#334155" text-anchor="middle">Block start marker</text>
+  <rect x="130" y="58" width="90" height="36" fill="#bfdbfe" stroke="#3b82f6" rx="4"/>
+  <text x="175" y="74" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">BLOCK_TYPE</text>
+  <text x="175" y="88" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#334155" text-anchor="middle">e.g. scalar/serial</text>
+  <rect x="230" y="58" width="110" height="36" fill="#bfdbfe" stroke="#3b82f6" rx="4"/>
+  <text x="285" y="74" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">BRANCH_PARAMS</text>
+  <text x="285" y="88" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#334155" text-anchor="middle">target, condition</text>
+  <rect x="350" y="58" width="100" height="36" fill="#bfdbfe" stroke="#3b82f6" rx="4"/>
+  <text x="400" y="74" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">ATTRIBUTES</text>
+  <text x="400" y="88" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#334155" text-anchor="middle">flags, predication</text>
+  <rect x="460" y="58" width="110" height="36" fill="#bfdbfe" stroke="#3b82f6" rx="4"/>
+  <text x="515" y="74" font-family="monospace" font-size="10" font-weight="bold" fill="#1e40af" text-anchor="middle">BODY_PTR</text>
+  <text x="515" y="88" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#334155" text-anchor="middle">offset to body</text>
+  <text x="30" y="115" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b">Encodes scheduling model, parallelism, and control flow</text>
+  <!-- Arrow -->
+  <line x1="300" y1="152" x2="300" y2="172" stroke="#3b82f6" stroke-width="2" marker-end="url(#a1)"/>
+  <!-- Body box -->
+  <rect x="20" y="176" width="560" height="110" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="8"/>
+  <text x="300" y="194" font-family="Helvetica Neue,Arial,sans-serif" font-size="12" font-weight="bold" fill="#15803d" text-anchor="middle">BODY (Microinstructions)</text>
+  <!-- Microinstruction rows -->
+  <rect x="30" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="65" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">uOP0</text>
+  <text x="65" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">add</text>
+  <rect x="110" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="145" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">uOP1</text>
+  <text x="145" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">mul</text>
+  <rect x="190" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="225" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">uOP2</text>
+  <text x="225" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">ld</text>
+  <rect x="270" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="305" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">uOP3</text>
+  <text x="305" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">st</text>
+  <rect x="350" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="385" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">uOP4</text>
+  <text x="385" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">br</text>
+  <rect x="430" y="204" width="70" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="465" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">...</text>
+  <rect x="510" y="204" width="60" height="28" fill="#bbf7d0" stroke="#22c55e" rx="4"/>
+  <text x="540" y="216" font-family="monospace" font-size="9" fill="#15803d" text-anchor="middle">BEND</text>
+  <text x="540" y="228" font-family="Helvetica Neue,Arial,sans-serif" font-size="7" fill="#334155" text-anchor="middle">end</text>
+  <text x="30" y="272" font-family="Helvetica Neue,Arial,sans-serif" font-size="8" fill="#64748b">Sequential micro-ops executed by the Block Engine within each lane</text>
+</svg>

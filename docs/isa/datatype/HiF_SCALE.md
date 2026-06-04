@@ -43,7 +43,7 @@ Therefore, for the data `N` (`N ∈ {0,..., 63}`) in `group=64`, the final scali
 
 The diagram is as follows:
 
-![hif_scale](../../figs/isa/datatype/hif_scale.png){ width="800" }
+![hif_scale](../../figs/isa/datatype/hif_scale.svg){ width="800" }
 
 The value calculation formula of the first-order decimal `e6m2` is as follows:
 
@@ -51,7 +51,7 @@ The value calculation formula of the first-order decimal `e6m2` is as follows:
 X = 2^E x 1.M
 ```
 
-![e6m2](../../figs/isa/datatype/e6m2.png){ width="400" }
+![e6m2](../../figs/isa/datatype/e6m2.svg){ width="400" }
 
 ## Zoom results
 
@@ -66,6 +66,6 @@ Based on the above definition, each value of the HiF4 unit can be calculated as 
 
 1. If $E6M2 = NaN$, then for all $i \in [1, 64]$ it satisfies:
    $$V_i = NaN$$
-   
+
 2. Otherwise:
    $$V_i = E6M2 \times 2^{\left( \{E1\_8\}_{\lceil i/8 \rceil} + \{E1\_16\}_{\lceil i/4 \rceil} \right)} \times \{S1P2\}_i$$
