@@ -97,6 +97,9 @@ if [[ -z "$OUT_DIR" ]]; then
 fi
 if [[ -z "$JOBS" ]]; then
   JOBS="$(sysctl -n hw.ncpu 2>/dev/null || true)"
+  if [[ -n "$JOBS" && "$JOBS" -gt 4 ]]; then
+    JOBS=4
+  fi
 fi
 
 stash_dir="$(mktemp -d -t linx-linux-src-stash.XXXXXX)"
