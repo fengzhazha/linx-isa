@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validate that linxisa_virt_defconfig retains SPEC/9p workflow requirements.
+Validate that the checked-in Linx virt defconfig retains SPEC/9p workflow requirements.
 """
 
 from __future__ import annotations
@@ -47,10 +47,10 @@ def _parse_defconfig(path: Path) -> dict[str, str]:
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="Validate linxisa_virt_defconfig 9p/virtio requirements")
+    ap = argparse.ArgumentParser(description="Validate the Linx virt defconfig 9p/virtio requirements")
     ap.add_argument(
         "--defconfig",
-        default="kernel/linux/arch/linx/configs/linxisa_virt_defconfig",
+        default="kernel/linux/arch/linx/configs/linx_v150_defconfig",
         help="Path to kernel defconfig to validate",
     )
     ap.add_argument(
@@ -99,13 +99,13 @@ def main(argv: list[str]) -> int:
 
     if ok:
         print(
-            "ok: linxisa_virt_defconfig includes required 9p/virtio options "
+            "ok: Linx virt defconfig includes required 9p/virtio options "
             f"({len(REQUIRED_OPTIONS)} checks)"
         )
         return 0
 
     print(
-        "error: linxisa_virt_defconfig missing required SPEC/9p options "
+        "error: Linx virt defconfig missing required SPEC/9p options "
         f"(missing={len(missing)}, mismatched={len(mismatched)})",
         file=sys.stderr,
     )
@@ -114,4 +114,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-

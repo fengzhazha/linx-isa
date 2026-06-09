@@ -9,6 +9,7 @@ GMAKE_BIN="${GMAKE_BIN:-}"
 HOSTCC="${HOSTCC:-/usr/bin/clang}"
 HOSTCXX="${HOSTCXX:-/usr/bin/clang++}"
 TARGET="${TARGET:-vmlinux}"
+DEFCONFIG_TARGET="${DEFCONFIG_TARGET:-linx_v150_defconfig}"
 KALLSYMS_EXTRA_PASS="${KALLSYMS_EXTRA_PASS:-128}"
 JOBS="${JOBS:-}"
 
@@ -24,6 +25,7 @@ Options:
   --hostcc PATH       Host C compiler (default: /usr/bin/clang)
   --hostcxx PATH      Host C++ compiler (default: /usr/bin/clang++)
   --target NAME       Make target (default: vmlinux)
+  --defconfig NAME    Defconfig target for fresh O= dirs (default: linx_v150_defconfig)
   --jobs N            Parallel job count for gmake/make
 
 Behavior:
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --target)
       TARGET="$2"
+      shift 2
+      ;;
+    --defconfig)
+      DEFCONFIG_TARGET="$2"
       shift 2
       ;;
     --jobs)
@@ -145,15 +151,27 @@ for rel in "${paths[@]}"; do
   echo "info: stashed $src"
 done
 
+make_common=(
+  "$GMAKE_BIN"
+  -C "$LINUX_ROOT"
+  ${JOBS:+-j"$JOBS"}
+  ARCH=linx
+  "LLVM=$(dirname "$CLANG_BIN")/"
+  "CC=$CLANG_BIN --target=linx64-unknown-linux-gnu -fintegrated-as"
+  "HOSTCC=$HOSTCC"
+  "HOSTCXX=$HOSTCXX"
+  "KALLSYMS_EXTRA_PASS=$KALLSYMS_EXTRA_PASS"
+  "O=$OUT_DIR"
+)
+
+if [[ ! -f "$OUT_DIR/.config" ]]; then
+  echo "info: seeding fresh kernel config with $DEFCONFIG_TARGET + olddefconfig"
+  env "PATH=$(dirname "$CLANG_BIN"):$PATH" \
+    "${make_common[@]}" \
+    "$DEFCONFIG_TARGET" \
+    olddefconfig
+fi
+
 env "PATH=$(dirname "$CLANG_BIN"):$PATH" \
-  "$GMAKE_BIN" \
-  -C "$LINUX_ROOT" \
-  ${JOBS:+-j"$JOBS"} \
-  ARCH=linx \
-  LLVM="$(dirname "$CLANG_BIN")/" \
-  "CC=$CLANG_BIN --target=linx64-unknown-linux-gnu -fintegrated-as" \
-  "HOSTCC=$HOSTCC" \
-  "HOSTCXX=$HOSTCXX" \
-  "KALLSYMS_EXTRA_PASS=$KALLSYMS_EXTRA_PASS" \
-  "O=$OUT_DIR" \
+  "${make_common[@]}" \
   "$TARGET"
