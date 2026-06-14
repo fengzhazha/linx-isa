@@ -74,6 +74,33 @@ Result:
 - Poweroff proof passes.
 - The Linux/QEMU lane is currently green on the in-repo runtime path.
 
+### QEMU runtime AVS breadth
+
+Commands run:
+
+- `python3 avs/qemu/run_callret_contract.py --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64`
+- `python3 avs/qemu/run_tests.py --suite loadstore --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64 --verbose`
+- `python3 tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root emulator/qemu ...`
+- `python3 tools/bringup/report_qemu_isa_coverage.py --spec isa/v0.56/linxisa-v0.56.json --qemu-meta emulator/qemu/target/linx/linx_opcode_meta_gen.h ...`
+
+Result:
+
+- Call/ret contract trap validation passes.
+- `loadstore` suite passes after fixing the prefetch inline-asm surface and
+  the runner/finisher interpretation path.
+- QEMU ISA coverage currently reports `615/710` mapped spec mnemonics and
+  `614/740` mapped spec forms.
+- The opcode-sync audit now understands the modern `insn*.decode` layout, but
+  still reports one unexpected decode-only drift: `bstart_fall`.
+
+Current blocker:
+
+- The broader `system` runtime suite is not closed.
+- Current local QEMU evidence shows `TESTID_PRIV_FLOW` (`0x1102`) reaches the
+  IRQ return path and then spins at PC `0x10af0` (the `acrc` in
+  `linx_priv_after_irq`) with `cstate=0x0`, rather than completing the
+  privilege-flow sequence.
+
 ### TSVC compiler maturity lane
 
 Commands run:

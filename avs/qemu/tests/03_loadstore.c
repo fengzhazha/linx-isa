@@ -177,15 +177,25 @@ static void test_offset_store(void) {
 static void test_prf_scalar_register_offset(void) {
     const uintptr_t base = (uintptr_t)u64_data;
     const uintptr_t offset = 0;
+    uintptr_t sink;
 
-    __asm__ volatile ("prf [%0, %1]" :: "r"(base), "r"(offset) : "memory");
+    __asm__ volatile ("prf [%1, %2], ->%0"
+                      : "=r"(sink)
+                      : "r"(base), "r"(offset)
+                      : "memory");
+    (void)sink;
     TEST_EQ64(u64_data[0], 0x123456789ABCDEF0ULL, 0xC0C2);
 }
 
 static void test_prfi_u_scalar_immediate(void) {
     const uintptr_t base = (uintptr_t)u64_data;
+    uintptr_t sink;
 
-    __asm__ volatile ("prfi.u [%0, 0]" :: "r"(base) : "memory");
+    __asm__ volatile ("prfi.u [%1, 0], ->%0"
+                      : "=r"(sink)
+                      : "r"(base)
+                      : "memory");
+    (void)sink;
     TEST_EQ64(u64_data[0], 0x123456789ABCDEF0ULL, 0xC0C3);
 }
 

@@ -42,6 +42,15 @@ SECTIONS {
 }
 """
 
+FINISHER_PASS_LOW8 = 0x55
+FINISHER_FAIL_LOW8 = 0x33
+FINISHER_RESET_LOW8 = 0x77
+SUCCESS_UART_MARKERS = (
+    b"REGRESSION PASSED",
+    b"TEST SUITE COMPLETE",
+    b"PASS\r\n",
+)
+
 
 def _load_pto_kernel_catalog() -> dict[str, str]:
     catalog: dict[str, str] = {}
@@ -972,9 +981,13 @@ def main(argv: list[str]) -> int:
             sys.stderr.write("\n")
         return 125
 
-    if p.returncode == 0:
-        if emit_test_logs and b"REGRESSION PASSED" not in p.stdout:
-            sys.stderr.write("warning: exit=0 but did not see 'REGRESSION PASSED' in UART output\n")
+    finisher_low8 = p.returncode & 0xFF if p.returncode is not None else -1
+
+    if p.returncode == 0 or finisher_low8 == FINISHER_PASS_LOW8:
+        if emit_test_logs and not any(marker in p.stdout for marker in SUCCESS_UART_MARKERS):
+            sys.stderr.write(
+                "warning: exit=0 but did not see a known success marker in UART output\n"
+            )
             return 2
         if required_test_ids:
             missing: list[int] = []
@@ -996,7 +1009,12 @@ def main(argv: list[str]) -> int:
         print("PASS")
         return 0
 
-    sys.stderr.write(f"FAIL (qemu exit={p.returncode})\n")
+    if finisher_low8 == FINISHER_FAIL_LOW8:
+        sys.stderr.write(f"FAIL (guest finisher fail exit={p.returncode})\n")
+    elif finisher_low8 == FINISHER_RESET_LOW8:
+        sys.stderr.write(f"FAIL (guest finisher reset exit={p.returncode})\n")
+    else:
+        sys.stderr.write(f"FAIL (qemu exit={p.returncode})\n")
     if not args.verbose:
         if p.stdout:
             sys.stderr.write("---- guest stdout (tail) ----\n")

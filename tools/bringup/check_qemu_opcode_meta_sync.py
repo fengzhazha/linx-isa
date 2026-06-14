@@ -2,11 +2,18 @@
 """
 Audit QEMU Linx opcode metadata vs decode source files.
 
-Current source-of-truth decode files:
-  - target/linx/block16.decode
-  - target/linx/block32.decode
-  - target/linx/block48.decode
-  - target/linx/block32_private_fvec.decode
+Current source-of-truth decode files depend on the checked-out QEMU line.
+Known supported layouts:
+  - modern line:
+    - target/linx/insn16.decode
+    - target/linx/insn32.decode
+    - target/linx/insn48.decode
+    - target/linx/insn64.decode
+  - older/recovered line:
+    - target/linx/block16.decode
+    - target/linx/block32.decode
+    - target/linx/block48.decode
+    - target/linx/block32_private_fvec.decode
 
 Legacy generated opcode id/meta headers may be absent on modern lines. In that
 case this audit degrades to a decode-surface presence check instead of failing
@@ -128,17 +135,20 @@ def main(argv: list[str]) -> int:
     linx_root = qemu_root / "target" / "linx"
     ids_path = linx_root / "linx_opcode_ids_gen.h"
     meta_path = linx_root / "linx_opcode_meta_gen.h"
-    decode_files = ("block16.decode", "block32.decode", "block48.decode", "block32_private_fvec.decode")
+    decode_file_sets = (
+        ("insn16.decode", "insn32.decode", "insn48.decode", "insn64.decode"),
+        ("block16.decode", "block32.decode", "block48.decode", "block32_private_fvec.decode"),
+    )
 
-    missing_inputs: list[str] = []
-    for name in decode_files:
-        path = linx_root / name
-        if not path.is_file():
-            missing_inputs.append(str(path))
-    if missing_inputs:
-        print("error: required QEMU opcode files missing:", file=sys.stderr)
-        for item in missing_inputs:
-            print(f"  - {item}", file=sys.stderr)
+    decode_files: tuple[str, ...] | None = None
+    for candidate in decode_file_sets:
+        if all((linx_root / name).is_file() for name in candidate):
+            decode_files = candidate
+            break
+    if decode_files is None:
+        print("error: required QEMU opcode files missing for every supported decode layout:", file=sys.stderr)
+        for candidate in decode_file_sets:
+            print("  - " + ", ".join(str(linx_root / name) for name in candidate), file=sys.stderr)
         return 1
 
     decode_patterns: set[str] = set()
