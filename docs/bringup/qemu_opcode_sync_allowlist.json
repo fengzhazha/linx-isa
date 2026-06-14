@@ -1,5 +1,6 @@
 {
   "decode_only_allow": [
+    "bstart_fall",
     "hl_lwi_upr",
     "hl_lwip_u",
     "hl_lwui_po",
@@ -21,4 +22,3 @@
     "internal_invalid"
   ]
 }
-

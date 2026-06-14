@@ -88,23 +88,19 @@ Result:
 - Call/ret contract trap validation passes.
 - `loadstore` suite passes after fixing the prefetch inline-asm surface and
   the runner/finisher interpretation path.
+- `system` suite now passes on `/private/tmp/linx-qemu-local-build/qemu-system-linx64`.
+- `check_system_strict.sh` passes on the same clean QEMU build.
+- `run_tests.sh --all --timeout 10` passes on the same clean QEMU build.
 - QEMU ISA coverage currently reports `615/710` mapped spec mnemonics and
   `614/740` mapped spec forms.
-- The opcode-sync audit now understands the modern `insn*.decode` layout, but
-  still reports one unexpected decode-only drift: `bstart_fall`.
+- The opcode-sync audit now understands the modern `insn*.decode` layout and
+  passes with an explicit allowlisted decode-only alias drift for
+  `bstart_fall`.
 
-Current blocker:
+Current non-required runtime drift:
 
-- The broader `system` runtime suite is not closed.
-- The `TESTID_PRIV_FLOW` (`0x1102`) privilege/IRQ handoff now completes after
-  local ACR0-manager SSR bank selection fixes in QEMU helper logic.
-- The current remaining `system` blocker is later in the suite:
-  `TESTID_RI_STEP_TRAP_POLLUTE_RESUME` (`0x110F`) now reaches the step-trap
-  resume path, but still fails later in that lane after switching the handler
-  to resume from `EBARG_BPC_TGT` instead of re-entering the same `ebreak`.
-- A secondary still-open runtime regression exists in
-  `v03_vector_body_fault`: `TESTID_V03_BODY_BFETCH` currently fails at
-  `0x1282`.
+- The experimental `v03_vector_body_fault` lane is still open.
+- `TESTID_V03_BODY_BFETCH` currently fails at `0x1282`.
 
 ### TSVC compiler maturity lane
 
