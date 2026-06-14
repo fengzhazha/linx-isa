@@ -68,6 +68,7 @@ def main(argv: list[str]) -> int:
         "Scrt1.o": glibc_build / "csu" / "Scrt1.o",
         "crti.o": glibc_build / "csu" / "crti.o",
         "crtn.o": glibc_build / "csu" / "crtn.o",
+        "libc.a": glibc_build / "libc.a",
         "libc.so": glibc_build / "libc.so",
     }
     missing = [f"{name}={path}" for name, path in required.items() if not path.exists()]
@@ -181,6 +182,30 @@ def main(argv: list[str]) -> int:
             str(glibc_build / "csu" / "crtn.o"),
             "-o",
             str(out_dir / "hello_glibc_startup_norpath"),
+        ]
+    )
+
+    fallback_libs = REPO_ROOT / "out" / "libc" / "glibc" / "fallback-libs"
+    _run(
+        [
+            str(clang),
+            "--target=linx64-unknown-linux-gnu",
+            "-O2",
+            "-g",
+            "-fPIE",
+            "-static",
+            "-fuse-ld=lld",
+            "-nostdlib",
+            str(glibc_build / "csu" / "crt1.o"),
+            str(glibc_build / "csu" / "crti.o"),
+            str(src),
+            str(glibc_build / "libc.a"),
+            "-L" + str(fallback_libs),
+            "-lgcc",
+            "-lgcc_eh",
+            str(glibc_build / "csu" / "crtn.o"),
+            "-o",
+            str(out_dir / "hello_glibc_static"),
         ]
     )
 

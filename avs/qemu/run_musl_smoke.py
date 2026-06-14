@@ -94,6 +94,22 @@ def _default_qemu() -> Path:
     return cands[-1]
 
 
+def _default_qemu_user() -> Path:
+    env = os.environ.get("QEMU_USER") or os.environ.get("QEMU_LINX")
+    if env:
+        return Path(os.path.expanduser(env))
+    cands = [
+        REPO_ROOT / "emulator" / "qemu" / "build-user" / "qemu-linx",
+        REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-linx",
+        REPO_ROOT / "emulator" / "qemu" / "linx-linux-user" / "qemu-linx",
+        Path("qemu-linx"),
+    ]
+    for p in cands:
+        if p.exists():
+            return p
+    return cands[-1]
+
+
 def _check_exe(path: Path, what: str) -> Path:
     # Accept either an absolute/relative path or a PATH-resolved executable name.
     if path.exists():
@@ -208,6 +224,8 @@ def _run_split_link_modes(args: argparse.Namespace, out_dir: Path, selected_samp
             args.lld,
             "--qemu",
             args.qemu,
+            "--qemu-user",
+            args.qemu_user,
             "--target",
             args.target,
             "--image-base",
@@ -216,6 +234,8 @@ def _run_split_link_modes(args: argparse.Namespace, out_dir: Path, selected_samp
             args.mode,
             "--link",
             link_mode,
+            "--runner",
+            args.runner,
             "--callret-crossstack",
             args.callret_crossstack,
             "--timeout",
@@ -273,9 +293,11 @@ def _run_split_link_modes(args: argparse.Namespace, out_dir: Path, selected_samp
             "clangxx": str(Path(os.path.expanduser(args.clangxx)).resolve()),
             "lld": str(Path(os.path.expanduser(args.lld)).absolute()),
             "qemu": str(Path(os.path.expanduser(args.qemu)).resolve()),
+            "qemu_user": str(Path(os.path.expanduser(args.qemu_user)).resolve()),
             "out_dir": str(out_dir),
             "image_base": args.image_base,
             "link": "both",
+            "runner": args.runner,
         },
         "link_modes": ["static", "shared"],
         "mode_results": mode_results,
@@ -295,17 +317,28 @@ def _run_split_link_modes(args: argparse.Namespace, out_dir: Path, selected_samp
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Run Linx musl malloc/printf runtime smoke on Linux+initramfs+QEMU.")
+    parser = argparse.ArgumentParser(description="Run Linx musl malloc/printf runtime smoke on QEMU.")
     parser.add_argument("--linux-root", default=str(REPO_ROOT / "kernel" / "linux"))
     parser.add_argument("--musl-root", default=str(REPO_ROOT / "lib" / "musl"))
     parser.add_argument("--clang", default=str(_default_clang()))
     parser.add_argument("--clangxx", default="")
     parser.add_argument("--lld", default=str(_default_lld()))
     parser.add_argument("--qemu", default=str(_default_qemu()))
+    parser.add_argument(
+        "--qemu-user",
+        default=str(_default_qemu_user()),
+        help="Linux-user QEMU executable used with --runner user.",
+    )
     parser.add_argument("--target", default="linx64-unknown-linux-musl")
     parser.add_argument("--image-base", default="0x40000000")
     parser.add_argument("--mode", choices=["phase-a", "phase-b", "phase-c"], default="phase-b")
     parser.add_argument("--link", choices=["static", "shared", "both"], default="both")
+    parser.add_argument(
+        "--runner",
+        choices=["system", "user"],
+        default="system",
+        help="Run samples through full-system initramfs QEMU or qemu-linx linux-user mode.",
+    )
     parser.add_argument(
         "--callret-crossstack",
         choices=["off", "check", "strict"],
@@ -352,9 +385,12 @@ def main(argv: list[str]) -> int:
     )
     lld = Path(os.path.expanduser(args.lld)).absolute()
     qemu = Path(os.path.expanduser(args.qemu)).resolve()
+    qemu_user = Path(os.path.expanduser(args.qemu_user)).resolve()
     out_dir = Path(os.path.expanduser(args.out_dir)).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     selected_samples = _select_samples(args.sample)
+    if args.runner == "user" and "ebarg_timer" in selected_samples:
+        raise SystemExit("error: --sample ebarg_timer requires --runner system")
     if "ebarg_timer" in selected_samples and "linx_ebarg_selftest=" not in args.append:
         args.append = f"{args.append} linx_ebarg_selftest=1".strip()
     if "ebarg_timer" in selected_samples and "loglevel=1" in args.append and "loglevel=2" not in args.append:
@@ -363,6 +399,7 @@ def main(argv: list[str]) -> int:
     args.clangxx = str(clangxx)
     args.lld = str(lld)
     args.qemu = str(qemu)
+    args.qemu_user = str(qemu_user)
     args.out_dir = str(out_dir)
 
     if args.link == "both":
@@ -382,9 +419,11 @@ def main(argv: list[str]) -> int:
             "clangxx": str(clangxx),
             "lld": str(lld),
             "qemu": str(qemu),
+            "qemu_user": str(qemu_user),
             "out_dir": str(out_dir),
             "image_base": args.image_base,
             "link": args.link,
+            "runner": args.runner,
         },
         "link_mode": args.link,
         "stages": [],
@@ -403,7 +442,10 @@ def main(argv: list[str]) -> int:
     clang = _check_exe(clang, "clang")
     clangxx = _check_exe(clangxx, "clang++")
     lld = _check_exe(lld, "ld.lld")
-    qemu = _check_exe(qemu, "qemu-system-linx64")
+    if args.runner == "system":
+        qemu = _check_exe(qemu, "qemu-system-linx64")
+    else:
+        qemu_user = _check_exe(qemu_user, "qemu-linx")
 
     build_script = musl_root / "tools" / "linx" / "build_linx64_musl.sh"
     if not build_script.exists():
@@ -454,8 +496,9 @@ def main(argv: list[str]) -> int:
     runtime_lib = REPO_ROOT / "out" / "libc" / "musl" / "runtime" / args.mode / "liblinx_builtin_rt.a"
     env_compile = os.environ.copy()
     env_compile["PATH"] = f"{lld.parent}:{env_compile.get('PATH', '')}"
-    kernel = _find_kernel(linux_root)
-    gen_init_cpio = _find_gen_init_cpio(linux_root, out_dir)
+    if args.runner == "system":
+        kernel = _find_kernel(linux_root)
+        gen_init_cpio = _find_gen_init_cpio(linux_root, out_dir)
 
     if args.link == "both":
         link_modes = ["static", "shared"]
@@ -786,6 +829,85 @@ def main(argv: list[str]) -> int:
                 f"built {sample_bin}",
                 str(compile_log),
             )
+
+            if args.runner == "user":
+                qemu_log = out_dir / f"qemu_user_{sample_name}_{link_mode}.log"
+                qemu_cmd = [
+                    str(qemu_user),
+                    "-L",
+                    str(sysroot),
+                    str(sample_bin),
+                ]
+
+                text = ""
+                qemu_rc = 124
+                timed_out = False
+                try:
+                    proc = subprocess.run(
+                        qemu_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        timeout=args.timeout,
+                        check=False,
+                    )
+                    qemu_rc = proc.returncode
+                    text = proc.stdout.decode("utf-8", errors="replace")
+                except subprocess.TimeoutExpired as exc:
+                    timed_out = True
+                    data = exc.output if isinstance(exc.output, (bytes, bytearray)) else b""
+                    text = data.decode("utf-8", errors="replace")
+
+                qemu_log.write_text(text, encoding="utf-8")
+
+                start_seen = sample_meta["start"] in text
+                pass_seen = sample_meta["pass"] in text
+                if timed_out:
+                    add_stage(
+                        f"qemu-user-runtime[{sample_name}:{link_mode}]",
+                        "fail",
+                        f"timeout after {args.timeout}s",
+                        str(qemu_log),
+                    )
+                    summary["result"] = {
+                        "ok": False,
+                        "classification": f"{sample_name}_{link_mode}_user_runtime_timeout",
+                    }
+                    _write_summary(summary_path, summary)
+                    return 2
+                if qemu_rc != 0:
+                    add_stage(
+                        f"qemu-user-runtime[{sample_name}:{link_mode}]",
+                        "fail",
+                        f"nonzero qemu/user exit code {qemu_rc}",
+                        str(qemu_log),
+                    )
+                    summary["result"] = {
+                        "ok": False,
+                        "classification": f"{sample_name}_{link_mode}_user_runtime_exit_failure",
+                    }
+                    _write_summary(summary_path, summary)
+                    return 2
+                if not start_seen or not pass_seen:
+                    classification = f"{sample_name}_{link_mode}_user_runtime_missing_marker"
+                    if not start_seen:
+                        classification = f"{sample_name}_{link_mode}_user_runtime_syscall_failure"
+                    add_stage(
+                        f"qemu-user-runtime[{sample_name}:{link_mode}]",
+                        "fail",
+                        f"missing markers: start={start_seen} pass={pass_seen}, qemu_rc={qemu_rc}",
+                        str(qemu_log),
+                    )
+                    summary["result"] = {"ok": False, "classification": classification}
+                    _write_summary(summary_path, summary)
+                    return 2
+
+                add_stage(
+                    f"qemu-user-runtime[{sample_name}:{link_mode}]",
+                    "pass",
+                    f"markers observed; qemu_rc={qemu_rc}",
+                    str(qemu_log),
+                )
+                continue
 
             initramfs_list = out_dir / f"initramfs_{sample_name}_{link_mode}.list"
             initramfs = out_dir / f"initramfs_{sample_name}_{link_mode}.cpio"

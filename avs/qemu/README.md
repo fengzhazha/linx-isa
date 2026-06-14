@@ -124,10 +124,67 @@ python3 avs/qemu/run_musl_smoke.py --mode phase-b
 
 `run_musl_smoke.py` links the sample at a high userspace image base by default
 (`--image-base 0x40000000`) to avoid low-VA overlap with the current kernel mapping.
+The default runner is the full-system kernel/initramfs lane.
+
+When an external Linx linux-user QEMU build is available, run the same
+compile/link smoke directly as a process ABI gate before entering the
+full-system lane:
+
+```bash
+python3 avs/qemu/run_musl_smoke.py \
+  --mode phase-b \
+  --link static \
+  --runner user \
+  --qemu-user emulator/qemu/build-user/qemu-linx
+```
+
+The user-mode runner invokes `qemu-linx -L <sysroot> <sample.elf>` and checks
+the same stdout pass markers. It is intentionally a pre-rootfs gate: it can
+validate target ELF startup, libc syscalls, and QEMU linux-user dispatch, but
+it does not replace the system-mode kernel/rootfs regression.
+
+The pinned `emulator/qemu` checkout in this repository currently exposes only
+`linx32-softmmu` and `linx64-softmmu` targets. Treat `--runner user` as an
+optional external/recovered lane until a Linx linux-user target is added back
+to the fork and validated here.
+
+For the glibc static hello lane, use:
+
+```bash
+python3 avs/qemu/run_glibc_smoke.py \
+  --runner user \
+  --qemu-user emulator/qemu/build-user/qemu-linx
+```
+
+The glibc user-mode runner defaults to `hello_glibc_static`, matching the
+direct `qemu-linx -L <glibc-root> <static-elf>` flow.
 
 Artifacts are written under:
 
 - `avs/qemu/out/musl-smoke/`
+
+## Linux boot proof
+
+For the canonical Linx Linux-on-QEMU boot proof lane, run:
+
+```bash
+python3 avs/qemu/run_linux_boot_proofs.py
+```
+
+This runs the two kernel-side proof scripts sequentially against the rebuilt
+`vmlinux` and current Linx `virt` machine:
+
+- `boot_userspace_proof.py`: boots a `tinytrap` initramfs and proves the guest
+  reached userspace instruction fetch at `0x10000` / `0x10002`
+- `boot_poweroff_proof.py`: boots a raw `tiny` PID1 and proves the guest
+  reaches the native poweroff lane and exits QEMU cleanly
+
+Run just one half when narrowing regressions:
+
+```bash
+python3 avs/qemu/run_linux_boot_proofs.py --userspace-only
+python3 avs/qemu/run_linux_boot_proofs.py --poweroff-only
+```
 
 ## Call/Ret contract gate
 

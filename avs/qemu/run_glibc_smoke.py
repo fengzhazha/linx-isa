@@ -21,13 +21,22 @@ HELLO_VARIANTS: dict[str, str] = {
     "shared": "hello_glibc_shared",
     "startup": "hello_glibc_startup",
     "startup_norpath": "hello_glibc_startup_norpath",
+    "static": "hello_glibc_static",
 }
 
-PASS_MARKERS = [
-    "WRAP_INIT_START",
+SYSTEM_HELLO_VARIANTS = {
+    key: value for key, value in HELLO_VARIANTS.items() if key != "static"
+}
+
+USER_PASS_MARKERS = [
     "GLIBC_HELLO_START",
     "Hello, Linx ISA Linux via QEMU (glibc)",
     "GLIBC_HELLO_PASS",
+]
+
+SYSTEM_PASS_MARKERS = [
+    "WRAP_INIT_START",
+    *USER_PASS_MARKERS,
 ]
 
 FAIL_MARKERS = [
@@ -41,6 +50,22 @@ def _default_qemu() -> Path:
     cands = [
         REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-system-linx64",
         Path("qemu-system-linx64"),
+    ]
+    for p in cands:
+        if p.exists():
+            return p
+    return cands[-1]
+
+
+def _default_qemu_user() -> Path:
+    env = os.environ.get("QEMU_USER") or os.environ.get("QEMU_LINX")
+    if env:
+        return Path(os.path.expanduser(env))
+    cands = [
+        REPO_ROOT / "emulator" / "qemu" / "build-user" / "qemu-linx",
+        REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-linx",
+        REPO_ROOT / "emulator" / "qemu" / "linx-linux-user" / "qemu-linx",
+        Path("qemu-linx"),
     ]
     for p in cands:
         if p.exists():
@@ -131,7 +156,7 @@ def _run_qemu(cmd: list[str], timeout_s: int) -> tuple[str, bool, bool]:
                 break
             out_chunks.append(chunk)
             text = b"".join(out_chunks).decode("utf-8", errors="replace")
-            if all(marker in text for marker in PASS_MARKERS):
+            if all(marker in text for marker in SYSTEM_PASS_MARKERS):
                 saw_pass = True
                 proc.kill()
                 break
@@ -150,9 +175,11 @@ def _run_qemu(cmd: list[str], timeout_s: int) -> tuple[str, bool, bool]:
     return b"".join(out_chunks).decode("utf-8", errors="replace"), timed_out, saw_pass
 
 
-def _select_variants(raw: list[str] | None) -> list[str]:
+def _select_variants(raw: list[str] | None, *, runner: str) -> list[str]:
     if not raw:
-        return list(HELLO_VARIANTS.keys())
+        if runner == "user":
+            return ["static"]
+        return list(SYSTEM_HELLO_VARIANTS.keys())
     if "all" in raw:
         return list(HELLO_VARIANTS.keys())
     ordered = list(dict.fromkeys(raw))
@@ -168,6 +195,17 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--glibc-build", default=str(REPO_ROOT / "out" / "libc" / "glibc" / "build"))
     parser.add_argument("--clang", default=str(REPO_ROOT / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "clang"))
     parser.add_argument("--qemu", default=str(_default_qemu()))
+    parser.add_argument(
+        "--qemu-user",
+        default=str(_default_qemu_user()),
+        help="Linux-user QEMU executable used with --runner user.",
+    )
+    parser.add_argument(
+        "--runner",
+        choices=["system", "user"],
+        default="system",
+        help="Run through full-system initramfs QEMU or qemu-linx linux-user mode.",
+    )
     parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument(
         "--append",
@@ -197,7 +235,12 @@ def main(argv: list[str]) -> int:
     linux_root = Path(os.path.expanduser(args.linux_root)).resolve()
     glibc_build = Path(os.path.expanduser(args.glibc_build)).resolve()
     clang = _check_exe(Path(os.path.expanduser(args.clang)), "clang")
-    qemu = _check_exe(Path(os.path.expanduser(args.qemu)), "qemu-system-linx64")
+    if args.runner == "system":
+        qemu = _check_exe(Path(os.path.expanduser(args.qemu)), "qemu-system-linx64")
+        qemu_user = Path(os.path.expanduser(args.qemu_user)).resolve()
+    else:
+        qemu = Path(os.path.expanduser(args.qemu)).resolve()
+        qemu_user = _check_exe(Path(os.path.expanduser(args.qemu_user)), "qemu-linx")
     out_dir = Path(os.path.expanduser(args.out_dir)).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     summary_path = out_dir / "summary.json"
@@ -208,8 +251,10 @@ def main(argv: list[str]) -> int:
             "glibc_build": str(glibc_build),
             "clang": str(clang),
             "qemu": str(qemu),
+            "qemu_user": str(qemu_user),
             "out_dir": str(out_dir),
         },
+        "runner": args.runner,
         "stages": [],
         "result": {"ok": False, "classification": "not_run"},
     }
@@ -221,8 +266,9 @@ def main(argv: list[str]) -> int:
         summary["stages"].append(item)
         _write_summary(summary_path, summary)
 
-    kernel = _find_kernel(linux_root)
-    gen_init_cpio = _find_gen_init_cpio(linux_root, out_dir)
+    if args.runner == "system":
+        kernel = _find_kernel(linux_root)
+        gen_init_cpio = _find_gen_init_cpio(linux_root, out_dir)
     wrapper = (
         Path(os.path.expanduser(args.wrapper)).resolve()
         if args.wrapper
@@ -230,7 +276,7 @@ def main(argv: list[str]) -> int:
     )
     ldso = glibc_build / "elf" / "ld.so.1"
     libc = glibc_build / "libc.so"
-    selected_variants = _select_variants(args.variant)
+    selected_variants = _select_variants(args.variant, runner=args.runner)
     if args.hello:
         selected_variants = ["custom"]
         hello_paths = {"custom": Path(os.path.expanduser(args.hello)).resolve()}
@@ -251,13 +297,29 @@ def main(argv: list[str]) -> int:
             )
         hello_paths = {variant: out_dir / HELLO_VARIANTS[variant] for variant in selected_variants}
 
-    required_files = {
-        "wrapper": wrapper,
-        "ld.so.1": ldso,
-        "libc.so.6": libc,
-        "kernel": kernel,
-        "gen_init_cpio": gen_init_cpio,
-    }
+    if args.runner == "user" and not args.hello:
+        nonstatic = [variant for variant in selected_variants if variant != "static"]
+        if nonstatic:
+            add_stage(
+                "asset-check",
+                "fail",
+                "linux-user glibc smoke currently supports only the static variant: "
+                + ", ".join(nonstatic),
+            )
+            summary["result"] = {"ok": False, "classification": "glibc_user_variant_unsupported"}
+            _write_summary(summary_path, summary)
+            return 2
+
+    if args.runner == "system":
+        required_files = {
+            "wrapper": wrapper,
+            "ld.so.1": ldso,
+            "libc.so.6": libc,
+            "kernel": kernel,
+            "gen_init_cpio": gen_init_cpio,
+        }
+    else:
+        required_files = {"qemu-user": qemu_user}
     for variant, hello_path in hello_paths.items():
         required_files[f"hello[{variant}]"] = hello_path
     missing = [f"{name}={path}" for name, path in required_files.items() if not path.exists()]
@@ -270,13 +332,67 @@ def main(argv: list[str]) -> int:
     add_stage(
         "asset-check",
         "pass",
-        f"wrapper, {len(hello_paths)} hello variant(s), loader, libc, and kernel assets are present",
+        f"{args.runner} runner assets and {len(hello_paths)} hello variant(s) are present",
     )
 
     variant_results: dict[str, Any] = {}
     overall_ok = True
     for variant in selected_variants:
         hello = hello_paths[variant]
+        if args.runner == "user":
+            qemu_log = out_dir / f"qemu_glibc_user_{variant}.log"
+            cmd = [
+                str(qemu_user),
+                "-L",
+                str(glibc_build.parent),
+                str(hello),
+            ]
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=args.timeout,
+                    check=False,
+                )
+                output = proc.stdout.decode("utf-8", errors="replace")
+                timed_out = False
+                qemu_rc = proc.returncode
+            except subprocess.TimeoutExpired as exc:
+                data = exc.output if isinstance(exc.output, (bytes, bytearray)) else b""
+                output = data.decode("utf-8", errors="replace")
+                timed_out = True
+                qemu_rc = 124
+            qemu_log.write_text(output, encoding="utf-8")
+            missing_markers = [marker for marker in USER_PASS_MARKERS if marker not in output]
+
+            if not timed_out and qemu_rc == 0 and not missing_markers:
+                detail = "glibc static hello reached main and reported pass under qemu-linx"
+                classification = "runtime_pass"
+                ok = True
+                add_stage(f"qemu-user-runtime[{variant}]", "pass", detail, str(qemu_log))
+            else:
+                ok = False
+                overall_ok = False
+                if timed_out:
+                    detail = f"qemu-linx timed out after {args.timeout}s"
+                    classification = "glibc_user_runtime_timeout"
+                elif qemu_rc != 0:
+                    detail = f"qemu-linx exited with rc={qemu_rc}"
+                    classification = "glibc_user_runtime_exit_failure"
+                else:
+                    detail = "missing pass markers: " + ", ".join(missing_markers)
+                    classification = "glibc_user_runtime_missing_marker"
+                add_stage(f"qemu-user-runtime[{variant}]", "fail", detail, str(qemu_log))
+
+            variant_results[variant] = {
+                "hello": str(hello),
+                "log": str(qemu_log),
+                "ok": ok,
+                "classification": classification,
+            }
+            continue
+
         initramfs_list = out_dir / f"initramfs_glibc_runtime_{variant}.list"
         initramfs_cpio = out_dir / f"initramfs_glibc_runtime_{variant}.cpio"
         initramfs_list.write_text(
@@ -328,16 +444,19 @@ def main(argv: list[str]) -> int:
             "512M",
             "-smp",
             "1",
+            "-no-reboot",
             "-kernel",
             str(kernel),
             "-initrd",
             str(initramfs_cpio),
             "-append",
             args.append,
+            "-bios",
+            "none",
         ]
         output, timed_out, saw_pass = _run_qemu(cmd, args.timeout)
         qemu_log.write_text(output, encoding="utf-8")
-        missing_markers = [marker for marker in PASS_MARKERS if marker not in output]
+        missing_markers = [marker for marker in SYSTEM_PASS_MARKERS if marker not in output]
 
         if saw_pass and not missing_markers:
             detail = "glibc-linked hello reached main and reported pass"

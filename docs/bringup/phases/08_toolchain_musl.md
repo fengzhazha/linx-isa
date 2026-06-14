@@ -57,16 +57,22 @@ cd .
 python3 avs/qemu/run_musl_smoke.py --mode phase-b
 ```
 
-## Current status (2026-02-16)
+## Current status (2026-06-14)
 
-- `M1`: pass.
+- `M1`: pass on the current toolchain after syncing `arch/linx64/bits/float.h`
+  to the compiler's deliberate 64-bit `long double` ABI.
 - `M2`: pass in `phase-b` (strict, no temporary excludes).
-- `M3`: pass in `phase-b` (shared `lib/libc.so` produced).
-- `arch/linx64` atomics: `a_cas`/`a_cas_p` now use a `swapw`-backed process-global lock (non-atomic load/store CAS removed).
-- `R1`: pass (sample compiles/links statically with musl sysroot, no extra harness fallback objects).
-- `R2`: pass (`MUSL_SMOKE_START` and `MUSL_SMOKE_PASS` observed in `avs/qemu/out/musl-smoke/qemu.log`).
-- Linux no-libc initramfs baselines (`smoke.py` / `full_boot.py`): pass with default QEMU path selection.
-  - signal applets currently emit fallback `sigill: ok` / `sigsegv: ok` markers while signal-return paths are being hardened.
+- `M3`: blocked in `phase-b`.
+  Current blocker signatures from `out/libc/musl/logs/phase-b-summary.txt`:
+  - `ld.lld: error: relocation R_LINX_PCREL_HI20 cannot be used against symbol '__stack_chk_guard'; recompile with -fPIC`
+  - `ld.lld: error: relocation R_LINX_HL_PCR29_STORE cannot be used against symbol 'getdate_err'; recompile with -fPIC`
+- `R1/R2`: not green on the current tree.
+  - static runtime currently reaches `Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000004`
+    (`avs/qemu/out/musl-smoke/qemu_malloc_printf_static.log`)
+  - shared runtime is unavailable until `M3` produces shared loader/libc
+    artifacts
+- Linux no-libc initramfs baselines (`smoke.py` / `full_boot.py`) still pass on
+  the default QEMU system-mode path.
 
 ## Baseline repro pointers
 

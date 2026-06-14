@@ -66,13 +66,48 @@ Result:
 
 Command run:
 
-- `python3 avs/qemu/run_linux_boot_proofs.py`
+- `QEMU=/tmp/linx-qemu-direct-build/qemu-system-linx64 python3 avs/qemu/run_linux_boot_proofs.py`
 
 Result:
 
 - Userspace boot proof passes.
 - Poweroff proof passes.
-- The Linux/QEMU lane is currently green on the in-repo runtime path.
+- The Linux/QEMU boot-proof lane is currently green on
+  `/tmp/linx-qemu-direct-build/qemu-system-linx64`.
+- The newer `/private/tmp/linx-qemu-local-build/qemu-system-linx64` currently
+  exits the same proof scripts with `rc=0` but without the required PC-watch
+  markers, so it should not be treated as the canonical boot-proof binary yet.
+
+### Libc and Linux userspace reality check
+
+Commands run:
+
+- `python3 avs/qemu/run_glibc_smoke.py --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64 --timeout 30`
+- `python3 avs/qemu/run_musl_smoke.py --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64 --mode phase-b --timeout 30`
+
+Result:
+
+- The checked-in libc status docs were stale against the current toolchain and
+  runtime line.
+- glibc build artifacts still exist and the hello matrix rebuilds, but the
+  full-system runtime matrix is currently failing:
+  `avs/qemu/out/glibc-smoke/summary.json` reports
+  `glibc_runtime_variant_failure`.
+- The glibc full-system launcher now matches the firmwareless QEMU contract
+  (`-bios none`, `-no-reboot`), but the current PID1 wrapper/loader path still
+  exits without producing the expected userspace markers.
+- The pinned QEMU submodule currently exposes only `linx32-softmmu` and
+  `linx64-softmmu`. The documented `qemu-linx` linux-user lane is therefore an
+  optional external/recovered lane, not an in-tree validated artifact.
+- musl `M1` and `M2` now pass again after syncing
+  `lib/musl/arch/linx64/bits/float.h` to the compiler target's 64-bit
+  `long double` ABI.
+- musl `M3` remains blocked on PIC/relocation issues, and the shared runtime
+  smoke remains unavailable for the same reason.
+- The remaining musl system-mode smoke failure is now a real runtime issue, not
+  a configure mismatch: `summary_static.json` reports
+  `malloc_printf_static_runtime_timeout`, and the guest log ends in
+  `Attempted to kill init! exitcode=0x00000004`.
 
 ### QEMU runtime AVS breadth
 
@@ -142,6 +177,8 @@ Result:
 
 - This audit does not claim full cross-repo bring-up closure beyond the gates
   listed above.
+- Linux boot on QEMU is green, but libc-backed Linux userspace runtime is not
+  yet re-closed on the current tree.
 - It does not yet rerun the full `tools/regression/strict_cross_repo.sh`
   matrix.
 - It does not yet summarize every non-compiler subsystem under `rtl/`,
