@@ -157,7 +157,6 @@ done
 make_common=(
   "$GMAKE_BIN"
   -C "$LINUX_ROOT"
-  ${JOBS:+-j"$JOBS"}
   ARCH=linx
   "LLVM=$(dirname "$CLANG_BIN")/"
   "CC=$CLANG_BIN --target=linx64-unknown-linux-gnu -fintegrated-as"
@@ -166,6 +165,10 @@ make_common=(
   "KALLSYMS_EXTRA_PASS=$KALLSYMS_EXTRA_PASS"
   "O=$OUT_DIR"
 )
+
+if [[ -n "$JOBS" ]]; then
+  make_common+=("-j$JOBS")
+fi
 
 if [[ ! -f "$OUT_DIR/.config" ]]; then
   echo "info: seeding fresh kernel config with $DEFCONFIG_TARGET + olddefconfig"
