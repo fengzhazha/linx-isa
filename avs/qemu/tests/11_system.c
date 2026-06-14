@@ -347,7 +347,7 @@ __asm__(
 /* ACR1 RI step-trap pollute handler:
  * - consume SW_BREAKPOINT trap metadata
  * - poison EBARG(TQ/UQ/LB/LC/BPC/TPC)
- * - resume ACR2 at captured EBARG_TPC continuation
+ * - resume ACR2 at the skip-over continuation captured in EBARG_BPC_TGT
  */
 __asm__(
     ".globl linx_acr1_step_trap_pollute_handler\n"
@@ -362,7 +362,7 @@ __asm__(
     "  ssrset a0, 0x0040\n"      /* SSR_STEP_LAST_TRAPNO */
     "  ssrset a1, 0x0041\n"      /* SSR_STEP_LAST_TRAPARG0 */
     "  ssrset a4, 0x0042\n"      /* SSR_STEP_LAST_ECSTATE */
-    "  hl.ssrget 0x1f43, ->a2\n" /* captured continuation EBARG_TPC */
+    "  hl.ssrget 0x1f42, ->a2\n" /* captured skip-over continuation */
     "  addi zero, 0x11, ->a6\n"
     "  hl.ssrset a6, 0x1f45\n"
     "  addi zero, 0x12, ->a6\n"

@@ -99,8 +99,9 @@ Current blocker:
 - The `TESTID_PRIV_FLOW` (`0x1102`) privilege/IRQ handoff now completes after
   local ACR0-manager SSR bank selection fixes in QEMU helper logic.
 - The current remaining `system` blocker is later in the suite:
-  `TESTID_RI_STEP_TRAP_POLLUTE_RESUME` (`0x110F`) starts but never completes
-  within the current 60s runtime budget.
+  `TESTID_RI_STEP_TRAP_POLLUTE_RESUME` (`0x110F`) now reaches the step-trap
+  resume path, but still fails later in that lane after switching the handler
+  to resume from `EBARG_BPC_TGT` instead of re-entering the same `ebreak`.
 - A secondary still-open runtime regression exists in
   `v03_vector_body_fault`: `TESTID_V03_BODY_BFETCH` currently fails at
   `0x1282`.
