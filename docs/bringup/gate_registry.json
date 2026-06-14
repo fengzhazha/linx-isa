@@ -194,7 +194,7 @@
       "gate_key": "Kernel::Linux defconfig audit",
       "domain": "Kernel",
       "owner": "linux",
-      "command": "python3 \"$ROOT/tools/bringup/check_linx_virt_defconfig_spec.py\" --defconfig \"$LINUX_ROOT/arch/linx/configs/linxisa_virt_defconfig\" --report-out \"$ROOT/docs/bringup/gates/linxisa_virt_defconfig_audit.json\"",
+      "command": "python3 \"$ROOT/tools/bringup/check_linx_virt_defconfig_spec.py\" --defconfig \"$LINUX_ROOT/arch/linx/configs/linx_v150_defconfig\" --report-out \"$ROOT/docs/bringup/gates/linxisa_virt_defconfig_audit.json\"",
       "profiles": ["release-strict"],
       "tiers": ["pr", "nightly"],
       "required": true,

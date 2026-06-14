@@ -13,8 +13,13 @@ from pathlib import Path
 
 
 REQUIRED_OPTIONS: tuple[tuple[str, str], ...] = (
+    ("CONFIG_BLOCK", "y"),
     ("CONFIG_DEVTMPFS", "y"),
     ("CONFIG_DEVTMPFS_MOUNT", "y"),
+    ("CONFIG_EXT2_FS", "y"),
+    ("CONFIG_PROC_FS", "y"),
+    ("CONFIG_PROC_SYSCTL", "y"),
+    ("CONFIG_SYSFS", "y"),
     ("CONFIG_VIRTIO_MMIO", "y"),
     ("CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES", "y"),
     ("CONFIG_VIRTIO_BLK", "y"),
@@ -47,7 +52,7 @@ def _parse_defconfig(path: Path) -> dict[str, str]:
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="Validate the Linx virt defconfig 9p/virtio requirements")
+    ap = argparse.ArgumentParser(description="Validate the Linx virt defconfig rootfs/SPEC requirements")
     ap.add_argument(
         "--defconfig",
         default="kernel/linux/arch/linx/configs/linx_v150_defconfig",
@@ -99,13 +104,13 @@ def main(argv: list[str]) -> int:
 
     if ok:
         print(
-            "ok: Linx virt defconfig includes required 9p/virtio options "
+            "ok: Linx virt defconfig includes required rootfs/SPEC options "
             f"({len(REQUIRED_OPTIONS)} checks)"
         )
         return 0
 
     print(
-        "error: Linx virt defconfig missing required SPEC/9p options "
+        "error: Linx virt defconfig missing required rootfs/SPEC options "
         f"(missing={len(missing)}, mismatched={len(mismatched)})",
         file=sys.stderr,
     )

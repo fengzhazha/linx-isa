@@ -12,6 +12,7 @@ TARGET="${TARGET:-vmlinux}"
 DEFCONFIG_TARGET="${DEFCONFIG_TARGET:-linx_v150_defconfig}"
 KALLSYMS_EXTRA_PASS="${KALLSYMS_EXTRA_PASS:-128}"
 JOBS="${JOBS:-}"
+REFRESH_DEFCONFIG="${LINX_KERNEL_REFRESH_DEFCONFIG:-0}"
 
 usage() {
   cat <<'USAGE'
@@ -26,6 +27,7 @@ Options:
   --hostcxx PATH      Host C++ compiler (default: /usr/bin/clang++)
   --target NAME       Make target (default: vmlinux)
   --defconfig NAME    Defconfig target for fresh O= dirs (default: linx_v150_defconfig)
+  --refresh-defconfig Re-seed O=.config from the selected defconfig before building
   --jobs N            Parallel job count for gmake/make
 
 Behavior:
@@ -67,6 +69,10 @@ while [[ $# -gt 0 ]]; do
     --defconfig)
       DEFCONFIG_TARGET="$2"
       shift 2
+      ;;
+    --refresh-defconfig)
+      REFRESH_DEFCONFIG=1
+      shift
       ;;
     --jobs)
       JOBS="$2"
@@ -177,7 +183,7 @@ if [[ -n "$JOBS" ]]; then
   make_common+=("-j$JOBS")
 fi
 
-if [[ ! -f "$OUT_DIR/.config" ]]; then
+if [[ "$REFRESH_DEFCONFIG" == "1" || ! -f "$OUT_DIR/.config" ]]; then
   echo "info: seeding fresh kernel config with $DEFCONFIG_TARGET + olddefconfig"
   env "PATH=$(dirname "$CLANG_BIN"):$PATH" \
     "${make_common[@]}" \

@@ -1,9 +1,9 @@
 {
   "defconfig": "/Users/zhoubot/linx-isa/kernel/linux/arch/linx/configs/linx_v150_defconfig",
-  "generated_at_utc": "2026-06-01 03:40:15Z",
+  "generated_at_utc": "2026-06-14 14:36:45Z",
   "mismatched": [],
   "missing": [],
-  "required_option_count": 10,
+  "required_option_count": 15,
   "result": {
     "classification": "linxisa_virt_defconfig_spec_compatible",
     "ok": true
