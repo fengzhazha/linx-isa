@@ -96,6 +96,40 @@ populate_worktree_submodules() {
   git -C "$WORKTREE_DIR" submodule update --init --recursive >&2
 }
 
+copy_submodule_tree() {
+  local src="$1"
+  local dst="$2"
+
+  mkdir -p "$dst"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete --exclude='.git' --exclude='.git/' "$src"/ "$dst"/ >&2
+  else
+    rm -rf "$dst"
+    mkdir -p "$dst"
+    (
+      cd "$src"
+      tar --exclude='.git' -cf - .
+    ) | (
+      cd "$dst"
+      tar -xf -
+    )
+  fi
+}
+
+hydrate_worktree_submodules_from_source() {
+  local rel src dst
+
+  while IFS= read -r rel; do
+    [[ -n "$rel" ]] || continue
+    src="$QEMU_ROOT/$rel"
+    dst="$WORKTREE_DIR/$rel"
+    if [[ ! -e "$src" ]]; then
+      continue
+    fi
+    copy_submodule_tree "$src" "$dst"
+  done < <(git -C "$QEMU_ROOT" submodule status | awk '{print $2}')
+}
+
 tree_is_clean() {
   local tree="$1"
   [[ -z "$(git -C "$tree" status --porcelain --untracked-files=no)" ]]
@@ -124,6 +158,13 @@ fi
 
 CONFIGURE_ROOT="$WORKTREE_DIR"
 BUILD_FINGERPRINT="$HEAD_SHA:worktree"
+
+if ! have_qemu_submodule_content "$WORKTREE_DIR"; then
+  if have_qemu_submodule_content "$QEMU_ROOT"; then
+    echo "info: hydrating clean qemu worktree submodules from local source tree" >&2
+    hydrate_worktree_submodules_from_source
+  fi
+fi
 
 if ! have_qemu_submodule_content "$WORKTREE_DIR"; then
   if [[ "$ALLOW_DIRTY_SOURCE_FALLBACK" == "1" ]] && have_qemu_submodule_content "$QEMU_ROOT"; then
