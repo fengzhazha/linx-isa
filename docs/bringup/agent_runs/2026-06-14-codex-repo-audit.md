@@ -64,19 +64,22 @@ Result:
 
 ### Linux on QEMU
 
-Command run:
+Commands run:
 
-- `QEMU=/tmp/linx-qemu-direct-build/qemu-system-linx64 python3 avs/qemu/run_linux_boot_proofs.py`
+- `bash tools/bringup/run_qemu_build_local.sh`
+- `QEMU="$(bash tools/bringup/run_qemu_build_local.sh)" python3 avs/qemu/run_linux_boot_proofs.py`
 
 Result:
 
 - Userspace boot proof passes.
 - Poweroff proof passes.
-- The Linux/QEMU boot-proof lane is currently green on
-  `/tmp/linx-qemu-direct-build/qemu-system-linx64`.
-- The newer `/private/tmp/linx-qemu-local-build/qemu-system-linx64` currently
-  exits the same proof scripts with `rc=0` but without the required PC-watch
-  markers, so it should not be treated as the canonical boot-proof binary yet.
+- The Linux/QEMU boot-proof lane is currently green on the helper-built local
+  binary:
+  `/private/tmp/linx-qemu-local-build/qemu-system-linx64`.
+- `tools/bringup/run_qemu_build_local.sh` is now the canonical current-source
+  bring-up helper for Linux boot validation.
+- The detached clean-worktree QEMU lane remains a separate unresolved surface;
+  it still does not satisfy the current Linux boot proofs.
 
 ### Libc and Linux userspace reality check
 
@@ -114,18 +117,17 @@ Result:
 Commands run:
 
 - `python3 avs/qemu/run_callret_contract.py --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64`
-- `python3 avs/qemu/run_tests.py --suite loadstore --qemu /private/tmp/linx-qemu-local-build/qemu-system-linx64 --verbose`
+- `QEMU=/private/tmp/linx-qemu-local-build/qemu-system-linx64 bash avs/qemu/check_system_strict.sh`
+- `QEMU=/private/tmp/linx-qemu-local-build/qemu-system-linx64 bash avs/qemu/run_tests.sh --all --timeout 10`
 - `python3 tools/bringup/check_qemu_opcode_meta_sync.py --qemu-root emulator/qemu ...`
 - `python3 tools/bringup/report_qemu_isa_coverage.py --spec isa/v0.56/linxisa-v0.56.json --qemu-meta emulator/qemu/target/linx/linx_opcode_meta_gen.h ...`
 
 Result:
 
 - Call/ret contract trap validation passes.
-- `loadstore` suite passes after fixing the prefetch inline-asm surface and
-  the runner/finisher interpretation path.
 - `system` suite now passes on `/private/tmp/linx-qemu-local-build/qemu-system-linx64`.
-- `check_system_strict.sh` passes on the same clean QEMU build.
-- `run_tests.sh --all --timeout 10` passes on the same clean QEMU build.
+- `check_system_strict.sh` passes on the same rebuilt local QEMU build.
+- `run_tests.sh --all --timeout 10` passes on the same rebuilt local QEMU build.
 - QEMU ISA coverage currently reports `615/710` mapped spec mnemonics and
   `614/740` mapped spec forms.
 - The opcode-sync audit now understands the modern `insn*.decode` layout and

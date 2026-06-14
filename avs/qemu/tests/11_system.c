@@ -598,8 +598,7 @@ __attribute__((noreturn)) static void linx_priv_after_irq(void)
 {
     TEST_EQ64(ssrget_uimm(SSR_IRQ_SEEN), 1, TESTID_PRIV_FLOW + 3);
 
-    /* Switch ACR0 vector to the exit handler, then request a service exit. */
-    ssrset_uimm(SSR_EVBASE_ACR0, (uint64_t)(uintptr_t)&linx_acr0_exit_handler);
+    /* Request a service exit back to the ACR0 handler installed by setup. */
     __asm__ volatile("acrc 0\n  c.bstop\n" : : : "memory"); /* SCT_MAC -> routes to ACR0 */
     __builtin_unreachable();
 }
@@ -1355,7 +1354,8 @@ void run_system_tests(void)
     hl_ssrset_uimm24(SSR_ETEMP_ACR1, (uint64_t)(uintptr_t)&linx_priv_after_irq);
     ssrset_uimm(SSR_CONT_EXIT, (uint64_t)(uintptr_t)&linx_priv_after_exit);
 
-    /* Install handler vectors. */
+    /* Install handler vectors while still in ACR0 so base 0x0fxx SSR writes target ACR0. */
+    ssrset_uimm(SSR_EVBASE_ACR0, (uint64_t)(uintptr_t)&linx_acr0_exit_handler);
     hl_ssrset_uimm24(SSR_EVBASE_ACR1, (uint64_t)(uintptr_t)&linx_acr1_syscall_handler);
 
     /* Hand off to ACR2 at the user-code stage function. */
