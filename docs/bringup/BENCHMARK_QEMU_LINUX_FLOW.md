@@ -15,9 +15,10 @@ Evidence:
 - Recent TSVC evidence splits cleanly into compile coverage and QEMU runtime:
   compile coverage may be green while the PR benchmark lane still hard-breaks
   on TSVC/QEMU timeout or runtime completion.
-- `docs/bringup/gates/logs/2026-05-20-r2-pin-post-compilerfix/pin/kernel_busybox_rootfs.log`
-  records the full-OS BusyBox rootfs lane timing out without shell command
-  progress under firmwareless QEMU.
+- `workloads/generated/flow-linux-20260614/linux-userspace-entry-v3.json`
+  records the current Linux hard break: `vmlinux` builds, the tiny initramfs
+  userspace proof reaches QEMU-observed userspace PCs, and the clean BusyBox
+  rootfs image still times out before shell command tokens.
 - `docs/bringup/agent_runs/checklists/specint_qemu.md` records SPEC Stage-A as
   blocked behind firmwareless Linux userspace entry, not merely SPEC harness
   plumbing.
@@ -28,9 +29,9 @@ Inference:
   partially repaired workspace. The efficient path is to stop at the first red
   prerequisite: ISA/catalog, compiler, QEMU, TSVC direct runtime, Linux
   userspace entry, libc hosted runtime, then full benchmark expansion.
-- The current hard-break priority is TSVC/QEMU for the PR benchmark lane, with
-  BusyBox rootfs and libc runtime still real but downstream of that PR stop
-  path.
+- The current PR benchmark lane is green through TSVC/QEMU. The next active
+  hard break is Linux rootfs handoff over the virtio block path; libc runtime
+  and SPEC remain downstream until that full-OS entry path is green.
 - Markdown status pages are useful summaries, but several are stale relative to
   the current June 14 coverage snapshot and aggregate `latest.json` is older
   than some sidecar reports. Agents should use the JSON flow, command output,

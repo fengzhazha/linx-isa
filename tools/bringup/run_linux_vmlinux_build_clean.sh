@@ -92,8 +92,15 @@ if [[ -z "$GMAKE_BIN" || ! -x "$GMAKE_BIN" ]]; then
   echo "error: --gmake must point to an executable gmake/make" >&2
   exit 2
 fi
+if [[ ! -d "$LINUX_ROOT" ]]; then
+  echo "error: linux root does not exist: $LINUX_ROOT" >&2
+  exit 2
+fi
+LINUX_ROOT="$(cd "$LINUX_ROOT" && pwd)"
 if [[ -z "$OUT_DIR" ]]; then
   OUT_DIR="$LINUX_ROOT/build-linx-fixed"
+elif [[ "$OUT_DIR" != /* ]]; then
+  OUT_DIR="$ROOT/$OUT_DIR"
 fi
 if [[ -z "$JOBS" ]]; then
   JOBS="$(sysctl -n hw.ncpu 2>/dev/null || true)"
