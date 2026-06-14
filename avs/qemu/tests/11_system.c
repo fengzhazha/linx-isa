@@ -98,6 +98,16 @@ enum {
     TESTID_CFI_BAD_TARGET = 0x1110,
 };
 
+enum {
+    TRAPNUM_ILLEGAL_INST = 0,
+    TRAPNUM_BLOCK_TRAP = 5,
+    TRAPNUM_SYSCALL = 16,
+    TRAPNUM_INTERRUPT = 44,
+    TRAPNUM_HW_BREAKPOINT = 49,
+    TRAPNUM_SW_BREAKPOINT = 50,
+    TRAPNUM_HW_WATCHPOINT = 51,
+};
+
 __attribute__((noreturn)) static void linx_priv_user_code(void);
 __attribute__((noreturn)) static void linx_priv_after_syscall(void);
 __attribute__((noreturn)) static void linx_priv_after_irq(void);
@@ -131,8 +141,8 @@ __attribute__((noreturn)) static void linx_system_done(void);
 static volatile uint64_t WATCH_TARGET;
 volatile uint32_t STEP_RI_OUT[2];
 
-/* v0.2 TRAPNO encoding helpers (E/ARGV/CAUSE/TRAPNUM). */
-static inline uint64_t trapno_is_async(uint64_t trapno) { return (trapno >> 63) & 1ull; }
+/* TRAPNO encoding helpers (E/ARGV/CAUSE/TRAPNUM). */
+static inline uint64_t trapno_is_async(uint64_t trapno) { return ((trapno >> 63) & 1ull) ? 0ull : 1ull; }
 static inline uint64_t trapno_has_argv(uint64_t trapno) { return (trapno >> 62) & 1ull; }
 static inline uint64_t trapno_cause(uint64_t trapno) { return (trapno >> 24) & 0xFFFFFFull; }
 static inline uint64_t trapno_trapnum(uint64_t trapno) { return trapno & 0x3Full; }
@@ -626,7 +636,7 @@ __attribute__((noreturn)) static void linx_after_bad_acrc_exit(void)
     const uint64_t trapnum = trapno_trapnum(trapno);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACRC_ADJ + 1);
-    TEST_EQ64(trapnum, 5 /* BLOCK_TRAP */, TESTID_ACRC_ADJ + 3);
+    TEST_EQ64(trapnum, TRAPNUM_BLOCK_TRAP, TESTID_ACRC_ADJ + 3);
     (void)trapno_cause(trapno);
 
     test_pass(); /* ACRC_ADJ */
@@ -669,7 +679,7 @@ __attribute__((noreturn)) static void linx_after_dbg_bp_exit(void)
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_DBG_BP + 1);
     TEST_EQ64(trapno_has_argv(trapno), 1, TESTID_DBG_BP + 2);
-    TEST_EQ64(trapno_trapnum(trapno), 49 /* HW_BREAKPOINT */, TESTID_DBG_BP + 3);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_HW_BREAKPOINT, TESTID_DBG_BP + 3);
     TEST_EQ64(traparg0, bp_pc, TESTID_DBG_BP + 4);
     TEST_EQ64(ebarg_tpc, bp_pc + 4, TESTID_DBG_BP + 5); /* trap resumes at next PC */
 
@@ -722,13 +732,13 @@ __attribute__((noreturn)) static void linx_after_dbg_bp_resume_exit(void)
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_DBG_BP_RESUME + 1);
     TEST_EQ64(trapno_has_argv(trapno), 1, TESTID_DBG_BP_RESUME + 2);
-    TEST_EQ64(trapno_trapnum(trapno), 49 /* HW_BREAKPOINT */, TESTID_DBG_BP_RESUME + 3);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_HW_BREAKPOINT, TESTID_DBG_BP_RESUME + 3);
     TEST_EQ64(traparg0, bp_pc, TESTID_DBG_BP_RESUME + 4);
     TEST_EQ64(ebarg_tpc, bp_pc + 4, TESTID_DBG_BP_RESUME + 5);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_DBG_BP_RESUME + 6);
     TEST_EQ64(ssrget_uimm(SSR_BP_RESUME_SEEN), 1, TESTID_DBG_BP_RESUME + 7);
     TEST_EQ64(trapno_is_async(acr0_trapno), 0, TESTID_DBG_BP_RESUME + 8);
-    TEST_EQ64(trapno_trapnum(acr0_trapno), 6 /* SYSCALL */, TESTID_DBG_BP_RESUME + 9);
+    TEST_EQ64(trapno_trapnum(acr0_trapno), TRAPNUM_SYSCALL, TESTID_DBG_BP_RESUME + 9);
     TEST_EQ64(acr0_traparg0, 0 /* SCT_MAC */, TESTID_DBG_BP_RESUME + 10);
     TEST_EQ64(acr0_ecstate & CSTATE_ACR_MASK, 2, TESTID_DBG_BP_RESUME + 11);
 
@@ -781,13 +791,13 @@ __attribute__((noreturn)) static void linx_after_ri_step_trap_exit(void)
     const uint64_t step_ecstate = ssrget_uimm(SSR_STEP_LAST_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 1);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 2);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 2);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 3);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 4);
     TEST_EQ64(step_count, 4, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 5);
     TEST_EQ64(trapno_is_async(step_trapno), 0, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 6);
     TEST_EQ64(trapno_has_argv(step_trapno), 1, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 7);
-    TEST_EQ64(trapno_trapnum(step_trapno), 50 /* SW_BREAKPOINT */, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 8);
+    TEST_EQ64(trapno_trapnum(step_trapno), TRAPNUM_SW_BREAKPOINT, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 8);
     TEST_ASSERT(step_traparg0 != 0, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 9, 1, step_traparg0);
     TEST_EQ64(step_ecstate & CSTATE_ACR_MASK, 2, TESTID_RI_STEP_TRAP_POLLUTE_RESUME + 10);
     /*
@@ -833,7 +843,7 @@ __attribute__((noreturn)) static void linx_after_dbg_wp_exit(void)
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_DBG_WP + 1);
     TEST_EQ64(trapno_has_argv(trapno), 1, TESTID_DBG_WP + 2);
-    TEST_EQ64(trapno_trapnum(trapno), 51 /* HW_WATCHPOINT */, TESTID_DBG_WP + 3);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_HW_WATCHPOINT, TESTID_DBG_WP + 3);
     TEST_EQ64(traparg0, wp_addr, TESTID_DBG_WP + 4);
 
     /* Disable WP0. */
@@ -864,7 +874,7 @@ __attribute__((noreturn)) static void linx_after_acr2_mac_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACR_ROUTE_A2_MAC + 1);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_ACR_ROUTE_A2_MAC + 2);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_ACR_ROUTE_A2_MAC + 2);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_ACR_ROUTE_A2_MAC + 3);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_ACR_ROUTE_A2_MAC + 4);
     TEST_EQ64(trapno_cause(trapno), 0, TESTID_ACR_ROUTE_A2_MAC + 5);
@@ -894,7 +904,7 @@ __attribute__((noreturn)) static void linx_after_acr1_sec_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACR_ROUTE_A1_SEC + 1);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_ACR_ROUTE_A1_SEC + 2);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_ACR_ROUTE_A1_SEC + 2);
     TEST_EQ64(traparg0, 2 /* SCT_SEC */, TESTID_ACR_ROUTE_A1_SEC + 3);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 1, TESTID_ACR_ROUTE_A1_SEC + 4);
     TEST_EQ64(trapno_cause(trapno), 2, TESTID_ACR_ROUTE_A1_SEC + 5);
@@ -966,7 +976,7 @@ __attribute__((noreturn)) static void linx_after_irq_gate_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_IRQ_GATE_ACR1 + 6);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_IRQ_GATE_ACR1 + 7);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_IRQ_GATE_ACR1 + 7);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_IRQ_GATE_ACR1 + 8);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 1, TESTID_IRQ_GATE_ACR1 + 9);
 
@@ -995,7 +1005,7 @@ __attribute__((noreturn)) static void linx_after_acr1_bad_req_trap(void)
     const uint64_t trapno = ssrget_uimm(SSR_LAST_TRAPNO);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACR1_BAD_REQ + 1);
-    TEST_EQ64(trapno_trapnum(trapno), 4 /* ILLEGAL_INST */, TESTID_ACR1_BAD_REQ + 2);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_ILLEGAL_INST, TESTID_ACR1_BAD_REQ + 2);
 
     /* Exit back to ACR0 after validating trap class. */
     __asm__ volatile("acrc 0\n  c.bstop\n" : : : "memory");
@@ -1009,7 +1019,7 @@ __attribute__((noreturn)) static void linx_after_acr1_bad_req_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACR1_BAD_REQ + 3);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_ACR1_BAD_REQ + 4);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_ACR1_BAD_REQ + 4);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_ACR1_BAD_REQ + 5);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 1, TESTID_ACR1_BAD_REQ + 6);
 
@@ -1069,7 +1079,7 @@ __attribute__((noreturn)) static void linx_after_acr2_irq_preempt_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_IRQ_PREEMPT_A2 + 5);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_IRQ_PREEMPT_A2 + 6);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_IRQ_PREEMPT_A2 + 6);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_IRQ_PREEMPT_A2 + 7);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_IRQ_PREEMPT_A2 + 8);
 
@@ -1123,7 +1133,7 @@ __attribute__((noreturn)) static void linx_acr2_irq_meta_after(void)
 
     TEST_EQ64(trapno_is_async(trapno), 1, TESTID_IRQ_META_A2 + 3);
     TEST_EQ64(trapno_has_argv(trapno), 1, TESTID_IRQ_META_A2 + 4);
-    TEST_EQ64(trapno_trapnum(trapno), 44 /* INTERRUPT */, TESTID_IRQ_META_A2 + 5);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_INTERRUPT, TESTID_IRQ_META_A2 + 5);
     TEST_EQ64(trapno_cause(trapno), 0, TESTID_IRQ_META_A2 + 6);
     TEST_EQ64(traparg0, 0 /* irq_id(timer0) */, TESTID_IRQ_META_A2 + 7);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_IRQ_META_A2 + 8);
@@ -1140,7 +1150,7 @@ __attribute__((noreturn)) static void linx_after_irq_meta_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_IRQ_META_A2 + 10);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_IRQ_META_A2 + 11);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_IRQ_META_A2 + 11);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_IRQ_META_A2 + 12);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 2, TESTID_IRQ_META_A2 + 13);
 
@@ -1207,7 +1217,7 @@ __attribute__((noreturn)) static void linx_after_acr1_bad_target_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACRE_BAD_TARGET + 4);
-    TEST_EQ64(trapno_trapnum(trapno), 6 /* SYSCALL */, TESTID_ACRE_BAD_TARGET + 5);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_SYSCALL, TESTID_ACRE_BAD_TARGET + 5);
     TEST_EQ64(traparg0, 0 /* SCT_MAC */, TESTID_ACRE_BAD_TARGET + 6);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 1, TESTID_ACRE_BAD_TARGET + 7);
 
@@ -1268,7 +1278,7 @@ __attribute__((noreturn)) static void linx_after_acr0_bad_req_exit(void)
     const uint64_t ecstate = ssrget_uimm(SSR_ACR0_ECSTATE);
 
     TEST_EQ64(trapno_is_async(trapno), 0, TESTID_ACR0_BAD_REQ + 1);
-    TEST_EQ64(trapno_trapnum(trapno), 4 /* ILLEGAL_INST */, TESTID_ACR0_BAD_REQ + 2);
+    TEST_EQ64(trapno_trapnum(trapno), TRAPNUM_ILLEGAL_INST, TESTID_ACR0_BAD_REQ + 2);
     TEST_EQ64(ecstate & CSTATE_ACR_MASK, 0, TESTID_ACR0_BAD_REQ + 3);
 
     test_pass();
