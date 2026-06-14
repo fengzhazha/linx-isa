@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from qemu_build_paths import default_qemu_binary
+
 
 VALID_PROFILES = {"dev", "release-strict"}
 VALID_TIERS = {"pr", "nightly"}
@@ -110,7 +112,7 @@ def prepare_env(root: Path, profile: str, tier: str) -> dict[str, str]:
     env.setdefault("LINX_EMU_DISABLE_TIMER_IRQ", "0")
     env.setdefault("CLANG", default_tool(root, "compiler/llvm/build-linxisa-clang/bin/clang"))
     env.setdefault("LLD", default_tool(root, "compiler/llvm/build-linxisa-clang/bin/ld.lld"))
-    env.setdefault("QEMU", default_tool(root, "emulator/qemu/build/qemu-system-linx64"))
+    env.setdefault("QEMU", str(default_qemu_binary(root)))
     if tier == "nightly":
         env.setdefault("QEMU_ISA_COVERAGE_REQUIRE_FULL", "1")
         env.setdefault("RUN_BUSYBOX_ROOTFS_GATE", "1")

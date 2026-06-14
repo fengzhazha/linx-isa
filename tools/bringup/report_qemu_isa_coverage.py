@@ -22,12 +22,21 @@ DECODE_TOKEN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DECODE_BITS_RE = re.compile(r"^[01.\-]+$")
 TRAILING_WIDTH_RE = re.compile(r"_(16|32|48)$")
 
-DECODE_FILE_SPECS: tuple[tuple[str, int], ...] = (
-    ("block16.decode", 16),
-    ("block32.decode", 32),
-    ("block48.decode", 64),
-    ("block32_private_fvec.decode", 64),
+DECODE_LAYOUT_SPECS: tuple[tuple[tuple[str, int], ...], ...] = (
+    (
+        ("insn16.decode", 16),
+        ("insn32.decode", 32),
+        ("insn48.decode", 64),
+        ("insn64.decode", 64),
+    ),
+    (
+        ("block16.decode", 16),
+        ("block32.decode", 32),
+        ("block48.decode", 64),
+        ("block32_private_fvec.decode", 64),
+    ),
 )
+DECODE_48_AS_64_FILES = {"block48.decode", "insn48.decode"}
 
 
 SPECIAL_MAP: dict[str, str | list[str]] = {
@@ -180,7 +189,7 @@ def _parse_decode_entries(path: Path, width_bits: int) -> list[dict[str, object]
             elif bit == "0":
                 mask |= 1
 
-        if path.name == "block48.decode":
+        if path.name in DECODE_48_AS_64_FILES:
             mask |= 0xFFFF000000000000
 
         out.append(
@@ -196,11 +205,20 @@ def _parse_decode_entries(path: Path, width_bits: int) -> list[dict[str, object]
 
 def _load_qemu_decode_entries(qemu_root: Path) -> list[dict[str, object]]:
     linx_dir = qemu_root / "target" / "linx"
-    missing = [str(linx_dir / name) for name, _ in DECODE_FILE_SPECS if not (linx_dir / name).is_file()]
-    if missing:
-        raise FileNotFoundError("\n".join(missing))
+    selected_layout: tuple[tuple[str, int], ...] | None = None
+    missing_by_layout: list[list[str]] = []
+    for layout in DECODE_LAYOUT_SPECS:
+        missing = [str(linx_dir / name) for name, _ in layout if not (linx_dir / name).is_file()]
+        if not missing:
+            selected_layout = layout
+            break
+        missing_by_layout.append(missing)
+    if selected_layout is None:
+        missing_text = "\n\n".join("\n".join(missing) for missing in missing_by_layout)
+        raise FileNotFoundError(missing_text)
+
     out: list[dict[str, object]] = []
-    for name, width_bits in DECODE_FILE_SPECS:
+    for name, width_bits in selected_layout:
         out.extend(_parse_decode_entries(linx_dir / name, width_bits))
     return out
 

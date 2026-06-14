@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from qemu_build_paths import default_qemu_binary
+
 
 VALID_PROFILES = {"pr", "linux", "nightly"}
 
@@ -228,7 +230,7 @@ def main(argv: list[str]) -> int:
     env.setdefault("LINXISA_ROOT", str(root))
     env.setdefault("CLANG", str(root / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "clang"))
     env.setdefault("LLD", str(root / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "ld.lld"))
-    env.setdefault("QEMU", str(root / "emulator" / "qemu" / "build" / "qemu-system-linx64"))
+    env.setdefault("QEMU", str(default_qemu_binary(root)))
 
     stage_rows: list[dict[str, Any]] = []
     failed = False

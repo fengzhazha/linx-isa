@@ -161,7 +161,7 @@
       "gate_key": "Emulator::ISA vs QEMU coverage report",
       "domain": "Emulator",
       "owner": "qemu",
-      "command": "if [[ \"${QEMU_ISA_COVERAGE_REQUIRE_FULL:-0}\" == \"1\" ]]; then extra=--require-full; else extra=; fi; python3 \"$ROOT/tools/bringup/report_qemu_isa_coverage.py\" --spec \"$ROOT/isa/v0.56/linxisa-v0.56.json\" --report-out \"$ROOT/docs/bringup/gates/qemu_isa_coverage_latest.json\" --out-md \"$ROOT/docs/bringup/gates/qemu_isa_coverage_latest.md\" $extra",
+      "command": "if [[ \"${QEMU_ISA_COVERAGE_REQUIRE_FULL:-0}\" == \"1\" ]]; then extra=--require-full; else extra=; fi; python3 \"$ROOT/tools/bringup/report_qemu_isa_coverage.py\" --spec \"$ROOT/isa/v0.56/linxisa-v0.56.json\" --qemu-root \"$ROOT/emulator/qemu\" --qemu-meta \"$ROOT/emulator/qemu/target/linx/linx_opcode_meta_gen.h\" --report-out \"$ROOT/docs/bringup/gates/qemu_isa_coverage_latest.json\" --out-md \"$ROOT/docs/bringup/gates/qemu_isa_coverage_latest.md\" $extra",
       "profiles": ["release-strict"],
       "tiers": ["pr", "nightly"],
       "required": true,

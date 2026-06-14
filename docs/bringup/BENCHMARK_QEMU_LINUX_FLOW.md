@@ -50,6 +50,18 @@ Inference:
 
 ## Commands
 
+Seed or refresh the clean QEMU binary for runtime stages. The flow runner and
+`run_gates.py` automatically prefer this binary when its marker matches the
+current QEMU submodule SHA; otherwise they fall back to the in-tree build path
+or any explicit `QEMU=...` override.
+
+```bash
+bash tools/bringup/run_qemu_build_clean.sh \
+  --qemu-root "$PWD/emulator/qemu" \
+  --out-dir /tmp/linx-qemu-clean-build \
+  --target qemu-system-linx64
+```
+
 List the selected PR stages:
 
 ```bash
