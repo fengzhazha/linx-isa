@@ -17,6 +17,15 @@ Linx patch lineage is maintained in the LinxISA QEMU fork history, then pinned h
    firmware artifact is intentionally under test.
 3. Validate output and exit status through AVS suites.
 
+Current local bring-up helper for the live dirty-source QEMU line:
+
+```bash
+bash tools/bringup/run_qemu_build_local.sh
+```
+
+That helper configures/rebuilds `/private/tmp/linx-qemu-local-build` and
+prints the resulting `qemu-system-linx64` path.
+
 ## Linux-user process flow
 
 Use QEMU linux-user mode as a fast process ABI smoke only when an external or
@@ -70,6 +79,7 @@ This builds `hello_glibc_static` and runs it directly through linux-user QEMU.
 For the current full-system Linux bring-up proof on the Linx `virt` machine:
 
 ```bash
+QEMU="$(bash tools/bringup/run_qemu_build_local.sh)" \
 python3 avs/qemu/run_linux_boot_proofs.py
 ```
 

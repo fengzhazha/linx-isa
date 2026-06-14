@@ -27,6 +27,15 @@ Runtime note:
 - LinxISA LLD: `compiler/llvm/build-linxisa-clang/bin/ld.lld`
 - QEMU: `emulator/qemu/build/qemu-system-linx64`
 
+Current bring-up helper for the live dirty-source QEMU line:
+
+```bash
+bash tools/bringup/run_qemu_build_local.sh
+```
+
+This prints the current rebuilt `qemu-system-linx64` path, which is the
+boot-proof-passing local line as of the current bring-up state.
+
 Override paths with environment variables:
 
 ```bash
@@ -176,6 +185,7 @@ Artifacts are written under:
 For the canonical Linx Linux-on-QEMU boot proof lane, run:
 
 ```bash
+QEMU="$(bash tools/bringup/run_qemu_build_local.sh)" \
 python3 avs/qemu/run_linux_boot_proofs.py
 ```
 
