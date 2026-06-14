@@ -102,6 +102,8 @@ def main(argv: list[str]) -> int:
     clang = _check_exe(clang, "clang")
     lld = _check_exe(lld, "ld.lld")
     qemu = _check_exe(qemu, "qemu-system-linx64")
+    qemu_env = os.environ.copy()
+    qemu_env.setdefault("LINX_VIRT_TEST_FINISHER", "1")
 
     src = SCRIPT_DIR / "tests" / "15_callret_contract_negative.S"
     if not src.exists():
@@ -223,6 +225,7 @@ def main(argv: list[str]) -> int:
             proc = _run(
                 qemu_cmd,
                 verbose=args.verbose,
+                env=qemu_env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 timeout=case_timeout,

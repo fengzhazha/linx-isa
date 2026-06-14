@@ -13,6 +13,14 @@ Key constraints:
   The low 16 bits carry the finisher status (`0x5555` pass, `0x3333` fail,
   `0x7777` reset) and the upper 16 bits carry an optional failure code.
 
+Runtime note:
+
+- On the current Linx `virt` machine, Linux/system boots leave the test
+  finisher disabled by default to avoid colliding with guest MMIO usage during
+  init/userspace transitions.
+- Freestanding AVS runners enable it explicitly with
+  `LINX_VIRT_TEST_FINISHER=1`.
+
 ## Requirements
 
 - LinxISA Clang: `compiler/llvm/build-linxisa-clang/bin/clang`

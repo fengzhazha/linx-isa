@@ -423,6 +423,7 @@ def _tail(data: bytes, max_bytes: int = 4000) -> bytes:
 def _run_qemu_with_heartbeat(
     cmd: list[str],
     *,
+    env: dict[str, str] | None,
     verbose: bool,
     timeout: float,
     heartbeat_sec: float,
@@ -435,6 +436,7 @@ def _run_qemu_with_heartbeat(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=env,
     )
 
     stdout_chunks: list[bytes] = []
@@ -664,6 +666,8 @@ def main(argv: list[str]) -> int:
         _check_exe(llc, "llc")
     if qemu:
         _check_exe(qemu, "qemu-system-linx64")
+    qemu_env = os.environ.copy()
+    qemu_env.setdefault("LINX_VIRT_TEST_FINISHER", "1")
 
     selected = _suite_selection(args)
     if args.all_suites:
@@ -946,6 +950,7 @@ def main(argv: list[str]) -> int:
 
     p, timed_out, stalled = _run_qemu_with_heartbeat(
         qemu_cmd,
+        env=qemu_env,
         verbose=args.verbose,
         timeout=args.timeout,
         heartbeat_sec=args.heartbeat_sec,
