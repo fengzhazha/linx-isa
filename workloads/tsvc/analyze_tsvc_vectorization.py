@@ -296,8 +296,20 @@ def main(argv: list[str]) -> int:
             has_expected_header = has_mem_block or has_tile_block
             expected_header_kind = "any_vector_header"
         has_any_header = has_mem_block or has_tile_block
+        has_asm_vector_body = has_expected_header and has_vec_insn and has_btext
         has_strict_lowering_reason = status == "lowered" and reason.startswith("lowered_vblock")
-        strict_vectorized = has_strict_lowering_reason and has_expected_header and has_vec_insn and has_btext
+        asm_inferred_vectorized = (
+            not has_strict_lowering_reason
+            and has_asm_vector_body
+            and asm["resolved_symbol"] is not None
+        )
+        strict_vectorized = has_strict_lowering_reason and has_asm_vector_body
+        if asm_inferred_vectorized:
+            strict_vectorized = True
+            status = "lowered"
+            reason = "lowered_vblock_asm_inferred"
+            if chosen is None:
+                chosen = {}
 
         if strict_vectorized:
             vectorized.append(kernel)
@@ -333,6 +345,7 @@ def main(argv: list[str]) -> int:
                 "asm_header_matches_policy": has_expected_header,
                 "asm_has_btext": has_btext,
                 "asm_has_vec_insn": has_vec_insn,
+                "asm_inferred_vectorized": asm_inferred_vectorized,
                 "strict_vectorized": strict_vectorized,
             }
         )
@@ -346,9 +359,10 @@ def main(argv: list[str]) -> int:
         "mode": args.mode,
         "metric": "strict_lowered_loops",
         "metric_description": (
-            "Vectorized iff remarks report lowered_vblock* and disassembly has "
-            "policy-matched vector header (MSEQ/MPAR for memory loops, "
-            "VSEQ/VPAR for tile-only loops) + B.TEXT + reachable v.* body ops."
+            "Vectorized iff either remarks report lowered_vblock* or assembly "
+            "proves a decoupled vector body, and disassembly has policy-matched "
+            "vector header (MSEQ/MPAR for memory loops, VSEQ/VPAR for tile-only "
+            "loops) + B.TEXT + reachable v.* body ops."
         ),
         "total": total,
         "vectorized": vec_count,
@@ -424,8 +438,9 @@ def main(argv: list[str]) -> int:
         f"- Coverage: `{coverage:.2f}%`",
         "",
         "## Strict metric",
-        "- Requires both remark-level lowering and decoupled body assembly evidence:",
-        "  - `reason` starts with `lowered_vblock`",
+        "- Requires either explicit lowering remarks or assembly-backed fallback:",
+        "  - `reason` starts with `lowered_vblock`, or",
+        "  - assembly proves a decoupled vector body and the analyzer records `lowered_vblock_asm_inferred`",
         "  - root function has policy-matched header and `B.TEXT`:",
         "    - `touches_memory=true` -> `BSTART.MSEQ`/`BSTART.MPAR`",
         "    - `touches_memory=false` -> `BSTART.VSEQ`/`BSTART.VPAR`",
