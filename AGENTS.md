@@ -7,6 +7,17 @@ This document defines the navigation rules for AI agents and contributors workin
 
 ---
 
+## Bring-up Workflow Entry Points
+
+- Start benchmark/QEMU/Linux bring-up from `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`.
+- Treat `docs/bringup/benchmark_qemu_linux_flow.json` as the machine-readable hard-break stage order.
+- Use `tools/bringup/run_benchmark_linux_flow.py` for PR, Linux, and nightly benchmark profiles.
+- Use `docs/bringup/agent_runs/manifest.yaml` for stage ownership and handoff routing.
+- Put new benchmark artifacts under `workloads/generated/<run-id>/`; do not create ad-hoc `workloads/generated-*` sibling directories.
+- Treat generated markdown status pages as views. When they disagree with JSON reports or fresh runner output, the machine-readable report wins.
+
+---
+
 ## Allowed Top-Level Directories
 
 ```

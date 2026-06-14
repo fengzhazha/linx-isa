@@ -57,6 +57,7 @@ tools/pto/out/
 
 # Workloads harness outputs
 workloads/generated/
+workloads/generated-*/
 workloads/out/
 workloads/third_party/
 workloads/**/docs/html/

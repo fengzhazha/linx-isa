@@ -139,7 +139,42 @@ surface consistency:
 omx sparkshell bash tools/ci/check_repo_layout.sh
 ```
 
-## Scenario 4: Dual-Lane Runtime Convergence
+## Scenario 4: Benchmark/QEMU/Linux Hard-Break Flow
+
+Use this for the path to full benchmarks on QEMU with Linux. The machine-readable
+contract is `docs/bringup/benchmark_qemu_linux_flow.json`, and the runner is
+`tools/bringup/run_benchmark_linux_flow.py`.
+
+```bash
+python3 tools/bringup/run_benchmark_linux_flow.py --profile pr --list
+python3 tools/bringup/run_benchmark_linux_flow.py \
+  --profile pr \
+  --report-out workloads/generated/flow-pr/report.json
+```
+
+Hard-break order:
+
+1. source contract
+2. compiler contract
+3. QEMU contract
+4. TSVC compile/QEMU runtime
+5. Linux userspace/rootfs
+6. libc hosted runtime
+7. full benchmarks and SPEC
+
+Handoff payload for any red stage:
+
+- failing stage and command id,
+- owner from `docs/bringup/agent_runs/manifest.yaml`,
+- exact command, return code, timeout, and run report path,
+- first relevant log/artifact path under `workloads/generated/` or
+  `docs/bringup/gates/`,
+- skill-evolve decision: update or no-update.
+
+Do not run a downstream stage while an upstream hard-break stage is red in the
+same profile.
+
+## Scenario 5: Dual-Lane Runtime Convergence
 
 Use this only after the owning leaf proof and PR-tier closure are credible.
 
@@ -156,7 +191,7 @@ checklists and evidence streams. Keep lanes aligned with manifest owners such as
 `arch`, `llvm`, `qemu`, `linux`, `libc`, `linxcore`, `pycircuit`, and
 `integration`.
 
-## Scenario 5: Skill Sync and Reusable Knowledge
+## Scenario 6: Skill Sync and Reusable Knowledge
 
 Start a new bring-up cycle by refreshing canonical skills:
 
@@ -179,7 +214,7 @@ Good wiki targets:
 - evidence path conventions,
 - skill-evolve decisions worth reusing.
 
-## Scenario 6: Long-Running OMX Sessions
+## Scenario 7: Long-Running OMX Sessions
 
 Useful operator surfaces:
 
@@ -222,6 +257,8 @@ Before declaring success:
 - `docs/project/new-agent-sop.md`
 - `docs/project/maintainer-repin-checklist.md`
 - `docs/project/superproject-bringup-methodology.md`
+- `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`
+- `docs/bringup/benchmark_qemu_linux_flow.json`
 - `docs/bringup/agent_runs/manifest.yaml`
 - `docs/bringup/agent_runs/waivers.yaml`
 - `docs/bringup/gates/latest.json`

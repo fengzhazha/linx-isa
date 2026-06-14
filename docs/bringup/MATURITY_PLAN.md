@@ -1,6 +1,6 @@
 # LinxISA Maturity Plan (Tier-1 Track vs ARM/x86)
 
-Last updated: 2026-05-17
+Last updated: 2026-06-14
 
 ## Baseline
 
@@ -11,15 +11,26 @@ Last updated: 2026-05-17
 - The checked-in canonical report now includes the April 18 pin-lane recovery evidence. It clears the stale March false blockers for AVS PR-tier closure, model-diff, LinxCore/Testbench/Trace/pyCircuit leaf PR gates, glibc runtime, musl runtime, PTO parity, and TSVC compile-only PR coverage.
 - Active governance phase remains `LINUX-RUNTIME`; `docs/bringup/agent_runs/waivers.yaml` contains no waivers.
 - Latest non-canonical Linux smoke diagnostic: 2026-05-17 local bring-up iterations move well past DT, percpu, log-buffer, proc/ns/pidfs pseudo-fs setup, and the pre-`rest_init()` late-init lane. The live boundary is now the first task-creation handoff after `rest_init()`, specifically `user_mode_thread()` / `kernel_clone()` / `copy_process()` on the Linx tiny-RCU configuration.
+- June 14, 2026 flow reset: benchmark work now uses
+  `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md` and
+  `tools/bringup/run_benchmark_linux_flow.py` as the hard-break execution
+  order. The PR benchmark lane stops at TSVC/QEMU before Linux rootfs or SPEC;
+  the full-OS BusyBox rootfs failure remains real but is downstream of that PR
+  stop path.
 
 ## Gap Snapshot
 
 - AVS PR-tier closure is now complete (`31/31` required tests pass), while nightly breadth remains `32/54`.
-- The current recovery work is now narrowed to Linux/userspace runtime closure:
+- The current recovery work is split into two ordered hard-break lanes:
+  - PR benchmark lane: source contract, compiler contract, QEMU contract, then
+    TSVC compile/QEMU runtime.
+  - Linux/full-OS lane: `vmlinux`, trivial userspace entry, BusyBox rootfs,
+    libc hosted runtime, then SPEC/full benchmarks.
+- The Linux/userspace runtime closure remains open:
   - Linux BusyBox rootfs still fails after `/sbin/init` even with a clean pinned QEMU build and clean rootfs build helper,
   - `strict_cross_repo.sh` remains red only because the required BusyBox rootfs row is red in the latest canonical run,
   - canonical runtime evidence is otherwise refreshed through `2026-04-18-r9-pin-linuxlibc-refresh`,
-  - TSVC runtime is no longer part of the active bring-up gate path; current focus remains Linux boot closure first.
+  - TSVC runtime is the active PR benchmark hard break; Linux/rootfs/libc closure is the downstream full-OS lane once the PR benchmark lane is green.
 - Separate non-canonical kernel smoke bring-up work is no longer blocked in DT parsing or pseudo-filesystem bootstrap:
   - read-only DT import, memory discovery, percpu setup, and late pseudo-fs smoke bypasses now complete,
   - the current local smoke trace reaches `...abcdefghijklZ` and then stalls before userspace launch,

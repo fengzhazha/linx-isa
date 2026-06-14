@@ -23,6 +23,7 @@
       "workloads/spec2017",
       "isa",
       "docs",
+      "tools/model",
       "rtl/LinxCore",
       "tools/pyCircuit"
     ],
@@ -33,6 +34,7 @@
       "linx-linux",
       "linx-core",
       "linx-pycircuit",
+      "linx-model",
       "linx-lib",
       "linx-isa",
       "linx-skills-submodule"
@@ -50,7 +52,7 @@
       "LinxTrace": ["rtl/LinxCore", "docs", "superproject"],
       "Integration": ["superproject", "skills/linx-skills", "docs"],
       "SPEC": ["workloads/spec2017"],
-      "Model": ["tools/pyCircuit", "emulator/qemu", "superproject"],
+      "Model": ["tools/model", "tools/pyCircuit", "emulator/qemu", "superproject"],
       "Regression": ["superproject", "workloads/spec2017"]
     }
   },
@@ -59,6 +61,30 @@
     "active_phase": "LINUX-RUNTIME",
     "waiver_mode": "phase_bound_expiry",
     "require_phase_bound_waivers": true
+  },
+  "benchmark_flow_policy": {
+    "canonical_flow": "docs/bringup/benchmark_qemu_linux_flow.json",
+    "canonical_runner": "tools/bringup/run_benchmark_linux_flow.py",
+    "artifact_root": "workloads/generated",
+    "hard_break_rule": "Do not run a downstream benchmark/Linux/SPEC stage until every upstream hard-break stage is green in the same lane.",
+    "stage_order": [
+      "source-contract",
+      "compiler-contract",
+      "qemu-contract",
+      "tsvc-qemu-hardbreak",
+      "linux-userspace-entry",
+      "libc-hosted-runtime",
+      "full-benchmarks"
+    ],
+    "stage_owners": {
+      "source-contract": "integration",
+      "compiler-contract": "llvm",
+      "qemu-contract": "qemu",
+      "tsvc-qemu-hardbreak": "integration",
+      "linux-userspace-entry": "linux",
+      "libc-hosted-runtime": "libc",
+      "full-benchmarks": "integration"
+    }
   },
   "phase_gate_requirements": {
     "FOUNDATION": {
@@ -459,8 +485,8 @@
   ],
   "checklist_id_map": {
     "architecture_docs.md": ["ARCH-001", "ARCH-002", "ARCH-003", "ARCH-004"],
-    "compiler_llvm.md": ["LLVM-001", "LLVM-002", "LLVM-003", "LLVM-004", "LLVM-005", "LLVM-006", "LLVM-007"],
-    "emulator_qemu.md": ["QEMU-001", "QEMU-002", "QEMU-003", "QEMU-004", "QEMU-005", "QEMU-006", "QEMU-007", "QEMU-008"],
+    "compiler_llvm.md": ["LLVM-001", "LLVM-002", "LLVM-003", "LLVM-004", "LLVM-005", "LLVM-006", "LLVM-007", "LLVM-008"],
+    "emulator_qemu.md": ["QEMU-001", "QEMU-002", "QEMU-003", "QEMU-004", "QEMU-005", "QEMU-005A", "QEMU-005B", "QEMU-006", "QEMU-007", "QEMU-008"],
     "kernel_linux.md": ["LINUX-001", "LINUX-002", "LINUX-003", "LINUX-004", "LINUX-005"],
     "libc_runtime.md": ["LIBC-001", "LIBC-002", "LIBC-003", "LIBC-004", "LIBC-005", "LIBC-006"],
     "linxcore_rtl.md": ["LC-001", "LC-002", "LC-003", "LC-004", "LC-005", "LC-006", "LC-007", "LC-008", "LC-009"],
@@ -468,7 +494,7 @@
     "specint_qemu.md": ["SPEC-M01", "SPEC-M02", "SPEC-M03", "SPEC-M04", "SPEC-M05", "SPEC-M06", "SPEC-P01"],
     "testbench_verif.md": ["TB-001", "TB-002", "TB-003", "TB-004"],
     "trace_linxtrace.md": ["TRACE-001", "TRACE-002", "TRACE-003", "TRACE-004", "TRACE-005", "TRACE-006"],
-    "integration_release.md": ["INT-001", "INT-002", "INT-003", "INT-004", "INT-005", "INT-006", "INT-007", "INT-008", "INT-009", "INT-010", "INT-011", "INT-012", "INT-013", "INT-014", "INT-015", "INT-016", "INT-017", "INT-018", "INT-019", "INT-020", "INT-021", "INT-022", "INT-023", "INT-024", "INT-025", "INT-026"]
+    "integration_release.md": ["INT-001", "INT-002", "INT-003", "INT-004", "INT-005", "INT-006", "INT-007", "INT-008", "INT-009", "INT-010", "INT-011", "INT-012", "INT-013", "INT-014", "INT-015", "INT-016", "INT-017", "INT-018", "INT-019", "INT-020", "INT-021", "INT-022", "INT-023", "INT-024", "INT-025", "INT-026", "INT-027"]
   },
   "spec_policy": {
     "bringup_subset": ["999.specrand_ir", "505.mcf_r", "531.deepsjeng_r"],

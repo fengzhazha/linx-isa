@@ -6,6 +6,7 @@ This directory tracks `v0.56` architecture and implementation alignment, with AV
 
 - Onboarding and workspace setup: `docs/bringup/GETTING_STARTED.md`
 - Execution-order blocker runbook: `docs/bringup/SUPERPROJECT_BRINGUP_CHECKLIST.md`
+- Benchmark/QEMU/Linux hard-break flow: `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`
 
 ## Normative Contract
 
@@ -21,6 +22,8 @@ This directory tracks `v0.56` architecture and implementation alignment, with AV
 - `docs/bringup/SUPERPROJECT_BRINGUP_CHECKLIST.md`
 - `docs/bringup/SUPERPROJECT_MILESTONES.md`
 - `docs/bringup/SPEC_WORKLOAD_PLAN.md`
+- `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`
+- `docs/bringup/benchmark_qemu_linux_flow.json` (machine-readable hard-break flow)
 - `docs/bringup/MATURITY_PLAN.md`
 - `docs/bringup/SIMT_COMPILER_MATURITY_PLAN.md`
 - `docs/bringup/SIMT_COMPILER_SUPPORTED_SUBSET.md`
@@ -65,6 +68,10 @@ Gate status markdown refresh command:
 Canonical profile/tier runner:
 
 `python3 tools/bringup/run_gates.py --profile release-strict --tier pr`
+
+Benchmark/QEMU/Linux hard-break runner:
+
+`python3 tools/bringup/run_benchmark_linux_flow.py --profile pr --dry-run --report-out workloads/generated/flow-pr-dry-run/report.json`
 
 Compatibility entrypoints:
 

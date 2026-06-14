@@ -67,6 +67,29 @@ def _rel_posix(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def _repo_relative_path(
+    value: Any,
+    *,
+    field: str,
+    errors: list[dict[str, Any]],
+) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        _err(errors, "E_REPO_REL_PATH", f"{field} must be a non-empty relative path", field=field)
+        return None
+    rel = value.strip()
+    path = Path(rel)
+    if path.is_absolute() or ".." in path.parts:
+        _err(
+            errors,
+            "E_REPO_REL_PATH",
+            f"{field} must stay inside the repository",
+            field=field,
+            path=rel,
+        )
+        return None
+    return rel
+
+
 def _err(errors: list[dict[str, Any]], code: str, message: str, **meta: Any) -> None:
     row: dict[str, Any] = {"code": code, "message": message}
     if meta:
@@ -99,11 +122,257 @@ def _collect_checklist_ids(checklists_root: Path) -> tuple[dict[str, list[str]],
     return found, dups
 
 
+def _validate_benchmark_flow_policy(
+    *,
+    manifest: dict[str, Any],
+    root: Path,
+    agents: dict[str, Any],
+    errors: list[dict[str, Any]],
+) -> dict[str, Any]:
+    stats = {
+        "enabled": False,
+        "stages": 0,
+    }
+    policy = manifest.get("benchmark_flow_policy")
+    if not isinstance(policy, dict):
+        _err(errors, "E_BENCHMARK_FLOW_POLICY", "manifest.benchmark_flow_policy must be an object")
+        return stats
+
+    stats["enabled"] = True
+    flow_rel = _repo_relative_path(
+        policy.get("canonical_flow"),
+        field="benchmark_flow_policy.canonical_flow",
+        errors=errors,
+    )
+    runner_rel = _repo_relative_path(
+        policy.get("canonical_runner"),
+        field="benchmark_flow_policy.canonical_runner",
+        errors=errors,
+    )
+    artifact_root = _repo_relative_path(
+        policy.get("artifact_root"),
+        field="benchmark_flow_policy.artifact_root",
+        errors=errors,
+    )
+
+    if artifact_root and artifact_root != "workloads/generated":
+        _err(
+            errors,
+            "E_BENCHMARK_FLOW_ARTIFACT_ROOT",
+            "benchmark_flow_policy.artifact_root must be workloads/generated",
+            artifact_root=artifact_root,
+        )
+
+    flow: dict[str, Any] = {}
+    flow_stages: list[dict[str, Any]] = []
+    if flow_rel:
+        flow_path = root / flow_rel
+        if not flow_path.exists():
+            _err(
+                errors,
+                "E_BENCHMARK_FLOW_FILE",
+                "benchmark flow file does not exist",
+                path=flow_rel,
+            )
+        else:
+            try:
+                loaded_flow = json.loads(flow_path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_JSON",
+                    f"failed to parse benchmark flow JSON: {exc}",
+                    path=flow_rel,
+                )
+                loaded_flow = {}
+            if not isinstance(loaded_flow, dict):
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_JSON",
+                    "benchmark flow JSON must decode to an object",
+                    path=flow_rel,
+                )
+                loaded_flow = {}
+            flow = loaded_flow
+            if flow:
+                if flow.get("schema_version") != 1:
+                    _err(
+                        errors,
+                        "E_BENCHMARK_FLOW_SCHEMA",
+                        "benchmark flow schema_version must be 1",
+                        path=flow_rel,
+                    )
+                stages_raw = flow.get("stages")
+                if not isinstance(stages_raw, list) or not stages_raw:
+                    _err(
+                        errors,
+                        "E_BENCHMARK_FLOW_STAGES",
+                        "benchmark flow must declare non-empty stages",
+                        path=flow_rel,
+                    )
+                else:
+                    for stage in stages_raw:
+                        if not isinstance(stage, dict):
+                            _err(
+                                errors,
+                                "E_BENCHMARK_FLOW_STAGE",
+                                "benchmark flow stage must be an object",
+                                path=flow_rel,
+                            )
+                            continue
+                        flow_stages.append(stage)
+
+    if runner_rel and not (root / runner_rel).exists():
+        _err(
+            errors,
+            "E_BENCHMARK_FLOW_RUNNER",
+            "benchmark flow runner does not exist",
+            path=runner_rel,
+        )
+
+    stage_order_raw = policy.get("stage_order")
+    stage_order: list[str] = []
+    if not isinstance(stage_order_raw, list) or not stage_order_raw:
+        _err(
+            errors,
+            "E_BENCHMARK_FLOW_STAGE_ORDER",
+            "benchmark_flow_policy.stage_order must be a non-empty list",
+        )
+    else:
+        seen_stage_ids: set[str] = set()
+        for stage_id in stage_order_raw:
+            if not isinstance(stage_id, str) or not stage_id.strip():
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_STAGE_ID",
+                    "benchmark flow stage_order entries must be non-empty strings",
+                    stage_id=stage_id,
+                )
+                continue
+            norm = stage_id.strip()
+            if norm in seen_stage_ids:
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_STAGE_DUP",
+                    "benchmark flow stage_order entries must be unique",
+                    stage_id=norm,
+                )
+                continue
+            seen_stage_ids.add(norm)
+            stage_order.append(norm)
+
+    stage_owners_raw = policy.get("stage_owners")
+    stage_owners: dict[str, str] = {}
+    if not isinstance(stage_owners_raw, dict) or not stage_owners_raw:
+        _err(
+            errors,
+            "E_BENCHMARK_FLOW_STAGE_OWNERS",
+            "benchmark_flow_policy.stage_owners must be a non-empty object",
+        )
+    else:
+        for stage_id, owner in stage_owners_raw.items():
+            if not isinstance(stage_id, str) or not stage_id.strip():
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_STAGE_OWNER_KEY",
+                    "benchmark flow stage owner key must be a non-empty string",
+                    stage_id=stage_id,
+                )
+                continue
+            if not isinstance(owner, str) or not owner.strip():
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_STAGE_OWNER",
+                    "benchmark flow stage owner must be a non-empty string",
+                    stage_id=stage_id,
+                    owner=owner,
+                )
+                continue
+            owner_norm = owner.strip()
+            if owner_norm not in agents:
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_OWNER_UNKNOWN",
+                    "benchmark flow stage owner must be a manifest agent",
+                    stage_id=stage_id.strip(),
+                    owner=owner_norm,
+                )
+            stage_owners[stage_id.strip()] = owner_norm
+
+    if stage_order and stage_owners:
+        missing_owners = sorted(set(stage_order) - set(stage_owners))
+        extra_owners = sorted(set(stage_owners) - set(stage_order))
+        if missing_owners or extra_owners:
+            _err(
+                errors,
+                "E_BENCHMARK_FLOW_OWNER_COVERAGE",
+                "benchmark_flow_policy.stage_owners must match stage_order",
+                missing=missing_owners,
+                extra=extra_owners,
+            )
+
+    if flow_stages:
+        flow_stage_ids: list[str] = []
+        seen_flow_stage_ids: set[str] = set()
+        for stage in flow_stages:
+            stage_id = str(stage.get("id", "")).strip()
+            owner = str(stage.get("owner", "")).strip()
+            if not stage_id:
+                _err(errors, "E_BENCHMARK_FLOW_STAGE_ID", "flow stage missing id")
+                continue
+            if stage_id in seen_flow_stage_ids:
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_STAGE_DUP",
+                    "flow stage ids must be unique",
+                    stage_id=stage_id,
+                )
+                continue
+            seen_flow_stage_ids.add(stage_id)
+            flow_stage_ids.append(stage_id)
+            if stage_owners and owner != stage_owners.get(stage_id):
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_OWNER_MISMATCH",
+                    "flow stage owner must match benchmark_flow_policy.stage_owners",
+                    stage_id=stage_id,
+                    flow_owner=owner,
+                    manifest_owner=stage_owners.get(stage_id),
+                )
+            if not bool(stage.get("hard_break", True)):
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_HARD_BREAK",
+                    "benchmark flow stages must be hard breaks",
+                    stage_id=stage_id,
+                )
+            commands = stage.get("commands")
+            if not isinstance(commands, list) or not commands:
+                _err(
+                    errors,
+                    "E_BENCHMARK_FLOW_COMMANDS",
+                    "benchmark flow stages must declare commands",
+                    stage_id=stage_id,
+                )
+        if stage_order and flow_stage_ids != stage_order:
+            _err(
+                errors,
+                "E_BENCHMARK_FLOW_ORDER",
+                "flow stage order must match benchmark_flow_policy.stage_order",
+                manifest_order=stage_order,
+                flow_order=flow_stage_ids,
+            )
+        stats["stages"] = len(flow_stage_ids)
+
+    return stats
+
+
 def _validate_static(
     manifest: dict[str, Any],
     waivers_doc: dict[str, Any],
     checklists_root: Path,
     *,
+    root: Path,
     strict_always: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     errors: list[dict[str, Any]] = []
@@ -501,6 +770,13 @@ def _validate_static(
                 agent=agent_id,
             )
 
+    benchmark_flow_stats = _validate_benchmark_flow_policy(
+        manifest=manifest,
+        root=root,
+        agents=agents,
+        errors=errors,
+    )
+
     assignments = manifest.get("gate_assignments")
     if not isinstance(assignments, list) or not assignments:
         _err(errors, "E_ASSIGNMENTS", "manifest.gate_assignments must be a non-empty list")
@@ -897,6 +1173,8 @@ def _validate_static(
         "phases": len(phases),
         "active_phase": active_phase,
         "phase_gate_requirement_phases": len(phase_gate_requirements),
+        "benchmark_flow_enabled": bool(benchmark_flow_stats.get("enabled", False)),
+        "benchmark_flow_stages": int(benchmark_flow_stats.get("stages", 0)),
     }
 
     return errors, warnings, {
@@ -1234,6 +1512,7 @@ def main(argv: list[str]) -> int:
         manifest,
         waivers_doc,
         checklists_root,
+        root=root,
         strict_always=bool(args.strict_always),
     )
     errors.extend(static_errors)

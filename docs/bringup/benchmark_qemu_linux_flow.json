@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "flow_id": "benchmark-qemu-linux-hardbreak",
+  "description": "Fail-fast bring-up flow for reaching full benchmark execution on QEMU with Linux.",
+  "artifact_policy": {
+    "canonical_root": "workloads/generated",
+    "forbidden_roots": [
+      "workloads/generated-*"
+    ],
+    "rule": "New benchmark and TSVC run artifacts must be placed under workloads/generated/<run-id>/ or a temp directory, never as ad-hoc sibling directories under workloads/."
+  },
+  "profiles": {
+    "pr": {
+      "description": "Fastest hard-break lane. Proves ISA/compiler/QEMU prerequisites before TSVC runtime work."
+    },
+    "linux": {
+      "description": "Full-OS enablement lane. Adds Linux userspace-entry, rootfs, and libc smoke boundaries before hosted benchmarks."
+    },
+    "nightly": {
+      "description": "Promotion lane. Runs PR and Linux prerequisites before full benchmark/SPEC expansion."
+    }
+  },
+  "stages": [
+    {
+      "id": "source-contract",
+      "profiles": [
+        "pr",
+        "linux",
+        "nightly"
+      ],
+      "owner": "integration",
+      "hard_break": true,
+      "why": "Stop before toolchain or emulator work if the repository layout or canonical ISA catalog is not coherent.",
+      "commands": [
+        {
+          "id": "repo-layout",
+          "timeout_seconds": 60,
+          "command": "bash tools/ci/check_repo_layout.sh"
+        },
+        {
+          "id": "isa-golden",
+          "timeout_seconds": 180,
+          "command": "python3 tools/bringup/run_gates.py --profile release-strict --tier pr --gate 'ISA::Golden catalog check' --gate 'ISA::Canonical v0.56 guard'"
+        },
+        {
+          "id": "agent-static-map",
+          "timeout_seconds": 120,
+          "command": "python3 tools/bringup/check_multi_agent_gates.py --strict-always --mode static --manifest docs/bringup/agent_runs/manifest.yaml --waivers docs/bringup/agent_runs/waivers.yaml --checklists-root docs/bringup/agent_runs/checklists"
+        }
+      ]
+    },
+    {
+      "id": "compiler-contract",
+      "profiles": [
+        "pr",
+        "linux",
+        "nightly"
+      ],
+      "owner": "llvm",
+      "hard_break": true,
+      "why": "Stop before QEMU or benchmark debugging if the integrated compiler cannot build the active AVS corpus.",
+      "commands": [
+        {
+          "id": "linx64-compile-coverage",
+          "timeout_seconds": 900,
+          "command": "python3 tools/bringup/run_gates.py --profile release-strict --tier pr --gate 'Compiler::AVS compile suites linx64' --gate 'Compiler::Coverage 100% linx64'"
+        }
+      ]
+    },
+    {
+      "id": "qemu-contract",
+      "profiles": [
+        "pr",
+        "linux",
+        "nightly"
+      ],
+      "owner": "qemu",
+      "hard_break": true,
+      "why": "Stop before benchmark runtime work if QEMU cannot pass strict AVS execution or decode/report coherence.",
+      "commands": [
+        {
+          "id": "qemu-strict-system",
+          "timeout_seconds": 600,
+          "command": "python3 tools/bringup/run_gates.py --profile release-strict --tier pr --gate 'Emulator::QEMU strict system' --gate 'Emulator::QEMU all suites'"
+        },
+        {
+          "id": "qemu-coverage-visibility",
+          "timeout_seconds": 300,
+          "command": "python3 tools/bringup/run_gates.py --profile release-strict --tier pr --gate 'Emulator::QEMU opcode meta/id sync audit' --gate 'Emulator::ISA vs QEMU coverage report'"
+        }
+      ]
+    },
+    {
+      "id": "tsvc-qemu-hardbreak",
+      "profiles": [
+        "pr",
+        "nightly"
+      ],
+      "owner": "integration",
+      "hard_break": true,
+      "why": "The current strict PR lane reaches TSVC/QEMU next; run it before Linux rootfs and SPEC so the first benchmark failure is cheap and reproducible.",
+      "commands": [
+        {
+          "id": "tsvc-compile-only-floor",
+          "timeout_seconds": 900,
+          "command": "python3 workloads/tsvc/run_tsvc.py --clang \"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" --lld \"${LLD:-$PWD/compiler/llvm/build-linxisa-clang/bin/ld.lld}\" --vector-mode auto --strict-fail-under \"${TSVC_STRICT_FAIL_UNDER:-148}\" --source-policy linx-v03-parity --no-run-qemu --out-dir \"${TSVC_OUT_DIR:-$PWD/workloads/generated/tsvc-pr-compile}\""
+        },
+        {
+          "id": "tsvc-qemu-batched",
+          "timeout_seconds": 3600,
+          "command": "python3 workloads/tsvc/run_tsvc_batched.py --out-dir \"${TSVC_QEMU_OUT_DIR:-$PWD/workloads/generated/tsvc-pr-qemu}\" --batch-size \"${TSVC_BATCH_SIZE:-20}\" --strict-fail-under \"${TSVC_STRICT_FAIL_UNDER:-148}\" --vector-mode auto --clang \"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" --lld \"${LLD:-$PWD/compiler/llvm/build-linxisa-clang/bin/ld.lld}\" --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --source-policy linx-v03-parity --qemu-timeout \"${TSVC_QEMU_TIMEOUT:-240}\""
+        }
+      ]
+    },
+    {
+      "id": "linux-userspace-entry",
+      "profiles": [
+        "linux",
+        "nightly"
+      ],
+      "owner": "linux",
+      "hard_break": true,
+      "why": "Stop before hosted benchmarks if the firmwareless Linux/QEMU path cannot enter trivial userspace or boot the rootfs.",
+      "commands": [
+        {
+          "id": "vmlinux-clean-build",
+          "timeout_seconds": 7200,
+          "command": "bash tools/bringup/run_linux_vmlinux_build_clean.sh --linux-root kernel/linux --out-dir kernel/linux/build-linx-fixed --clang \"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" --gmake \"${GMAKE:-/opt/homebrew/bin/gmake}\" --target vmlinux"
+        },
+        {
+          "id": "tiny-userspace-proof",
+          "timeout_seconds": 180,
+          "command": "QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/initramfs/boot_userspace_proof.py"
+        },
+        {
+          "id": "busybox-rootfs",
+          "timeout_seconds": 900,
+          "command": "QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" QEMU_EXTRA_ARGS='-bios none' SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/busybox_rootfs/boot.py"
+        }
+      ]
+    },
+    {
+      "id": "libc-hosted-runtime",
+      "profiles": [
+        "linux",
+        "nightly"
+      ],
+      "owner": "libc",
+      "hard_break": true,
+      "why": "Stop before SPEC and hosted benchmark expansion if the static/shared libc runtime split is not green.",
+      "commands": [
+        {
+          "id": "musl-build-phase-b",
+          "timeout_seconds": 3600,
+          "command": "MODE=phase-b lib/musl/tools/linx/build_linx64_musl.sh"
+        },
+        {
+          "id": "musl-runtime-both",
+          "timeout_seconds": 600,
+          "command": "python3 avs/qemu/run_musl_smoke.py --mode phase-b --link both --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --timeout \"${MUSL_TIMEOUT:-90}\""
+        },
+        {
+          "id": "glibc-runtime",
+          "timeout_seconds": 600,
+          "command": "python3 avs/qemu/run_glibc_smoke.py --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --timeout \"${GLIBC_TIMEOUT:-30}\""
+        }
+      ]
+    },
+    {
+      "id": "full-benchmarks",
+      "profiles": [
+        "nightly"
+      ],
+      "owner": "integration",
+      "hard_break": true,
+      "why": "Run full benchmark/SPEC expansion only after ISA, compiler, QEMU, Linux userspace, and libc gates are proven in the same lane.",
+      "commands": [
+        {
+          "id": "coremark-dhrystone",
+          "timeout_seconds": 1800,
+          "command": "LINX_CLANG=\"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" LINX_SYSROOT=\"${LINX_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" python3 workloads/run_benchmarks.py --cc tools/spec2017/linx_cc.sh --target linx64-unknown-linux-musl --sysroot \"${LINX_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" --json-out workloads/generated/benchmarks_result.json"
+        },
+        {
+          "id": "spec-stage-a",
+          "timeout_seconds": 7200,
+          "command": "QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" python3 tools/spec2017/run_stage_qemu_matrix.py --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --stage a --input-set test --transports 9p,initramfs --strict --out-dir workloads/generated/spec_stage_a"
+        }
+      ]
+    }
+  ]
+}
