@@ -116,6 +116,11 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
   Do not create new `workloads/generated-*` sibling directories.
 - Treat `skill-evolve` as a closeout decision. Update skills only when the
   failing stage teaches a reusable command, invariant, or triage order.
+- When `--report-out` is set, the flow runner writes per-command logs under
+  `<report-dir>/logs/`. Use those logs, not terminal scrollback, as the
+  handoff artifact for the first failed command.
+- The tiny userspace proof can take slightly over 10 seconds on the current
+  clean QEMU path, so the flow sets `TINY_USERSPACE_TIMEOUT=30` by default.
 
 ## Why This Is More Efficient
 

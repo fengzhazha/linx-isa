@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -120,6 +121,20 @@ def print_stage_list(stages: list[dict[str, Any]]) -> None:
             print(f"   - {command['id']}: {command['command']}")
 
 
+def safe_log_name(stage_id: str, command_id: str) -> str:
+    raw = f"{stage_id}-{command_id}.log"
+    return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in raw)
+
+
+def stream_output(pipe: Any, log_fp: Any | None) -> None:
+    for chunk in iter(pipe.readline, ""):
+        sys.stdout.write(chunk)
+        sys.stdout.flush()
+        if log_fp is not None:
+            log_fp.write(chunk)
+            log_fp.flush()
+
+
 def run_command(
     *,
     root: Path,
@@ -127,12 +142,15 @@ def run_command(
     command: dict[str, Any],
     dry_run: bool,
     env: dict[str, str],
+    log_path: Path | None = None,
 ) -> dict[str, Any]:
     command_id = command["id"]
     rendered = str(command["command"])
     timeout = int(command.get("timeout_seconds", 0) or 0)
     print(f"-- {stage_id}/{command_id}")
     print(rendered)
+    if log_path is not None:
+        print(f"log: {log_path}")
     if dry_run:
         return {
             "id": command_id,
@@ -140,32 +158,69 @@ def run_command(
             "status": "not_run",
             "returncode": 0,
             "timeout_seconds": timeout,
+            "log": str(log_path) if log_path is not None else None,
         }
+
+    log_fp = None
+    if log_path is not None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_fp = log_path.open("w", encoding="utf-8", errors="replace")
+        log_fp.write(f"$ {rendered}\n\n")
+        log_fp.flush()
+
+    proc = subprocess.Popen(
+        rendered,
+        cwd=root,
+        env=env,
+        shell=True,
+        executable="/bin/bash",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        bufsize=1,
+    )
+    reader = threading.Thread(
+        target=stream_output,
+        args=(proc.stdout, log_fp),
+        daemon=True,
+    )
+    reader.start()
+    timed_out = False
     try:
-        proc = subprocess.run(
-            rendered,
-            cwd=root,
-            env=env,
-            shell=True,
-            executable="/bin/bash",
-            timeout=timeout if timeout > 0 else None,
-        )
-        status = "pass" if proc.returncode == 0 else "fail"
-        return {
-            "id": command_id,
-            "command": rendered,
-            "status": status,
-            "returncode": proc.returncode,
-            "timeout_seconds": timeout,
-        }
+        returncode = proc.wait(timeout=timeout if timeout > 0 else None)
     except subprocess.TimeoutExpired:
+        timed_out = True
+        proc.kill()
+        returncode = 124
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+    reader.join(timeout=5)
+    if log_fp is not None:
+        log_fp.close()
+
+    if timed_out:
         return {
             "id": command_id,
             "command": rendered,
             "status": "timeout",
-            "returncode": 124,
+            "returncode": returncode,
             "timeout_seconds": timeout,
+            "log": str(log_path) if log_path is not None else None,
         }
+    status = "pass" if returncode == 0 else "fail"
+    return {
+        "id": command_id,
+        "command": rendered,
+        "status": status,
+        "returncode": returncode,
+        "timeout_seconds": timeout,
+        "log": str(log_path) if log_path is not None else None,
+    }
 
 
 def write_report(
@@ -208,6 +263,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--continue-on-fail", action="store_true")
     ap.add_argument("--report-out", default="")
+    ap.add_argument(
+        "--log-dir",
+        default="",
+        help="Directory for per-command logs; defaults to <report-dir>/logs when --report-out is set.",
+    )
     args = ap.parse_args(argv)
 
     flow_path = Path(args.flow).resolve()
@@ -232,6 +292,13 @@ def main(argv: list[str]) -> int:
     env.setdefault("LLD", str(root / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "ld.lld"))
     env.setdefault("QEMU", str(default_qemu_binary(root)))
 
+    report_path = Path(args.report_out).resolve() if args.report_out else None
+    log_dir = None
+    if args.log_dir:
+        log_dir = Path(args.log_dir).resolve()
+    elif report_path is not None:
+        log_dir = report_path.parent / "logs"
+
     stage_rows: list[dict[str, Any]] = []
     failed = False
     for stage in stages:
@@ -248,6 +315,11 @@ def main(argv: list[str]) -> int:
                 command=command,
                 dry_run=args.dry_run,
                 env=env,
+                log_path=(
+                    log_dir / safe_log_name(stage_id, command["id"])
+                    if log_dir is not None
+                    else None
+                ),
             )
             command_rows.append(row)
             if row["status"] not in {"pass", "not_run"}:
@@ -265,9 +337,9 @@ def main(argv: list[str]) -> int:
             print(f"hard-break: stopping at stage {stage_id}")
             break
 
-    if args.report_out:
+    if report_path is not None:
         write_report(
-            Path(args.report_out).resolve(),
+            report_path,
             flow=flow,
             profile=args.profile,
             dry_run=args.dry_run,

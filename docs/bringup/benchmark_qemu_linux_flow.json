@@ -130,7 +130,7 @@
         {
           "id": "tiny-userspace-proof",
           "timeout_seconds": 180,
-          "command": "QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/initramfs/boot_userspace_proof.py"
+          "command": "TIMEOUT=\"${TINY_USERSPACE_TIMEOUT:-30}\" QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/initramfs/boot_userspace_proof.py"
         },
         {
           "id": "busybox-rootfs",
