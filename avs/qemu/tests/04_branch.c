@@ -271,6 +271,32 @@ static void test_branch_chain(void) {
     TEST_EQ(result, 7, 0xD0D0);
 }
 
+static void test_fall_setc_skips_direct_trampoline(void) {
+    uint64_t result;
+    uint64_t lhs = 1;
+    uint64_t rhs = 0;
+
+    __asm__ volatile(
+        "  C.BSTART\n"
+        "  c.setc.ne %1, %2\n"
+        "  C.BSTART DIRECT, 1f\n"
+        "  C.BSTART COND, 2f\n"
+        "1:\n"
+        "  C.BSTART\n"
+        "  addi zero, 13, ->%0\n"
+        "  C.BSTART DIRECT, 3f\n"
+        "2:\n"
+        "  C.BSTART\n"
+        "  addi zero, 17, ->%0\n"
+        "3:\n"
+        "  C.BSTART\n"
+        : "=&r"(result)
+        : "r"(lhs), "r"(rhs)
+        : "memory");
+
+    TEST_EQ64(result, 17, 0xD0D1);
+}
+
 /* Test loop execution */
 static void test_loop_execution(void) {
     uint32_t sum = 0;
@@ -354,11 +380,12 @@ void run_branch_tests(void) {
     /* Branch prediction tests */
     RUN_TEST(test_branch_prediction_basic, 0xD0C0);
     RUN_TEST(test_branch_chain, 0xD0D0);
+    RUN_TEST(test_fall_setc_skips_direct_trampoline, 0xD0D1);
     
     /* Loop tests */
     RUN_TEST(test_loop_execution, 0xD0E0);
     RUN_TEST(test_while_loop, 0xD0E1);
     RUN_TEST(test_do_while, 0xD0E2);
     
-    test_suite_end(31, 31);
+    test_suite_end(32, 32);
 }
