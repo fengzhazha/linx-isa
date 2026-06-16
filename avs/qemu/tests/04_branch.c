@@ -17,6 +17,20 @@ static uint32_t cmp_ub = 20;
 /* Global to track branch execution */
 static volatile uint32_t g_branch_taken = 0;
 static volatile uint32_t g_branch_not_taken = 0;
+static volatile uint64_t g_cond_memory_state = 0;
+
+static __attribute__((noinline, optnone)) void update_cond_memory_state(int ok) {
+    uint64_t state = g_cond_memory_state;
+
+    if (ok) {
+        if ((state & 1u) == 0)
+            state |= 1u;
+    } else {
+        state &= ~1ull;
+    }
+
+    g_cond_memory_state = state;
+}
 
 /* Test CMP.EQ (compare equal) */
 static void test_cmp_eq_true(void) {
@@ -297,6 +311,54 @@ static void test_fall_setc_skips_direct_trampoline(void) {
     TEST_EQ64(result, 17, 0xD0D1);
 }
 
+static void test_cond_memory_set_clear(void) {
+    g_cond_memory_state = 0x1c;
+    update_cond_memory_state(1);
+    TEST_EQ64(g_cond_memory_state, 0x1d, 0xD0D2);
+
+    update_cond_memory_state(0);
+    TEST_EQ64(g_cond_memory_state, 0x1c, 0xD0D3);
+}
+
+static void test_cond_memory_after_sys_blocklet(void) {
+    uint64_t *state = (uint64_t *)&g_cond_memory_state;
+    uint64_t ok = 1;
+    uint64_t zero = 0;
+    uint64_t one = 1;
+    uint64_t clear_uptodate = ~1ull;
+
+    g_cond_memory_state = 0x1c;
+
+    __asm__ volatile(
+        "  C.BSTART COND, 1f\n"
+        "  BSTART.SYS\n"
+        "  B.CATR\n"
+        "  ldi [%0, 0], ->t#1\n"
+        "  addi t#1, 0, ->t#1\n"
+        "  sdi t#1, [%0, 0]\n"
+        "  c.setc.eq %1, %2\n"
+        "  C.BSTART COND, 2f\n"
+        "  ldi [%0, 0], ->t#1\n"
+        "  andi t#1, 1, ->t#1\n"
+        "  c.setc.ne t#1, %2\n"
+        "  C.BSTART DIRECT, 2f\n"
+        "  ldi [%0, 0], ->t#1\n"
+        "  or t#1, %3, ->t#1\n"
+        "  sdi t#1, [%0, 0]\n"
+        "1:\n"
+        "  C.BSTART DIRECT, 2f\n"
+        "  ldi [%0, 0], ->t#1\n"
+        "  and t#1, %4, ->t#1\n"
+        "  sdi t#1, [%0, 0]\n"
+        "2:\n"
+        "  C.BSTART\n"
+        :
+        : "r"(state), "r"(ok), "r"(zero), "r"(one), "r"(clear_uptodate)
+        : "memory");
+
+    TEST_EQ64(g_cond_memory_state, 0x1d, 0xD0D4);
+}
+
 /* Test loop execution */
 static void test_loop_execution(void) {
     uint32_t sum = 0;
@@ -381,11 +443,13 @@ void run_branch_tests(void) {
     RUN_TEST(test_branch_prediction_basic, 0xD0C0);
     RUN_TEST(test_branch_chain, 0xD0D0);
     RUN_TEST(test_fall_setc_skips_direct_trampoline, 0xD0D1);
+    RUN_TEST(test_cond_memory_set_clear, 0xD0D2);
+    RUN_TEST(test_cond_memory_after_sys_blocklet, 0xD0D4);
     
     /* Loop tests */
     RUN_TEST(test_loop_execution, 0xD0E0);
     RUN_TEST(test_while_loop, 0xD0E1);
     RUN_TEST(test_do_while, 0xD0E2);
     
-    test_suite_end(32, 32);
+    test_suite_end(34, 34);
 }
