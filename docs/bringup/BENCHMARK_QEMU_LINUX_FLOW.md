@@ -29,9 +29,9 @@ Inference:
   partially repaired workspace. The efficient path is to stop at the first red
   prerequisite: ISA/catalog, compiler, QEMU, TSVC direct runtime, Linux
   userspace entry, libc hosted runtime, then full benchmark expansion.
-- The current PR benchmark lane is green through TSVC/QEMU. The next active
-  hard break is Linux rootfs handoff over the virtio block path; libc runtime
-  and SPEC remain downstream until that full-OS entry path is green.
+- The current strict PR benchmark lane reaches the TSVC/QEMU stage. Treat
+  TSVC direct runtime timeout or completion as the active PR hard break before
+  spending time on Linux rootfs, libc runtime, or SPEC expansion.
 - Markdown status pages are useful summaries, but several are stale relative to
   the current June 14 coverage snapshot and aggregate `latest.json` is older
   than some sidecar reports. Agents should use the JSON flow, command output,
@@ -51,10 +51,12 @@ Inference:
 
 ## Commands
 
-Seed or refresh the clean QEMU binary for runtime stages. The flow runner and
-`run_gates.py` automatically prefer this binary when its marker matches the
-current QEMU submodule SHA; otherwise they fall back to the in-tree build path
-or any explicit `QEMU=...` override.
+The `qemu-contract` stage seeds or refreshes the clean QEMU binary for runtime
+stages. The flow runner and `run_gates.py` automatically prefer this binary
+when its marker matches the current QEMU submodule SHA; otherwise they fall
+back to the in-tree build path or any explicit `QEMU=...` override. When the
+user has not set `QEMU`, the runner refreshes the resolved QEMU path before
+each command so commands after `qemu-clean-build` use the newly built binary.
 
 ```bash
 bash tools/bringup/run_qemu_build_clean.sh \

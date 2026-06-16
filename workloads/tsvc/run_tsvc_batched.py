@@ -10,9 +10,16 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import run_tsvc as core
+
+
+class BatchFailure(Exception):
+    def __init__(self, payload: dict[str, object]):
+        super().__init__(str(payload.get("error", "TSVC batch failed")))
+        self.payload = payload
 
 
 def _exact_kernel_regex(kernels: list[str]) -> str:
@@ -44,13 +51,76 @@ def _parse_rows(stdout_path: Path) -> dict[str, str]:
     return rows
 
 
+def _passthrough_value(args: list[str], option: str) -> str | None:
+    prefix = option + "="
+    for idx, arg in enumerate(args):
+        if arg == option and idx + 1 < len(args):
+            return args[idx + 1]
+        if arg.startswith(prefix):
+            return arg[len(prefix):]
+    return None
+
+
+def _tail(path: Path, *, max_lines: int = 20) -> list[str]:
+    if not path.exists():
+        return []
+    return path.read_text(encoding="utf-8", errors="replace").splitlines()[-max_lines:]
+
+
+def _batch_paths(batch_out: Path, mode: str) -> dict[str, Path]:
+    reports_dir = batch_out / "reports" / "tsvc"
+    qemu_dir = batch_out / "qemu" / "tsvc"
+    logs_dir = batch_out / "logs"
+    return {
+        "coverage": reports_dir / "vectorization_coverage.json",
+        "gate": reports_dir / "gate_result.json",
+        "stdout": qemu_dir / f"tsvc.{mode}.stdout.txt",
+        "stderr": qemu_dir / f"tsvc.{mode}.stderr.txt",
+        "driver_stdout": logs_dir / "run_tsvc.stdout.txt",
+        "driver_stderr": logs_dir / "run_tsvc.stderr.txt",
+    }
+
+
+def _batch_failure_payload(
+    *,
+    batch_index: int,
+    batch_out: Path,
+    kernels: list[str],
+    mode: str,
+    command: list[str],
+    returncode: int,
+    elapsed_s: float,
+) -> dict[str, object]:
+    paths = _batch_paths(batch_out, mode)
+    observed = _parse_rows(paths["stdout"]) if paths["stdout"].exists() else {}
+    return {
+        "batch_index": batch_index,
+        "status": "fail",
+        "returncode": returncode,
+        "elapsed_seconds": round(elapsed_s, 3),
+        "kernel_count": len(kernels),
+        "kernels": kernels,
+        "observed_kernel_count": len(observed),
+        "observed_kernels": sorted(observed),
+        "missing_kernels": [k for k in kernels if k not in observed],
+        "out_dir": str(batch_out),
+        "command": " ".join(shlex.quote(c) for c in command),
+        "qemu_stdout": str(paths["stdout"]) if paths["stdout"].exists() else None,
+        "qemu_stderr": str(paths["stderr"]) if paths["stderr"].exists() else None,
+        "driver_stdout": str(paths["driver_stdout"]),
+        "driver_stderr": str(paths["driver_stderr"]),
+        "driver_stderr_tail": _tail(paths["driver_stderr"]),
+    }
+
+
 def _run_batch(python: str,
                base_args: list[str],
                mode: str,
                src_dir: Path,
                batch_out: Path,
                kernels: list[str],
-               verbose: bool) -> dict[str, object]:
+               verbose: bool,
+               batch_index: int) -> dict[str, object]:
     cmd = [
         python,
         str(core.TSVC_DIR / "run_tsvc.py"),
@@ -66,9 +136,39 @@ def _run_batch(python: str,
     ]
     if verbose:
         print("+", " ".join(shlex.quote(c) for c in cmd), file=sys.stderr)
-    p = subprocess.run(cmd, check=False)
+    paths = _batch_paths(batch_out, mode)
+    paths["driver_stdout"].parent.mkdir(parents=True, exist_ok=True)
+    start = time.monotonic()
+    p = subprocess.run(
+        cmd,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    elapsed_s = time.monotonic() - start
+    paths["driver_stdout"].write_text(p.stdout or "", encoding="utf-8")
+    paths["driver_stderr"].write_text(p.stderr or "", encoding="utf-8")
+    if p.stdout:
+        sys.stdout.write(p.stdout)
+        sys.stdout.flush()
+    if p.stderr:
+        sys.stderr.write(p.stderr)
+        sys.stderr.flush()
     if p.returncode != 0:
-        raise SystemExit(p.returncode)
+        raise BatchFailure(
+            _batch_failure_payload(
+                batch_index=batch_index,
+                batch_out=batch_out,
+                kernels=kernels,
+                mode=mode,
+                command=cmd,
+                returncode=p.returncode,
+                elapsed_s=elapsed_s,
+            )
+        )
 
     reports_dir = batch_out / "reports" / "tsvc"
     qemu_dir = batch_out / "qemu" / "tsvc"
@@ -77,11 +177,17 @@ def _run_batch(python: str,
     stdout_path = qemu_dir / f"tsvc.{mode}.stdout.txt"
     stderr_path = qemu_dir / f"tsvc.{mode}.stderr.txt"
     return {
+        "batch_index": batch_index,
+        "status": "pass",
+        "returncode": p.returncode,
+        "elapsed_seconds": round(elapsed_s, 3),
         "kernels": kernels,
         "coverage": coverage,
         "gate": gate,
         "stdout_path": stdout_path,
         "stderr_path": stderr_path,
+        "driver_stdout": paths["driver_stdout"],
+        "driver_stderr": paths["driver_stderr"],
     }
 
 
@@ -127,17 +233,26 @@ def main(argv: list[str]) -> int:
     total = 0
     batch_payloads: list[dict[str, object]] = []
 
+    failed_batch: dict[str, object] | None = None
+    started_at = time.monotonic()
+
     for idx, batch in enumerate(batches, start=1):
         batch_out = batch_root / f"batch_{idx:03d}"
-        payload = _run_batch(
-            python=python,
-            base_args=passthrough,
-            mode=args.vector_mode,
-            src_dir=src_dir,
-            batch_out=batch_out,
-            kernels=batch,
-            verbose=args.verbose,
-        )
+        try:
+            payload = _run_batch(
+                python=python,
+                base_args=passthrough,
+                mode=args.vector_mode,
+                src_dir=src_dir,
+                batch_out=batch_out,
+                kernels=batch,
+                verbose=args.verbose,
+                batch_index=idx,
+            )
+        except BatchFailure as exc:
+            failed_batch = exc.payload
+            batch_payloads.append(failed_batch)
+            break
         coverage = payload["coverage"]
         vectorized += int(coverage.get("vectorized", 0))
         total += int(coverage.get("total", 0))
@@ -157,9 +272,16 @@ def main(argv: list[str]) -> int:
         batch_payloads.append(
             {
                 "batch_index": idx,
+                "status": "pass",
+                "returncode": int(payload.get("returncode", 0)),
+                "elapsed_seconds": float(payload.get("elapsed_seconds", 0.0)),
                 "kernel_count": len(batch),
                 "kernels": batch,
                 "out_dir": str(batch_out),
+                "qemu_stdout": str(stdout_path),
+                "qemu_stderr": str(stderr_path),
+                "driver_stdout": str(payload["driver_stdout"]),
+                "driver_stderr": str(payload["driver_stderr"]),
                 "vectorized": int(coverage.get("vectorized", 0)),
                 "total": int(coverage.get("total", 0)),
             }
@@ -173,6 +295,30 @@ def main(argv: list[str]) -> int:
         encoding="utf-8",
     )
 
+    elapsed_total_s = round(time.monotonic() - started_at, 3)
+    strict_floor_failed = (
+        failed_batch is None
+        and args.strict_fail_under is not None
+        and vectorized < args.strict_fail_under
+    )
+    status = "pass"
+    returncode = 0
+    error = None
+    if failed_batch is not None:
+        status = "fail"
+        returncode = int(failed_batch.get("returncode", 1))
+        error = (
+            f"batch {failed_batch.get('batch_index')} failed "
+            f"(returncode={returncode})"
+        )
+    elif strict_floor_failed:
+        status = "fail"
+        returncode = 1
+        error = (
+            f"aggregate vectorized kernels {vectorized} below floor "
+            f"{args.strict_fail_under}"
+        )
+
     aggregate = {
         "generated_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "tool": "workloads/tsvc/run_tsvc_batched.py",
@@ -180,12 +326,20 @@ def main(argv: list[str]) -> int:
             [shlex.quote(python), "workloads/tsvc/run_tsvc_batched.py",
              *[shlex.quote(a) for a in argv]]
         ),
+        "ok": status == "pass",
+        "status": status,
+        "returncode": returncode,
+        "error": error,
+        "elapsed_seconds": elapsed_total_s,
         "vector_mode": args.vector_mode,
         "batch_size": args.batch_size,
         "kernel_count": len(kernels),
         "vectorized": vectorized,
         "total": total,
         "strict_fail_under": args.strict_fail_under,
+        "qemu_timeout_seconds": _passthrough_value(passthrough, "--qemu-timeout"),
+        "completed_batches": sum(1 for b in batch_payloads if b.get("status") == "pass"),
+        "failed_batch": failed_batch,
         "source": str(src_dir),
         "batches": batch_payloads,
         "sha_manifest": core._build_sha_manifest(),
@@ -213,23 +367,37 @@ def main(argv: list[str]) -> int:
         "# TSVC batched report",
         "",
         f"- Source: `{src_dir}`",
+        f"- Status: `{status}`",
+        f"- Return code: `{returncode}`",
+        f"- Elapsed seconds: `{elapsed_total_s}`",
         f"- Vector mode: `{args.vector_mode}`",
         f"- Batch size: `{args.batch_size}`",
         f"- Kernel count: `{len(kernels)}`",
         f"- Vectorized: `{vectorized}/{total}`",
+        f"- Completed batches: `{aggregate['completed_batches']}/{len(batches)}`",
         f"- Merged QEMU stdout: `{merged_stdout_path}`",
         f"- Merged QEMU stderr: `{merged_stderr_path}`",
         f"- Aggregate gate JSON: `{gate_json}`",
     ]
+    if failed_batch is not None:
+        report_lines.extend(
+            [
+                "",
+                "## Failed Batch",
+                f"- Batch: `{failed_batch.get('batch_index')}`",
+                f"- Kernels: `{', '.join(str(k) for k in failed_batch.get('kernels', []))}`",
+                f"- Observed kernels: `{failed_batch.get('observed_kernel_count')}`",
+                f"- QEMU stdout: `{failed_batch.get('qemu_stdout')}`",
+                f"- QEMU stderr: `{failed_batch.get('qemu_stderr')}`",
+                f"- Driver stderr: `{failed_batch.get('driver_stderr')}`",
+            ]
+        )
     (out_root / "tsvc_report.md").write_text(
         "\n".join(report_lines) + "\n", encoding="utf-8"
     )
 
-    if args.strict_fail_under is not None and vectorized < args.strict_fail_under:
-        raise SystemExit(
-            f"error: aggregate vectorized kernels {vectorized} below floor "
-            f"{args.strict_fail_under}"
-        )
+    if status != "pass":
+        raise SystemExit(f"error: {error}")
 
     print(f"ok: TSVC {args.vector_mode} batched artifacts generated under {out_root}",
           file=sys.stderr)

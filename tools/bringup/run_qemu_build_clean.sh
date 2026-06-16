@@ -88,6 +88,7 @@ TARGET_PATH="$OUT_DIR/$TARGET"
 
 reset_clean_tree() {
   git -C "$QEMU_ROOT" worktree remove --force "$WORKTREE_DIR" >/dev/null 2>&1 || true
+  git -C "$QEMU_ROOT" worktree prune >/dev/null 2>&1 || true
   rm -rf "$WORKTREE_DIR" "$OUT_DIR"
 }
 
@@ -153,7 +154,7 @@ fi
 if [[ "$need_worktree_refresh" == "1" ]]; then
   echo "info: preparing clean qemu worktree @ $HEAD_SHA" >&2
   reset_clean_tree
-  git -C "$QEMU_ROOT" worktree add --detach "$WORKTREE_DIR" "$HEAD_SHA" >&2
+  git -C "$QEMU_ROOT" worktree add --force --detach "$WORKTREE_DIR" "$HEAD_SHA" >&2
 fi
 
 CONFIGURE_ROOT="$WORKTREE_DIR"

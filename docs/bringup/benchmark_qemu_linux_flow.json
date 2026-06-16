@@ -11,7 +11,7 @@
   },
   "profiles": {
     "pr": {
-      "description": "Fastest hard-break lane. Proves ISA/compiler/QEMU prerequisites before TSVC runtime work."
+      "description": "Fastest hard-break lane. Proves ISA/compiler/QEMU prerequisites and the TSVC direct QEMU runtime boundary."
     },
     "linux": {
       "description": "Full-OS enablement lane. Adds Linux userspace-entry, rootfs, and libc smoke boundaries before hosted benchmarks."
@@ -78,6 +78,11 @@
       "hard_break": true,
       "why": "Stop before benchmark runtime work if QEMU cannot pass strict AVS execution or decode/report coherence.",
       "commands": [
+        {
+          "id": "qemu-clean-build",
+          "timeout_seconds": 3600,
+          "command": "bash tools/bringup/run_qemu_build_clean.sh --qemu-root \"$PWD/emulator/qemu\" --out-dir \"${QEMU_CLEAN_OUT_DIR:-/tmp/linx-qemu-clean-build}\" --target qemu-system-linx64"
+        },
         {
           "id": "qemu-strict-system",
           "timeout_seconds": 600,

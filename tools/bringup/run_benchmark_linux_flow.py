@@ -158,6 +158,7 @@ def run_command(
             "status": "not_run",
             "returncode": 0,
             "timeout_seconds": timeout,
+            "resolved_qemu": env.get("QEMU"),
             "log": str(log_path) if log_path is not None else None,
         }
 
@@ -210,6 +211,7 @@ def run_command(
             "status": "timeout",
             "returncode": returncode,
             "timeout_seconds": timeout,
+            "resolved_qemu": env.get("QEMU"),
             "log": str(log_path) if log_path is not None else None,
         }
     status = "pass" if returncode == 0 else "fail"
@@ -219,6 +221,7 @@ def run_command(
         "status": status,
         "returncode": returncode,
         "timeout_seconds": timeout,
+        "resolved_qemu": env.get("QEMU"),
         "log": str(log_path) if log_path is not None else None,
     }
 
@@ -290,7 +293,7 @@ def main(argv: list[str]) -> int:
     env.setdefault("LINXISA_ROOT", str(root))
     env.setdefault("CLANG", str(root / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "clang"))
     env.setdefault("LLD", str(root / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "ld.lld"))
-    env.setdefault("QEMU", str(default_qemu_binary(root)))
+    qemu_was_explicit = "QEMU" in env
 
     report_path = Path(args.report_out).resolve() if args.report_out else None
     log_dir = None
@@ -309,12 +312,15 @@ def main(argv: list[str]) -> int:
             print(stage["why"])
         command_rows: list[dict[str, Any]] = []
         for command in stage["commands"]:
+            command_env = env.copy()
+            if not qemu_was_explicit:
+                command_env["QEMU"] = str(default_qemu_binary(root))
             row = run_command(
                 root=root,
                 stage_id=stage_id,
                 command=command,
                 dry_run=args.dry_run,
-                env=env,
+                env=command_env,
                 log_path=(
                     log_dir / safe_log_name(stage_id, command["id"])
                     if log_dir is not None
