@@ -147,20 +147,43 @@ def run_command(
     command_id = command["id"]
     rendered = str(command["command"])
     timeout = int(command.get("timeout_seconds", 0) or 0)
+    command_env = env.copy()
+    artifact_report_path = None
+    artifact_transcript_path = None
+    if log_path is not None:
+        artifact_report_path = log_path.with_suffix(".report.json")
+        artifact_transcript_path = log_path.with_suffix(".transcript.txt")
+        command_env["LINX_FLOW_STAGE_ID"] = stage_id
+        command_env["LINX_FLOW_COMMAND_ID"] = command_id
+        command_env["LINX_FLOW_COMMAND_LOG"] = str(log_path)
+        command_env["LINX_FLOW_COMMAND_REPORT"] = str(artifact_report_path)
+        command_env["LINX_FLOW_COMMAND_TRANSCRIPT"] = str(artifact_transcript_path)
     print(f"-- {stage_id}/{command_id}")
     print(rendered)
     if log_path is not None:
         print(f"log: {log_path}")
-    if dry_run:
+
+    def result_row(status: str, returncode: int) -> dict[str, Any]:
         return {
             "id": command_id,
             "command": rendered,
-            "status": "not_run",
-            "returncode": 0,
+            "status": status,
+            "returncode": returncode,
             "timeout_seconds": timeout,
-            "resolved_qemu": env.get("QEMU"),
+            "resolved_qemu": command_env.get("QEMU"),
             "log": str(log_path) if log_path is not None else None,
+            "artifact_report": (
+                str(artifact_report_path) if artifact_report_path is not None else None
+            ),
+            "artifact_transcript": (
+                str(artifact_transcript_path)
+                if artifact_transcript_path is not None
+                else None
+            ),
         }
+
+    if dry_run:
+        return result_row("not_run", 0)
 
     log_fp = None
     if log_path is not None:
@@ -172,7 +195,7 @@ def run_command(
     proc = subprocess.Popen(
         rendered,
         cwd=root,
-        env=env,
+        env=command_env,
         shell=True,
         executable="/bin/bash",
         stdout=subprocess.PIPE,
@@ -205,25 +228,9 @@ def run_command(
         log_fp.close()
 
     if timed_out:
-        return {
-            "id": command_id,
-            "command": rendered,
-            "status": "timeout",
-            "returncode": returncode,
-            "timeout_seconds": timeout,
-            "resolved_qemu": env.get("QEMU"),
-            "log": str(log_path) if log_path is not None else None,
-        }
+        return result_row("timeout", returncode)
     status = "pass" if returncode == 0 else "fail"
-    return {
-        "id": command_id,
-        "command": rendered,
-        "status": status,
-        "returncode": returncode,
-        "timeout_seconds": timeout,
-        "resolved_qemu": env.get("QEMU"),
-        "log": str(log_path) if log_path is not None else None,
-    }
+    return result_row(status, returncode)
 
 
 def write_report(
