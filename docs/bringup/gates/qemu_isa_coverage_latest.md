@@ -1,8 +1,8 @@
 # ISA vs QEMU Coverage Snapshot
 
-- Generated (UTC): `2026-06-17 10:20:40Z`
+- Generated (UTC): `2026-06-18 01:51:27Z`
 - Spec unique mnemonics: `710`
-- QEMU unique decode mnemonics (non-internal): `650`
+- QEMU unique decode mnemonics (non-internal): `652`
 - QEMU mapped spec mnemonics: `615`
 - Mnemonic coverage: `615/710` (`86.62%`)
 - Spec legal forms: `740`
@@ -11,7 +11,7 @@
 - Missing spec mnemonics: `95`
 - Missing spec forms: `126`
 - Reserved spec forms: `0`
-- Unmapped QEMU mnemonics: `15`
+- Unmapped QEMU mnemonics: `17`
 
 ## Mnemonic Coverage By Prefix
 
@@ -357,6 +357,8 @@
 - `b_dim_lb2`
 - `b_ioti`
 - `bstart_fall`
+- `bstart_split_cond`
+- `bstart_split_direct`
 - `l_bstart_fp_call`
 - `l_bstart_fp_cond`
 - `l_bstart_fp_direct`

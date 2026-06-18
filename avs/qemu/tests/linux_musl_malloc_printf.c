@@ -4,22 +4,10 @@
 #include <sys/reboot.h>
 #include <unistd.h>
 
-enum {
-	LINX_UART_BASE = 0x10000000ul,
-};
-
-static void uart_puts(const char *s)
-{
-	while (*s)
-		*(volatile unsigned char *)LINX_UART_BASE = (unsigned char)*s++;
-}
-
 static void emit_marker(const char *s)
 {
 	printf("%s\n", s);
 	fflush(stdout);
-	uart_puts(s);
-	uart_puts("\n");
 }
 
 int main(void)
@@ -30,6 +18,8 @@ int main(void)
 	const size_t n = 1024;
 
 	cfd = open("/dev/console", O_RDWR);
+	if (cfd < 0)
+		cfd = open("/dev/ttyS0", O_RDWR);
 	if (cfd >= 0) {
 		(void)dup2(cfd, STDIN_FILENO);
 		(void)dup2(cfd, STDOUT_FILENO);
@@ -56,7 +46,6 @@ int main(void)
 		if (buf[i] != want) {
 			printf("MUSL_SMOKE_FAIL: memory mismatch at %zu\n", i);
 			fflush(stdout);
-			uart_puts("MUSL_SMOKE_FAIL: memory mismatch\n");
 			free(buf);
 			sync();
 			reboot(RB_POWER_OFF);

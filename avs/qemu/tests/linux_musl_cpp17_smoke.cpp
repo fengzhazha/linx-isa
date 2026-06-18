@@ -9,25 +9,15 @@
 #include <unistd.h>
 #include <vector>
 
-enum : std::uintptr_t {
-  LINX_UART_BASE = 0x10000000ul,
-};
-
-static void uart_puts(const char *s) {
-  while (*s)
-    *reinterpret_cast<volatile unsigned char *>(LINX_UART_BASE) =
-        static_cast<unsigned char>(*s++);
-}
-
 static void emit_marker(const char *s) {
   std::printf("%s\n", s);
   std::fflush(stdout);
-  uart_puts(s);
-  uart_puts("\n");
 }
 
 int main() {
   int cfd = ::open("/dev/console", O_RDWR);
+  if (cfd < 0)
+    cfd = ::open("/dev/ttyS0", O_RDWR);
   if (cfd >= 0) {
     (void)::dup2(cfd, STDIN_FILENO);
     (void)::dup2(cfd, STDOUT_FILENO);

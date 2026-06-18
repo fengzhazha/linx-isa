@@ -7,6 +7,8 @@
 int main(void)
 {
     int cfd = open("/dev/console", O_RDWR);
+    if (cfd < 0)
+        cfd = open("/dev/ttyS0", O_RDWR);
     if (cfd >= 0) {
         (void)dup2(cfd, STDIN_FILENO);
         (void)dup2(cfd, STDOUT_FILENO);

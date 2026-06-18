@@ -3,22 +3,10 @@
 #include <sys/reboot.h>
 #include <unistd.h>
 
-enum {
-	LINX_UART_BASE = 0x10000000ul,
-};
-
-static void uart_puts(const char *s)
-{
-	while (*s)
-		*(volatile unsigned char *)LINX_UART_BASE = (unsigned char)*s++;
-}
-
 static void emit_marker(const char *s)
 {
 	printf("%s\n", s);
 	fflush(stdout);
-	uart_puts(s);
-	uart_puts("\n");
 }
 
 static long add3(long x) { return x + 3; }
@@ -62,6 +50,8 @@ int main(void)
 	long r1, r2, r3, r4, r5;
 
 	cfd = open("/dev/console", O_RDWR);
+	if (cfd < 0)
+		cfd = open("/dev/ttyS0", O_RDWR);
 	if (cfd >= 0) {
 		(void)dup2(cfd, STDIN_FILENO);
 		(void)dup2(cfd, STDOUT_FILENO);
@@ -82,7 +72,6 @@ int main(void)
 		printf("MUSL_CALLRET_FAIL: r1=%ld r2=%ld r3=%ld r4=%ld r5=%ld\n",
 		       r1, r2, r3, r4, r5);
 		fflush(stdout);
-		uart_puts("MUSL_CALLRET_FAIL\n");
 		sync();
 		reboot(RB_POWER_OFF);
 		return 2;
