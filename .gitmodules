@@ -60,3 +60,13 @@
 	url = https://github.com/LinxISA/ptoas.git
 	branch = main
 	update = checkout
+[submodule "workloads/SuperNPUBench"]
+	path = workloads/SuperNPUBench
+	url = https://github.com/LinxISA/SuperNPUBench.git
+	branch = main
+	update = checkout
+[submodule "model/LinxCoreModel"]
+	path = model/LinxCoreModel
+	url = https://github.com/LinxISA/LinxCoreModel.git
+	branch = codex/import-sanitized-20260618
+	update = checkout
