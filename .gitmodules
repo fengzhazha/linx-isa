@@ -62,7 +62,7 @@
 	update = checkout
 [submodule "workloads/SuperNPUBench"]
 	path = workloads/SuperNPUBench
-	url = https://github.com/LinxISA/SuperNPUBench.git
+	url = https://github.com/PTO-ISA/SuperNPUBench.git
 	branch = main
 	update = checkout
 [submodule "model/LinxCoreModel"]
