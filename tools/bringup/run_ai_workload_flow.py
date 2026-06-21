@@ -329,6 +329,78 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
   linx_pto_exit(static_cast<unsigned int>(main()));
 }
 """
+PTO_UNARY_COPY_F32_HARNESS_TEMPLATE = r"""extern "C" void __FUNCTION_NAME__(float *out_ptr, float *in_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 32;
+
+float src[kElems];
+float dst[kElems];
+
+static inline float src_value(int i) {
+  return static_cast<float>((i % 13) - 6);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    src[i] = src_value(i);
+    dst[i] = -99.0f;
+  }
+
+  __FUNCTION_NAME__(dst, src, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (dst[i] != src[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+
+
+def pto_unary_copy_f32_harness_source(function_name: str) -> str:
+    return PTO_UNARY_COPY_F32_HARNESS_TEMPLATE.replace(
+        "__FUNCTION_NAME__", function_name
+    )
+
+
+PTO_FLATTEN_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("flatten_f32")
+PTO_RESHAPE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("reshape_f32")
+PTO_SQUEEZE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("squeeze_f32")
+PTO_UNSQUEEZE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("unsqueeze_f32")
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
@@ -339,6 +411,13 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
         PTO_TMATMUL_ACC_I32_HARNESS_SOURCE,
     ),
     "relu_f32": ("pto-relu-f32-harness.cpp", PTO_RELU_F32_HARNESS_SOURCE),
+    "flatten_f32": ("pto-flatten-f32-harness.cpp", PTO_FLATTEN_F32_HARNESS_SOURCE),
+    "reshape_f32": ("pto-reshape-f32-harness.cpp", PTO_RESHAPE_F32_HARNESS_SOURCE),
+    "squeeze_f32": ("pto-squeeze-f32-harness.cpp", PTO_SQUEEZE_F32_HARNESS_SOURCE),
+    "unsqueeze_f32": (
+        "pto-unsqueeze-f32-harness.cpp",
+        PTO_UNSQUEEZE_F32_HARNESS_SOURCE,
+    ),
 }
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
     "elementwise/relu_fp32.cpp": {
@@ -347,6 +426,34 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO relu_f32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog float32 ReLU direct-boot smoke harness",
+    },
+    "layout/flatten_fp32.cpp": {
+        "standalone_harness": "flatten_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO flatten_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 flatten direct-boot smoke harness",
+    },
+    "layout/reshape_fp32.cpp": {
+        "standalone_harness": "reshape_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO reshape_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 reshape direct-boot smoke harness",
+    },
+    "layout/squeeze_fp32.cpp": {
+        "standalone_harness": "squeeze_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO squeeze_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 squeeze direct-boot smoke harness",
+    },
+    "layout/unsqueeze_fp32.cpp": {
+        "standalone_harness": "unsqueeze_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO unsqueeze_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 unsqueeze direct-boot smoke harness",
     },
     "memory/tload_store.cpp": {
         "standalone_harness": "tload_store_i32",

@@ -108,7 +108,9 @@ The runner stops on the first red hard-break stage unless
   standalone ELF harness is required before they can enter QEMU/model stages
   individually. Current promoted catalog smokes are `pto-kernel-tload_store`,
   `pto-kernel-gemm`, `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and
-  `pto-kernel-relu_fp32`: the
+  `pto-kernel-relu_fp32` in Tier 1, plus the Tier-2 layout-copy cases
+  `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
+  `pto-kernel-squeeze_fp32`, and `pto-kernel-unsqueeze_fp32`: the
   runner generates per-case harnesses, compiles the matching source with
   `-DPTO_QEMU_SMOKE=1`, emits direct-boot Linx ELFs plus objdump/raw-bin side
   artifacts, then promotes each passing ELF through QEMU and
