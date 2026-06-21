@@ -80,10 +80,13 @@ fi
 
 if [[ "${RUN_MUSL_SMOKE:-0}" == "1" ]]; then
   echo
-  echo "-- Linx musl malloc/printf runtime smoke"
+  echo "-- Linx musl runtime smoke"
   RUN_MUSL_SMOKE_MODE="${RUN_MUSL_SMOKE_MODE:-phase-b}"
+  RUN_MUSL_SMOKE_SAMPLE="${RUN_MUSL_SMOKE_SAMPLE:-all}"
   LINX_DISABLE_TIMER_IRQ="$LINX_DISABLE_TIMER_IRQ" \
-    python3 "$ROOT/avs/qemu/run_musl_smoke.py" --mode "$RUN_MUSL_SMOKE_MODE"
+    python3 "$ROOT/avs/qemu/run_musl_smoke.py" \
+      --mode "$RUN_MUSL_SMOKE_MODE" \
+      --sample "$RUN_MUSL_SMOKE_SAMPLE"
 fi
 
 if [[ "${RUN_STRICT_CROSS_REPO:-0}" == "1" ]]; then

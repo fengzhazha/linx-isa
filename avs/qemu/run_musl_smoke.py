@@ -32,6 +32,46 @@ SAMPLES: dict[str, dict[str, str]] = {
         "start": "MUSL_CALLRET_START",
         "pass": "MUSL_CALLRET_PASS",
     },
+    "fork_wait": {
+        "src": "linux_musl_fork_wait.c",
+        "start": "MUSL_FORK_WAIT_START",
+        "pass": "MUSL_FORK_WAIT_PASS",
+    },
+    "fork_wait_raw_exit": {
+        "src": "linux_musl_fork_wait_raw_exit.c",
+        "start": "MUSL_FORK_WAIT_RAW_EXIT_START",
+        "pass": "MUSL_FORK_WAIT_RAW_EXIT_PASS",
+    },
+    "fork_noinline_raw": {
+        "src": "linux_musl_fork_noinline_raw.c",
+        "start": "MUSL_FORK_NOINLINE_RAW_START",
+        "pass": "MUSL_FORK_NOINLINE_RAW_PASS",
+    },
+    "fork_exec_self": {
+        "src": "linux_musl_fork_exec_self.c",
+        "start": "MUSL_FORK_EXEC_SELF_START",
+        "pass": "MUSL_FORK_EXEC_SELF_PASS",
+    },
+    "fork_exec_path": {
+        "src": "linux_musl_fork_exec_path.c",
+        "start": "MUSL_FORK_EXEC_PATH_START",
+        "pass": "MUSL_FORK_EXEC_PATH_PASS",
+    },
+    "fork_child_poweroff": {
+        "src": "linux_musl_fork_child_poweroff.c",
+        "start": "MUSL_FORK_CHILD_POWEROFF_START",
+        "pass": "MUSL_FORK_CHILD_POWEROFF_PASS",
+    },
+    "printf_string_arg": {
+        "src": "linux_musl_printf_string_arg.c",
+        "start": "MUSL_PRINTF_STRING_ARG_START",
+        "pass": "MUSL_PRINTF_STRING_ARG_PASS",
+    },
+    "file_stdio": {
+        "src": "linux_musl_file_stdio.c",
+        "start": "MUSL_FILE_STDIO_START",
+        "pass": "MUSL_FILE_STDIO_PASS",
+    },
     "cpp17_smoke": {
         "src": "linux_musl_cpp17_smoke.cpp",
         "start": "MUSL_CPP17_START",
@@ -924,6 +964,8 @@ def main(argv: list[str]) -> int:
                 "dir /tmp 1777 0 0",
                 f"file /init {sample_bin} 0755 0 0",
             ]
+            if sample_name == "fork_exec_path":
+                init_lines.append(f"file /child_exec_path {sample_bin} 0755 0 0")
             if link_mode == "shared":
                 loader_src = shared_loader if shared_loader.exists() else shared_lib
                 init_lines += [

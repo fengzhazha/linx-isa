@@ -906,7 +906,7 @@ run_gate \
 run_gate \
   "Library" \
   "musl runtime static+shared" \
-  "LINX_DISABLE_TIMER_IRQ=$LINX_DISABLE_TIMER_IRQ python3 $ROOT/avs/qemu/run_musl_smoke.py --mode phase-b --link both --qemu $QEMU_BIN --timeout $MUSL_TIMEOUT" \
+  "LINX_DISABLE_TIMER_IRQ=$LINX_DISABLE_TIMER_IRQ python3 $ROOT/avs/qemu/run_musl_smoke.py --mode phase-b --link both --sample all --qemu $QEMU_BIN --timeout $MUSL_TIMEOUT" \
   "runtime_pass" \
   "runtime_mode_failure" \
   "lib_musl_both"

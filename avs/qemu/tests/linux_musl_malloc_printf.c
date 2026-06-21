@@ -6,8 +6,12 @@
 
 static void emit_marker(const char *s)
 {
-	printf("%s\n", s);
-	fflush(stdout);
+	size_t n = 0;
+
+	while (s[n])
+		n++;
+	(void)write(STDOUT_FILENO, s, n);
+	(void)write(STDOUT_FILENO, "\n", 1);
 }
 
 int main(void)

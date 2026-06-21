@@ -133,15 +133,19 @@ Custom output directory:
 
 ## Linux musl smoke
 
-For Linux initramfs + musl runtime smoke (malloc/free/printf), use:
+For Linux initramfs + musl runtime smoke, use the full sample set in gate
+runs:
 
 ```bash
-python3 avs/qemu/run_musl_smoke.py --mode phase-b
+python3 avs/qemu/run_musl_smoke.py --mode phase-b --sample all
 ```
 
 `run_musl_smoke.py` links the sample at a high userspace image base by default
 (`--image-base 0x40000000`) to avoid low-VA overlap with the current kernel mapping.
-The default runner is the full-system kernel/initramfs lane.
+The default runner is the full-system kernel/initramfs lane. The full sample
+set covers malloc/printf, fork/wait, fork/exec, stdio flushing, and C++
+startup. For a narrow local repro, pass one or more explicit `--sample` values;
+omitting `--sample` keeps the lightweight `malloc_printf` smoke.
 
 When an external Linx linux-user QEMU build is available, run the same
 compile/link smoke directly as a process ABI gate before entering the

@@ -578,7 +578,7 @@ tests:
     spec_refs:
       - docs/bringup/libc_status.md
     requirement: "musl static runtime smoke passes under QEMU."
-    pass_fail: "avs/qemu/run_musl_smoke.py summary_static.json reports ok=true."
+    pass_fail: "avs/qemu/run_musl_smoke.py --sample all summary_static.json reports ok=true for the selected sample set."
 
   - id: AVS-LIBC-002
     state: active
@@ -589,7 +589,7 @@ tests:
     spec_refs:
       - docs/bringup/libc_status.md
     requirement: "musl shared runtime smoke passes under QEMU."
-    pass_fail: "avs/qemu/run_musl_smoke.py summary_shared.json reports ok=true."
+    pass_fail: "avs/qemu/run_musl_smoke.py --sample all summary_shared.json reports ok=true for the selected sample set."
 
   - id: AVS-LIBC-003
     state: active
