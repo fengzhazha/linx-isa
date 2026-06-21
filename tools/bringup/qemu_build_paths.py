@@ -39,4 +39,13 @@ def default_qemu_binary(root: Path, target: str = "qemu-system-linx64") -> Path:
     clean = _matching_clean_qemu(root, target=target)
     if clean is not None:
         return clean
-    return root / "emulator" / "qemu" / "build" / target
+    qemu_root = root / "emulator" / "qemu"
+    candidates = [
+        qemu_root / "build-linx" / target,
+        qemu_root / "build-tci" / target,
+        qemu_root / "build" / target,
+    ]
+    for candidate in candidates:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+    return candidates[0]

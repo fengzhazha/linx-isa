@@ -578,11 +578,39 @@ def tool_paths(root: Path, args: argparse.Namespace) -> dict[str, str]:
 
 
 def tool_manifest(paths: dict[str, str]) -> dict[str, dict[str, Any]]:
+    version_args = {
+        "clang": ["--version"],
+        "clangxx": ["--version"],
+        "lld": ["--version"],
+        "llvm_objdump": ["--version"],
+        "llvm_objcopy": ["--version"],
+        "qemu": ["--version"],
+    }
+
+    def first_version_line(key: str, value: str) -> str | None:
+        args = version_args.get(key)
+        path = Path(value)
+        if args is None or not executable(path):
+            return None
+        try:
+            proc = subprocess.run(
+                [str(path), *args],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        return (proc.stdout or "").splitlines()[0] if proc.stdout else None
+
     return {
         key: {
             "path": value,
             "exists": Path(value).exists(),
             "executable": executable(Path(value)),
+            "version": first_version_line(key, value),
         }
         for key, value in paths.items()
         if key != "model_root"
@@ -591,6 +619,7 @@ def tool_manifest(paths: dict[str, str]) -> dict[str, dict[str, Any]]:
             "path": paths["model_root"],
             "exists": Path(paths["model_root"]).exists(),
             "executable": False,
+            "version": None,
         }
     }
 
@@ -1246,6 +1275,7 @@ def qemu_execution(
     rows: list[dict[str, Any]] = []
     env = os.environ.copy()
     env.setdefault("LINXISA_ROOT", str(root))
+    env.setdefault("LINX_VIRT_TEST_FINISHER", "1")
     for state in states:
         case = state.case
         if not case_can_enter(state, "compiler-contract"):

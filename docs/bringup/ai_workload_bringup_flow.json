@@ -10,6 +10,18 @@
     ],
     "rule": "AI workload bring-up artifacts must be placed under workloads/generated/<run-id>/ai-bringup/ or a temp directory, never as ad-hoc sibling directories under workloads/."
   },
+  "tool_defaults": {
+    "qemu": {
+      "override_env": "QEMU",
+      "preferred_local_build": "emulator/qemu/build-linx/qemu-system-linx64",
+      "clean_build_env": "QEMU_CLEAN_OUT_DIR",
+      "legacy_fallback": "emulator/qemu/build/qemu-system-linx64",
+      "runtime_env": {
+        "LINX_VIRT_TEST_FINISHER": "1"
+      },
+      "rule": "Prefer the current in-repo build-linx QEMU binary for local AI bring-up unless QEMU or a matching clean-build marker explicitly selects another binary."
+    }
+  },
   "profiles": {
     "smoke": {
       "description": "Tier-0 proof that source discovery, PTO parity/tile smoke, and minimal SuperNPUBench tileop cases can enter the flow.",

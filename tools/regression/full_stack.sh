@@ -15,9 +15,9 @@ LINX_EMU_DISABLE_TIMER_IRQ="$LINX_EMU_DISABLE_TIMER_IRQ" bash "$ROOT/tools/regre
 
 QEMU_BIN="${QEMU_BIN:-${QEMU:-}}"
 if [[ -z "${QEMU_BIN:-}" ]]; then
-  for cand in "$ROOT/emulator/qemu/build/qemu-system-linx64" \
+  for cand in "$ROOT/emulator/qemu/build-linx/qemu-system-linx64" \
               "$ROOT/emulator/qemu/build-tci/qemu-system-linx64" \
-              "$ROOT/emulator/qemu/build-linx/qemu-system-linx64"; do
+              "$ROOT/emulator/qemu/build/qemu-system-linx64"; do
     if [[ -x "$cand" ]]; then
       QEMU_BIN="$cand"
       break

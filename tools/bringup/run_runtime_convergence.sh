@@ -263,13 +263,15 @@ resolve_qemu() {
   local cands=()
   if [[ "$LANE" == "pin" ]]; then
     cands=(
-      "$ROOT/emulator/qemu/build/qemu-system-linx64"
+      "$ROOT/emulator/qemu/build-linx/qemu-system-linx64"
       "$ROOT/emulator/qemu/build-tci/qemu-system-linx64"
+      "$ROOT/emulator/qemu/build/qemu-system-linx64"
     )
   else
     cands=(
-      "$EXTERNAL_ROOT/qemu/build/qemu-system-linx64"
+      "$EXTERNAL_ROOT/qemu/build-linx/qemu-system-linx64"
       "$EXTERNAL_ROOT/qemu/build-tci/qemu-system-linx64"
+      "$EXTERNAL_ROOT/qemu/build/qemu-system-linx64"
     )
   fi
   local c
@@ -930,7 +932,7 @@ fi
 run_gate \
   "Integration" \
   "Pinned workspace build closure" \
-  "test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-ar && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-nm && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-readelf && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-strip && test -x $ROOT/emulator/qemu/build/qemu-system-linx64 && test -f $LINUX_ROOT/build-linx-fixed/vmlinux && test -f $ROOT/out/libc/glibc/build/linkobj/libc.so && test -f $ROOT/out/libc/glibc/logs/g1b-summary.txt && test -f $ROOT/out/libc/musl/logs/phase-b-summary.txt" \
+  "test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-ar && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-nm && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-readelf && test -x $ROOT/compiler/llvm/build-linxisa-clang/bin/llvm-strip && { test -x $ROOT/emulator/qemu/build-linx/qemu-system-linx64 || test -x $ROOT/emulator/qemu/build/qemu-system-linx64; } && test -f $LINUX_ROOT/build-linx-fixed/vmlinux && test -f $ROOT/out/libc/glibc/build/linkobj/libc.so && test -f $ROOT/out/libc/glibc/logs/g1b-summary.txt && test -f $ROOT/out/libc/musl/logs/phase-b-summary.txt" \
   "pinned_workspace_build_closure_pass" \
   "pinned_workspace_build_closure_fail" \
   "integration_pinned_build_closure" \

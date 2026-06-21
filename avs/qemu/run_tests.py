@@ -358,14 +358,17 @@ def _default_qemu() -> Path | None:
     env = os.environ.get("QEMU")
     if env:
         return Path(os.path.expanduser(env))
-    cand_local = REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-system-linx64"
-    if cand_local.exists():
-        return cand_local
-    cand_tci = Path.home() / "qemu" / "build-tci" / "qemu-system-linx64"
-    if cand_tci.exists():
-        return cand_tci
-    cand = Path.home() / "qemu" / "build" / "qemu-system-linx64"
-    return cand if cand.exists() else None
+    cands = [
+        REPO_ROOT / "emulator" / "qemu" / "build-linx" / "qemu-system-linx64",
+        REPO_ROOT / "emulator" / "qemu" / "build-tci" / "qemu-system-linx64",
+        REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-system-linx64",
+        Path.home() / "qemu" / "build-tci" / "qemu-system-linx64",
+        Path.home() / "qemu" / "build" / "qemu-system-linx64",
+    ]
+    for cand in cands:
+        if cand.exists():
+            return cand
+    return None
 
 
 def _check_exe(p: Path, what: str) -> None:

@@ -25,7 +25,9 @@ Runtime note:
 
 - LinxISA Clang: `compiler/llvm/build-linxisa-clang/bin/clang`
 - LinxISA LLD: `compiler/llvm/build-linxisa-clang/bin/ld.lld`
-- QEMU: `emulator/qemu/build/qemu-system-linx64`
+- QEMU: `emulator/qemu/build-linx/qemu-system-linx64` for the current local
+  bring-up line, or `QEMU=/path/to/qemu-system-linx64` for an explicit clean or
+  external build.
 
 Current bring-up helper for the live dirty-source QEMU line:
 
@@ -35,6 +37,10 @@ bash tools/bringup/run_qemu_build_local.sh
 
 This prints the current rebuilt `qemu-system-linx64` path, which is the
 boot-proof-passing local line as of the current bring-up state.
+
+`run_tests.py` resolves QEMU in this order when `QEMU` is unset:
+`emulator/qemu/build-linx`, `emulator/qemu/build-tci`,
+`emulator/qemu/build`, then the historical `$HOME/qemu` fallbacks.
 
 Override paths with environment variables:
 

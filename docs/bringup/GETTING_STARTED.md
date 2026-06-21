@@ -61,7 +61,7 @@ Optional overrides:
 # If you built the pinned submodules:
 export CLANG=$PWD/compiler/llvm/build-linxisa-clang/bin/clang
 export LLD=$PWD/compiler/llvm/build-linxisa-clang/bin/ld.lld
-export QEMU=$PWD/emulator/qemu/build/qemu-system-linx64
+export QEMU=$PWD/emulator/qemu/build-linx/qemu-system-linx64
 
 # Or point to external toolchains:
 # export CLANG=/path/to/clang
