@@ -78,15 +78,21 @@ The runner stops on the first red hard-break stage unless
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
   directory for QEMU/model triage. Current direct-boot green tileop cases are
-  `MatMul`, `MatMacc`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`,
-  `TCvt`, `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TReshape`, `TTrans`,
-  `TPad`, `TRowMax`, `TRowMaxExpand`, `TRowSum`, `TRowSumExpand`, `TSub`,
-  `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TSqrt`,
-  `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`, `TOr`, and `TCmp`; keep future
-  promotions similarly bounded and prove each exact case through QEMU and
-  `gfsim -f <elf>`. `MatMacc` is currently a bounded `4x4` int64 row-major
-  multiply-accumulate smoke; col-major MatMacc has QEMU-pass/model-fail
-  evidence and remains a model-lane maturity packet. `TSqrt` is currently a
+  `MatMul`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`,
+  `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TExpandCol`, `TExpandRow`,
+  `TExpandScalar`, `TReshape`, `TTrans`, `TPad`, `TRowMax`, `TRowMaxExpand`,
+  `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
+  `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`,
+  `TOr`, and `TCmp`; keep future promotions similarly bounded and prove each
+  exact case through QEMU and `gfsim -f <elf>`. `MatMacc` is currently a
+  bounded `4x4` int64 row-major multiply-accumulate smoke; col-major MatMacc
+  has QEMU-pass/model-fail evidence and remains a model-lane maturity packet.
+  `test_MatMul` is currently a bounded `4x4` int64 row-major MATMUL smoke;
+  its original TileLeft/TileRight/TileAcc plus TCVT float path remains deferred
+  until the Linx direct-boot model lane supports that runtime contract.
+  `test_MatMacc` is currently a bounded `4x4` int64 row-major MATMUL+MATMACC
+  smoke; its original TileLeft/TileRight/TileAcc plus TCVT float path remains
+  deferred on the same model-lane runtime contract. `TSqrt` is currently a
   bounded `4x4` int64 perfect-square direct-boot smoke; broader integer and
   floating-point sqrt remain deferred until the model lane has matching
   evidence.
