@@ -78,7 +78,7 @@ The runner stops on the first red hard-break stage unless
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
   directory for QEMU/model triage. Current direct-boot green tileop cases are
-  `MatMul`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`,
+  `MatMul`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TReshape`, `TTrans`, `TPad`,
   `TRowMax`, `TRowMaxExpand`, `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`,
   `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`, `TMax`,
