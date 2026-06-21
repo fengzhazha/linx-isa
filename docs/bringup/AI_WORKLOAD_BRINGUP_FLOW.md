@@ -81,7 +81,7 @@ The runner stops on the first red hard-break stage unless
   `MatMul`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TReshape`, `TTrans`, `TPad`,
   `TRowMax`, `TRowMaxExpand`, `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`,
-  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`, `TMax`,
+  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TRecip`, `TMul`, `TMuls`, `TMax`,
   `TMaxs`, `TAnd`, `TOr`, and `TCmp`; keep future promotions similarly bounded and
   prove each exact case through QEMU and `gfsim -f <elf>`.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
@@ -100,6 +100,9 @@ The first failing boundary assigns the fix lane:
 - `compiler`: clang, LLVM backend, MC, link, entry symbol, relocation, or retired-token static failure.
 - `emulator`: legal compiler output fails under QEMU.
 - `model`: QEMU-passing ELF fails to build, load, decode, execute, or match digest evidence in `gfsim`.
+  For scalar or vector select divergence around `csel`/`psel`, the model must
+  match the LLVM/QEMU contract: `SrcP != 0` selects `SrcR`; `SrcP == 0` selects
+  `SrcL`.
 - `docs-skills`: the run exposes a reusable contract, command, or triage rule not covered by docs/skills.
 
 Each failed case gets a JSON packet under `fix-packets/` with owner, evidence,
