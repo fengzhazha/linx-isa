@@ -146,7 +146,7 @@
       "owner": "model",
       "hard_break": true,
       "why": "Final execution target: run only QEMU-passing ELFs through model/LinxCoreModel/bin/gfsim.",
-      "promotes": "model-passing cases with stop reason, log, optional trace, and digest evidence"
+      "promotes": "model-passing cases or model-owned fix packets with stop reason, log, optional trace, digest evidence, finisher/assertion markers, and latest BROB head progress"
     },
     {
       "id": "differential-triage",
@@ -203,5 +203,17 @@
     "binary": "model/LinxCoreModel/bin/gfsim",
     "command": "model/LinxCoreModel/bin/gfsim -f <linx.elf>",
     "artifact": "Linx ELF"
+  },
+  "model_diagnostics": {
+    "source": "model/LinxCoreModel/bin/gfsim stdout/stderr log",
+    "report_fields": [
+      "finisher_value",
+      "finisher_status",
+      "assertion",
+      "last_brob_bpc",
+      "last_retired_blocks",
+      "last_brob_head"
+    ],
+    "rule": "When gfsim fails or times out, report.json and fix packets should include the parsed terminal marker or latest BROB head progress if the log provides it."
   }
 }

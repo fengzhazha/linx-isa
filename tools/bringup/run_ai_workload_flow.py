@@ -21,6 +21,14 @@ from qemu_build_paths import default_qemu_binary
 
 PASS_STATUSES = {"pass", "skipped", "not_applicable", "not_run"}
 DIGEST_RE = re.compile(r"PTO_DIGEST\s+([A-Za-z0-9_]+)\s+0x([0-9A-Fa-f]+)")
+GFSIM_BROB_RE = re.compile(
+    r"Retired blocks\s+(?P<blocks>\d+)\.\s+BROB head info:\s+"
+    r"(?P<head>.*?\bBPC\s+0x(?P<bpc>[0-9A-Fa-f]+).*?)(?:\n|$)"
+)
+GFSIM_FINISHER_RE = re.compile(
+    r"linx_test_finisher write addr=0x10009000 val=0x(?P<value>[0-9A-Fa-f]+)\s+(?P<status>pass|fail)"
+)
+GFSIM_ASSERT_RE = re.compile(r"ASSERTION FAILED:\s*(?P<assertion>[^\n]+)")
 FORBIDDEN_ASM_RE = re.compile(
     r"((^|[^A-Za-z0-9_])L\.|set_flag|wait_flag|TSync|B\.SET|B\.WAIT)",
     re.IGNORECASE,
@@ -673,6 +681,45 @@ def parse_digests(path: Path) -> dict[str, str]:
         return {}
     text = path.read_text(encoding="utf-8", errors="replace")
     return {m.group(1): "0x" + m.group(2).upper() for m in DIGEST_RE.finditer(text)}
+
+
+def summarize_gfsim_log(status: str, log_path: Path) -> tuple[str, dict[str, str]]:
+    if status == "pass":
+        return "gfsim passed", {}
+    if not log_path.exists():
+        return "gfsim failed; log missing", {}
+
+    text = log_path.read_text(encoding="utf-8", errors="replace")
+    artifacts: dict[str, str] = {}
+
+    finisher = list(GFSIM_FINISHER_RE.finditer(text))
+    if finisher:
+        match = finisher[-1]
+        value = "0x" + match.group("value").lower()
+        finisher_status = match.group("status")
+        artifacts["finisher_value"] = value
+        artifacts["finisher_status"] = finisher_status
+        return f"gfsim finisher {finisher_status} ({value})", artifacts
+
+    assertion = GFSIM_ASSERT_RE.search(text)
+    if assertion:
+        reason = assertion.group("assertion").strip()
+        artifacts["assertion"] = reason
+        return f"gfsim {status}: {reason}", artifacts
+
+    brob = list(GFSIM_BROB_RE.finditer(text))
+    if brob:
+        match = brob[-1]
+        bpc = "0x" + match.group("bpc").lower()
+        artifacts["last_brob_bpc"] = bpc
+        artifacts["last_retired_blocks"] = match.group("blocks")
+        artifacts["last_brob_head"] = match.group("head").strip()
+        status_text = "timed out" if status == "timeout" else "failed"
+        return f"gfsim {status_text}; last BROB head BPC {bpc}", artifacts
+
+    if status == "timeout":
+        return "gfsim timed out; no terminal model marker found", artifacts
+    return "gfsim failed; no terminal model marker found", artifacts
 
 
 def mark_failure(state: CaseState, stage_id: str, owner: str, evidence: str) -> None:
@@ -1558,15 +1605,18 @@ def linxcoremodel_execution(
         )
         if result["status"] == "pass":
             state.model_digests = parse_digests(log_path)
+        evidence, diagnostics = summarize_gfsim_log(result["status"], log_path)
+        artifacts = {"log": str(log_path), "elf": str(elf)}
+        artifacts.update(diagnostics)
         rows.append(
             stage_row(
                 state,
                 "linxcoremodel-execution",
                 result["status"],
                 owner="model",
-                evidence="gfsim passed" if result["status"] == "pass" else "gfsim failed",
+                evidence=evidence,
                 command=result["command"],
-                artifacts={"log": str(log_path), "elf": str(elf)},
+                artifacts=artifacts,
             )
         )
     return rows

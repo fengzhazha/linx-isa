@@ -45,6 +45,9 @@ and generated model-smoke ELF compilation, while `--model-timeout` gates
 3. `qemu-execution`: run compiler-passing executable cases in Linx QEMU and capture logs/digests.
 4. `model-build-smoke`: rebuild or locate `model/LinxCoreModel/bin/gfsim`, then run a known tiny Linx smoke ELF. By default the runner generates `cases/_model/linx-model-smoke.{cpp,ld,elf}`; `--model-smoke-elf` can override it.
 5. `linxcoremodel-execution`: run only QEMU-passing ELFs through `gfsim -f <elf>`.
+   On model failures, the runner parses the `gfsim` log for finisher writes,
+   assertion text, and the latest periodic BROB head progress so the failure
+   packet names the repeated BPC or terminal marker directly.
 6. `differential-triage`: compare QEMU/model digest evidence when both sides emit it.
 7. `fix-packets`: emit bounded agent packets for the first failing owner.
 8. `skill-doc-evolution`: write an explicit `skill-evolve` update/no-update closeout.
@@ -89,5 +92,8 @@ Every run emits:
 - `skill_evolution.{json,md}`: explicit skill closeout.
 - `cases/<case>/...`: source hashes, compile logs, ELF/object/asm, objdump,
   optional raw bin, QEMU log, model log, and fix packet links when relevant.
+  Model execution rows also carry parsed diagnostics when available:
+  `finisher_value`, `finisher_status`, `assertion`, `last_brob_bpc`,
+  `last_retired_blocks`, and `last_brob_head`.
 - `cases/_model/`: CMake logs plus generated model-smoke source, linker script,
   ELF, compile log, and `gfsim` smoke transcript.
