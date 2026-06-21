@@ -80,9 +80,9 @@ The runner stops on the first red hard-break stage unless
   directory for QEMU/model triage. Current direct-boot green tileop cases are
   `MatMul`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TReshape`, `TTrans`, `TPad`,
-  `TRowSum`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
-  `TAnd`, and `TOr`; keep future promotions similarly bounded and prove each
-  exact case through QEMU and `gfsim -f <elf>`.
+  `TRowMax`, `TRowSum`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TMuls`, `TMax`,
+  `TMaxs`, `TAnd`, and `TOr`; keep future promotions similarly bounded and
+  prove each exact case through QEMU and `gfsim -f <elf>`.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
   they can enter QEMU/model stages individually.
