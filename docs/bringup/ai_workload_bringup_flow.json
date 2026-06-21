@@ -24,7 +24,7 @@
   },
   "profiles": {
     "smoke": {
-      "description": "Tier-0 proof that source discovery, PTO parity/tile smoke, and minimal SuperNPUBench tileop cases can enter the flow.",
+      "description": "Tier-0 proof that source discovery, bounded PTO parity/tile smoke, and minimal SuperNPUBench tileop cases can enter the flow.",
       "tiers": [
         0
       ]
@@ -71,12 +71,12 @@
     {
       "id": 0,
       "name": "smoke",
-      "description": "Tiny known-good Linx AVS smoke, PTO parity/tile smoke, and minimal SuperNPUBench tileop cases."
+      "description": "Tiny known-good Linx AVS smoke, bounded PTO parity tload_store smoke, tile smoke, and minimal SuperNPUBench tileop cases."
     },
     {
       "id": 1,
       "name": "kernel-pr",
-      "description": "PTO kernel catalog compile/static checks plus basic SuperNPUBench tile/kernel families."
+      "description": "PTO kernel catalog compile/static checks, full smoke-sized AVS PTO parity maturity coverage, and basic SuperNPUBench tile/kernel families."
     },
     {
       "id": 2,

@@ -15,6 +15,9 @@ using pto::fp16_t;
 #ifndef PTO_QEMU_SMOKE
 #define PTO_QEMU_SMOKE 0
 #endif
+#ifndef PTO_PARITY_TLOAD_STORE_ONLY
+#define PTO_PARITY_TLOAD_STORE_ONLY 0
+#endif
 
 #if __has_include("pto_parity_shape_config.generated.hpp")
 #include "pto_parity_shape_config.generated.hpp"
@@ -206,7 +209,31 @@ static void emit_stage(const char *name) {
 }
 #endif
 
+static void run_tload_store_smoke_emit_digest() {
+  const pto_memory_config mem_i32_cfg{
+      pto_dtype::i32, static_cast<int>(PTO_QEMU_SMOKE ? 32u * 32u : 1024u * 1024u),
+      PTO_QEMU_SMOKE ? 32 : 1024, PTO_QEMU_SMOKE ? 32 : 1024,
+      presets::kNoTiling};
+  constexpr usize kVecElems = PTO_QEMU_SMOKE ? 32u * 32u : 1024u * 1024u;
+  alignas(64) static int iX[kVecElems];
+  alignas(64) static int iY[kVecElems];
+
+  emit_stage("begin");
+  seed_i32(iX, kVecElems, 0x1003u);
+  zero_i32(iY, kVecElems);
+  emit_stage("seed_done");
+
+  emit_stage("tload_store");
+  pto_tload_store(iY, iX, &mem_i32_cfg);
+  emit_digest("tload_store", fnv1a_bytes(iY, sizeof(iY)));
+  emit_stage("done");
+}
+
 static void run_all_kernels_emit_digest() {
+#if PTO_PARITY_TLOAD_STORE_ONLY
+  run_tload_store_smoke_emit_digest();
+  return;
+#endif
   const pto_memory_config mem_i32_cfg{
       pto_dtype::i32, static_cast<int>(PTO_QEMU_SMOKE ? 32u * 32u : 1024u * 1024u),
       PTO_QEMU_SMOKE ? 32 : 1024, PTO_QEMU_SMOKE ? 32 : 1024,

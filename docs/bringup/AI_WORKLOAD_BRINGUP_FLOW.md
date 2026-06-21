@@ -22,8 +22,8 @@ workloads/generated/<run-id>/ai-bringup/
 
 ## Profiles
 
-- `smoke`: Tier 0. AVS PTO/tile smoke plus minimal SuperNPUBench tileop cases.
-- `pr`: Tiers 0-1. Adds PTO kernel compile/static checks and basic kernel cases.
+- `smoke`: Tier 0. Bounded AVS PTO parity/tile smoke plus minimal SuperNPUBench tileop cases.
+- `pr`: Tiers 0-1. Adds PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and basic kernel cases.
 - `nightly`: Tiers 0-3. Adds matrix, memory, reduction, accelerator, and DeepSeek/model-oriented cases.
 - `full`: Tiers 0-4. Full AI workload matrix.
 
@@ -59,6 +59,11 @@ The runner stops on the first red hard-break stage unless
 
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
   `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
+  Tier-0 PTO parity is the bounded `avs-pto-parity-smoke` case, which passes
+  `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through the AVS extra-cflag hook and runs
+  only the `tload_store` digest path. The full smoke-sized parity sequence remains
+  `avs-pto-parity` in Tier 1 so long-running model behavior still emits a
+  model-owned maturity packet instead of hiding behind the smoke lane.
   Tier-0 tile smoke uses the AVS compile-smoke source override during QEMU
   execution so it exercises the PTO/QEMU/model handoff before the full tile
   runtime source is green. Keep this case-level smoke separate from

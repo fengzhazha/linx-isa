@@ -623,6 +623,12 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--filter", help="Regex to select suites by name or filename")
     parser.add_argument("--qemu-arg", action="append", default=[], help="Extra QEMU arg (repeatable)")
     parser.add_argument(
+        "--extra-cflag",
+        action="append",
+        default=[],
+        help="Extra compile flag passed to every source (repeatable)",
+    )
+    parser.add_argument(
         "--require-test-id",
         action="append",
         default=[],
@@ -811,6 +817,7 @@ def main(argv: list[str]) -> int:
         f"-I{libc_include_dir}",
         *suite_macros,
         f"-DLINX_TEST_QUIET={'0' if emit_test_logs else '1'}",
+        *args.extra_cflag,
     ]
     if any(s in selected for s in ("tile", "pto_parity")):
         # Keep tile-suite bring-up deterministic: SIMT autovec currently

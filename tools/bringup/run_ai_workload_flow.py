@@ -424,7 +424,7 @@ def discover_cases(root: Path) -> list[Case]:
     )
     cases.append(
         Case(
-            id="avs-pto-parity",
+            id="avs-pto-parity-smoke",
             kind="avs_pto",
             suite="pto_parity",
             tier=0,
@@ -435,8 +435,32 @@ def discover_cases(root: Path) -> list[Case]:
             qemu_command=None,
             model_eligible=True,
             produces_elf=True,
-            expected="PTO_DIGEST parity under QEMU, then gfsim exit 0",
-            metadata={"avs_suite": "pto_parity", "description": "PTO kernel parity direct-boot suite"},
+            expected="tload_store PTO_DIGEST parity stage under QEMU, then gfsim exit 0",
+            metadata={
+                "avs_suite": "pto_parity",
+                "avs_extra_cflags": ["-DPTO_PARITY_TLOAD_STORE_ONLY=1"],
+                "description": "PTO parity tload_store direct-boot smoke case",
+            },
+        )
+    )
+    cases.append(
+        Case(
+            id="avs-pto-parity",
+            kind="avs_pto",
+            suite="pto_parity",
+            tier=1,
+            source_paths=[qemu_tests / "16_pto_kernel_parity.cpp"],
+            manifest_path=root / "avs" / "qemu" / "run_tests.py",
+            workdir=root,
+            compile_command=None,
+            qemu_command=None,
+            model_eligible=True,
+            produces_elf=True,
+            expected="All smoke-sized PTO_DIGEST parity stages under QEMU, then gfsim exit 0",
+            metadata={
+                "avs_suite": "pto_parity",
+                "description": "PTO parity direct-boot maturity suite across all smoke-sized stages",
+            },
         )
     )
 
@@ -884,6 +908,8 @@ def avs_command(
         cmd += ["--qemu", paths["qemu"]]
         if case.metadata.get("avs_source_profile") == "compile-smoke":
             cmd.append("--smoke-source-overrides")
+    for flag in case.metadata.get("avs_extra_cflags", []):
+        cmd.append(f"--extra-cflag={flag}")
     return cmd
 
 
