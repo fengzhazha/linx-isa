@@ -23,7 +23,7 @@ workloads/generated/<run-id>/ai-bringup/
 ## Profiles
 
 - `smoke`: Tier 0. Bounded AVS PTO parity/tile smoke plus minimal SuperNPUBench tileop cases.
-- `pr`: Tiers 0-1. Adds the first standalone PTO catalog smoke harness, PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and basic kernel cases.
+- `pr`: Tiers 0-1. Adds standalone PTO catalog smoke harnesses, PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and basic kernel cases.
 - `nightly`: Tiers 0-3. Adds matrix, memory, reduction, accelerator, and DeepSeek/model-oriented cases.
 - `full`: Tiers 0-4. Full AI workload matrix.
 
@@ -106,13 +106,13 @@ The runner stops on the first red hard-break stage unless
 - `pto_kernel`: cataloged PTO kernel sources. Most entries currently
   participate in source and compile/static stages only; an ABI-specific
   standalone ELF harness is required before they can enter QEMU/model stages
-  individually. `pto-kernel-tload_store` is the first promoted catalog smoke:
-  the runner generates `pto-tload-store-harness.cpp`, compiles
-  `memory/tload_store.cpp` with `-DPTO_QEMU_SMOKE=1`, emits a direct-boot Linx
-  ELF plus objdump/raw-bin side artifacts, then promotes it through QEMU and
-  `gfsim -f <elf>`. The full non-smoke tile path remains covered by
-  `avs-pto-parity` until each catalog kernel has its own full-shape harness and
-  oracle.
+  individually. Current promoted catalog smokes are `pto-kernel-tload_store`
+  and `pto-kernel-gemm`: the runner generates per-case harnesses, compiles
+  `memory/tload_store.cpp` or `matmul/gemm.cpp` with `-DPTO_QEMU_SMOKE=1`,
+  emits direct-boot Linx ELFs plus objdump/raw-bin side artifacts, then promotes
+  each passing ELF through QEMU and `gfsim -f <elf>`. The full non-smoke tile
+  paths remain covered by AVS parity/model maturity suites until each catalog
+  kernel has its own full-shape harness and oracle.
 
 ## Owner Classification
 

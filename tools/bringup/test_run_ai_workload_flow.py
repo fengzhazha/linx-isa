@@ -80,6 +80,16 @@ class AiWorkloadFlowTests(unittest.TestCase):
         self.assertEqual(case.metadata["standalone_harness"], "tload_store_i32")
         self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
 
+    def test_pto_gemm_catalog_case_has_standalone_harness(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        case = next(case for case in cases if case.id == "pto-kernel-gemm")
+
+        self.assertEqual(case.kind, "pto_kernel")
+        self.assertTrue(case.produces_elf)
+        self.assertTrue(case.model_eligible)
+        self.assertEqual(case.metadata["standalone_harness"], "gemm_i32")
+        self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
+
     def test_other_pto_catalog_cases_remain_compile_static(self) -> None:
         cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
         case = next(case for case in cases if case.id == "pto-kernel-add_custom")

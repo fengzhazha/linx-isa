@@ -129,7 +129,104 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
   linx_pto_exit(static_cast<unsigned int>(main()));
 }
 """
+PTO_GEMM_I32_HARNESS_SOURCE = r"""extern "C" void gemm_i32(int *lhs_ptr, int *rhs_ptr, int *dst_ptr);
+
+namespace {
+
+constexpr int kM = 16;
+constexpr int kN = 16;
+constexpr int kK = 16;
+
+int lhs[kM * kK];
+int rhs[kN * kK];
+int dst[kM * kN];
+
+static inline int lhs_value(int m, int k) {
+  return ((m + 1) * (k + 3)) & 7;
+}
+
+static inline int rhs_value(int n, int k) {
+  return ((n + 2) * (k + 1) + 1) & 5;
+}
+
+static inline int bias_value(int m, int n) {
+  return (m * 3) - (n * 2);
+}
+
+static inline int expected_value(int m, int n) {
+  long long acc = static_cast<long long>(bias_value(m, n));
+  for (int k = 0; k < kK; ++k) {
+    acc += static_cast<long long>(lhs_value(m, k)) *
+           static_cast<long long>(rhs_value(n, k));
+  }
+  return static_cast<int>(acc);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int m = 0; m < kM; ++m) {
+    for (int k = 0; k < kK; ++k) {
+      lhs[m * kK + k] = lhs_value(m, k);
+    }
+  }
+  for (int n = 0; n < kN; ++n) {
+    for (int k = 0; k < kK; ++k) {
+      rhs[n * kK + k] = rhs_value(n, k);
+    }
+  }
+  for (int m = 0; m < kM; ++m) {
+    for (int n = 0; n < kN; ++n) {
+      dst[m * kN + n] = bias_value(m, n);
+    }
+  }
+
+  gemm_i32(lhs, rhs, dst);
+
+  for (int m = 0; m < kM; ++m) {
+    for (int n = 0; n < kN; ++n) {
+      if (dst[m * kN + n] != expected_value(m, n)) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
+PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
+    "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
+    "gemm_i32": ("pto-gemm-i32-harness.cpp", PTO_GEMM_I32_HARNESS_SOURCE),
+}
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
     "memory/tload_store.cpp": {
         "standalone_harness": "tload_store_i32",
@@ -137,6 +234,13 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO tload_store standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog tload_store direct-boot smoke harness",
+    },
+    "matmul/gemm.cpp": {
+        "standalone_harness": "gemm_i32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_i32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog int32 GEMM direct-boot smoke harness",
     }
 }
 
@@ -1249,7 +1353,8 @@ def compiler_contract(
         if case.kind == "pto_kernel":
             if case.produces_elf:
                 harness_name = str(case.metadata.get("standalone_harness", ""))
-                if harness_name != "tload_store_i32":
+                harness_spec = PTO_HARNESS_SOURCES.get(harness_name)
+                if harness_spec is None:
                     rows.append(
                         stage_row(
                             state,
@@ -1260,11 +1365,12 @@ def compiler_contract(
                         )
                     )
                     continue
-                harness_source = case_artifacts / "pto-tload-store-harness.cpp"
+                harness_filename, harness_text = harness_spec
+                harness_source = case_artifacts / harness_filename
                 linker_script = case_artifacts / "linx-pto-directboot.ld"
                 elf = case_artifacts / f"{case.id}.elf"
                 harness_source.parent.mkdir(parents=True, exist_ok=True)
-                harness_source.write_text(PTO_TLOAD_STORE_HARNESS_SOURCE, encoding="utf-8")
+                harness_source.write_text(harness_text, encoding="utf-8")
                 linker_script.write_text(LINX_DIRECT_BOOT_LINK_SCRIPT, encoding="utf-8")
                 cmd = pto_kernel_elf_command(root, case, paths, harness_source, linker_script, elf)
                 result = run_command(
