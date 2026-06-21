@@ -78,9 +78,9 @@ The runner stops on the first red hard-break stage unless
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
   directory for QEMU/model triage. Current direct-boot green tileop cases are
-  `MatMul`, `TAdd`, `TSub`, `TSubs`, `TAdds`, `TAnd`, and `TOr`; keep future
-  promotions similarly bounded and prove each exact case through QEMU and
-  `gfsim -f <elf>`.
+  `MatMul`, `TAdd`, `TSub`, `TSubs`, `TAdds`, `TMul`, `TAnd`, and `TOr`; keep
+  future promotions similarly bounded and prove each exact case through QEMU
+  and `gfsim -f <elf>`.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
   they can enter QEMU/model stages individually.
