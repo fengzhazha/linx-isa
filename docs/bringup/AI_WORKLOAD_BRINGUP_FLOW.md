@@ -81,8 +81,8 @@ The runner stops on the first red hard-break stage unless
   `MatMul`, `TAdd`, `TAbs`, `TCI`, `TCopyIn`, `TCopyOut`, `TCopy`,
   `TExpandCol`, `TExpandRow`, `TExpandScalar`, `TReshape`, `TTrans`, `TPad`,
   `TRowMax`, `TRowMaxExpand`, `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`,
-  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
-  `TAnd`, `TOr`, and `TCmp`; keep future promotions similarly bounded and
+  `TAdd_mask`, `TAdds`, `TDiv`, `TDivs`, `TRem`, `TMul`, `TMuls`, `TMax`,
+  `TMaxs`, `TAnd`, `TOr`, and `TCmp`; keep future promotions similarly bounded and
   prove each exact case through QEMU and `gfsim -f <elf>`.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
