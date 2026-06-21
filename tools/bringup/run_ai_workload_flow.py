@@ -293,6 +293,88 @@ def supernpu_elf_path(root: Path, suite_dir: Path, make_vars: dict[str, str]) ->
     return bench_root / "output" / suite_rel / "elf" / f"{category_name}_{testcase}_linx.elf"
 
 
+def supernpu_elf_dir(root: Path, suite_dir: Path) -> Path:
+    bench_root = root / "workloads" / "SuperNPUBench"
+    test_root = bench_root / "test"
+    suite_rel = suite_dir.relative_to(test_root).as_posix()
+    return bench_root / "output" / suite_rel / "elf"
+
+
+def _norm_key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", text.lower())
+
+
+def supernpu_source_paths(suite_dir: Path, make_vars: dict[str, str]) -> list[Path]:
+    testcase = make_vars["TESTCASE"]
+    candidates = [
+        suite_dir / "src" / f"{testcase}.cpp",
+        suite_dir / testcase / f"{testcase}.cpp",
+        suite_dir / f"{testcase}.cpp",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return [candidate]
+
+    cpp_files = sorted(suite_dir.rglob("*.cpp"))
+    testcase_key = _norm_key(testcase)
+    matching = [
+        path
+        for path in cpp_files
+        if _norm_key(path.stem) == testcase_key
+        or _norm_key(path.stem) in testcase_key
+        or testcase_key in _norm_key(path.stem)
+    ]
+    if matching:
+        return [matching[0]]
+
+    src_dir = suite_dir / "src"
+    src_cpp_files = sorted(src_dir.rglob("*.cpp")) if src_dir.exists() else []
+    if len(src_cpp_files) == 1:
+        return [src_cpp_files[0]]
+
+    return [candidates[0]]
+
+
+def snapshot_elf_mtimes(elf_dir: Path) -> dict[Path, float]:
+    if not elf_dir.exists():
+        return {}
+    return {path: path.stat().st_mtime for path in elf_dir.glob("*.elf") if path.is_file()}
+
+
+def find_supernpu_elf_after_compile(
+    case: Case,
+    root: Path,
+    before: dict[Path, float],
+    *,
+    elf_dir: Path | None = None,
+) -> Path | None:
+    expected = Path(case.metadata["elf"])
+    if elf_dir is not None:
+        expected = elf_dir / expected.name
+    elif not expected.is_absolute():
+        expected = root / expected
+    if expected.exists():
+        return expected
+
+    if elf_dir is None:
+        elf_dir = Path(case.metadata.get("elf_dir", ""))
+        if not elf_dir.is_absolute():
+            elf_dir = root / elf_dir
+    if not elf_dir.exists():
+        return None
+    candidates = [path for path in elf_dir.glob("*.elf") if path.is_file()]
+    if not candidates:
+        return None
+    produced = [
+        path
+        for path in candidates
+        if path not in before or path.stat().st_mtime > before[path]
+    ]
+    if produced:
+        return max(produced, key=lambda path: path.stat().st_mtime)
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
 def discover_cases(root: Path) -> list[Case]:
     cases: list[Case] = []
 
@@ -370,7 +452,7 @@ def discover_cases(root: Path) -> list[Case]:
                     continue
                 command, make_vars = parsed
                 testcase = make_vars["TESTCASE"]
-                source = suite_dir / "src" / f"{testcase}.cpp"
+                sources = supernpu_source_paths(suite_dir, make_vars)
                 case_vars = dict(make_vars)
                 case_vars["PLAT"] = "linx"
                 case_id = f"supernpu-{slug(suite_rel)}-{slug(testcase)}"
@@ -388,7 +470,7 @@ def discover_cases(root: Path) -> list[Case]:
                         kind="supernpu",
                         suite=suite_rel,
                         tier=supernpu_tier(suite_rel, make_vars),
-                        source_paths=[source],
+                        source_paths=sources,
                         manifest_path=compile_all,
                         workdir=suite_dir,
                         compile_command=command,
@@ -401,6 +483,7 @@ def discover_cases(root: Path) -> list[Case]:
                             "line": line_no,
                             "make_vars": make_vars,
                             "elf": relpath(root, supernpu_elf_path(root, suite_dir, make_vars)),
+                            "elf_dir": relpath(root, supernpu_elf_dir(root, suite_dir)),
                         },
                     )
                 )
@@ -735,11 +818,13 @@ def supernpu_make_command(
     *,
     target: str | None = None,
     linker_script: Path | None = None,
+    obj_root: Path | None = None,
 ) -> str:
     vars_part = " ".join(
         f"{shlex.quote(k)}={shlex.quote(str(v))}"
         for k, v in sorted(case.metadata["make_vars"].items())
     )
+    obj_root_part = f" OBJ_ROOT={shlex.quote(str(obj_root))}" if obj_root is not None else ""
     compiler_dir = shlex.quote(str(Path(paths["clang"]).parent))
     linx_compile_flags = shlex.quote("-c -target linx64-linx-none-elf -fenable-matrix -O2")
     linker_flags = "-Wl,-e,_start"
@@ -748,13 +833,15 @@ def supernpu_make_command(
     linx_link_flags = shlex.quote(f"-target linx64-linx-none-elf -nostdlib {linker_flags}")
     prefix = (
         f"make {vars_part} PLAT=linx COMPILER_DIR={compiler_dir} "
-        f"CC_O={linx_compile_flags} CC_LINK={linx_link_flags}"
+        f"CC_O={linx_compile_flags} CC_LINK={linx_link_flags}{obj_root_part}"
     )
     if target:
         return f"{prefix} {shlex.quote(target)}"
     bench_root = next((p for p in [case.workdir, *case.workdir.parents] if p.name == "SuperNPUBench"), None)
-    mkdir_output = f"mkdir -p {shlex.quote(str(bench_root / 'output'))}" if bench_root else "true"
-    return f"{mkdir_output} && make clean && {prefix}"
+    output_root = obj_root if obj_root is not None else (bench_root / "output" if bench_root else None)
+    mkdir_output = f"mkdir -p {shlex.quote(str(output_root))}" if output_root else "true"
+    clean = f"make{obj_root_part} clean" if obj_root_part else "make clean"
+    return f"{mkdir_output} && {clean} && {prefix}"
 
 
 def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
@@ -915,7 +1002,16 @@ def compiler_contract(
             linker_script.parent.mkdir(parents=True, exist_ok=True)
             linker_script.write_text(LINX_DIRECT_BOOT_LINK_SCRIPT, encoding="utf-8")
             artifacts["linker_script"] = str(linker_script)
-            cmd = supernpu_make_command(case, paths, linker_script=linker_script)
+            supernpu_output = case_artifacts / "supernpu-output"
+            elf_dir = supernpu_output / case.suite / "elf"
+            artifacts["obj_root"] = str(supernpu_output)
+            before_elves = snapshot_elf_mtimes(elf_dir)
+            cmd = supernpu_make_command(
+                case,
+                paths,
+                linker_script=linker_script,
+                obj_root=supernpu_output,
+            )
             result = run_command(
                 cmd,
                 cwd=case.workdir,
@@ -924,15 +1020,24 @@ def compiler_contract(
                 log_path=log_path,
                 dry_run=dry_run,
             )
-            elf = Path(case.metadata["elf"])
-            if not elf.is_absolute():
-                elf = root / elf
+            metadata_elf = Path(case.metadata["elf"])
+            elf = elf_dir / metadata_elf.name
             artifacts["log"] = str(log_path)
             artifacts["elf_source"] = str(elf)
             status = result["status"]
             evidence = "SuperNPUBench case compiled to Linx ELF"
             owner = "compiler"
             if status == "pass":
+                if not dry_run:
+                    actual_elf = find_supernpu_elf_after_compile(
+                        case,
+                        root,
+                        before_elves,
+                        elf_dir=elf_dir,
+                    )
+                    if actual_elf is not None:
+                        elf = actual_elf
+                        artifacts["elf_source"] = str(elf)
                 if not dry_run and not elf.exists():
                     status = "fail"
                     evidence = f"expected ELF was not produced: {elf}"

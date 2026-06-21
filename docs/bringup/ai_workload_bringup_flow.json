@@ -52,7 +52,7 @@
       "description": "Cataloged PTO kernel sources validated for source and compile/static contracts."
     },
     "supernpu": {
-      "description": "SuperNPUBench Makefile cases compiled with PLAT=linx and the in-repo Linx LLVM toolchain."
+      "description": "SuperNPUBench Makefile cases compiled with PLAT=linx, per-case OBJ_ROOT under the run artifact tree, and the in-repo Linx LLVM toolchain."
     }
   },
   "tiers": [

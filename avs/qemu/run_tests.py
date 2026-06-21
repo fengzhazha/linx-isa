@@ -822,13 +822,14 @@ def main(argv: list[str]) -> int:
     if "pto_parity" in selected:
         parity_gen = REPO_ROOT / "workloads" / "pto_kernels" / "tools" / "generate_pto_parity_shape_header.py"
         parity_header = REPO_ROOT / "workloads" / "generated" / "pto_parity_shape_config.generated.hpp"
-        p = _run([sys.executable, str(parity_gen), "--out", str(parity_header)],
-                 verbose=args.verbose, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if p.returncode != 0:
-            sys.stderr.buffer.write(p.stdout)
-            sys.stderr.buffer.write(p.stderr)
-            raise SystemExit("error: failed to generate PTO parity shape header")
-        common_cflags.append(f"-I{parity_header.parent}")
+        if parity_gen.is_file():
+            p = _run([sys.executable, str(parity_gen), "--out", str(parity_header)],
+                     verbose=args.verbose, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if p.returncode != 0:
+                sys.stderr.buffer.write(p.stdout)
+                sys.stderr.buffer.write(p.stderr)
+                raise SystemExit("error: failed to generate PTO parity shape header")
+            common_cflags.append(f"-I{parity_header.parent}")
 
     objects: list[Path] = []
     for src in sources:

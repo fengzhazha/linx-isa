@@ -55,9 +55,11 @@ The runner stops on the first red hard-break stage unless
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
   `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
 - `supernpu`: SuperNPUBench `compile.all` Makefile cases compiled with
-  `PLAT=linx`. The runner links these as direct-boot Linx ELFs with `_start`
-  first at `0x10000`; object dumps, raw bins, and linker scripts are side
-  artifacts for QEMU/model triage.
+  `PLAT=linx`. The runner passes a per-case `OBJ_ROOT` under
+  `cases/<case>/compiler/supernpu-output/`, links these as direct-boot Linx
+  ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
+  objdump outputs, raw bin, and linker script into the compiler artifact
+  directory for QEMU/model triage.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
   they can enter QEMU/model stages individually.
