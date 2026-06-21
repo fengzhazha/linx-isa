@@ -981,7 +981,7 @@ def run_obj_tool(
 def static_check_text(text: str, *, require_entry: bool) -> tuple[bool, list[str]]:
     findings: list[str] = []
     if FORBIDDEN_ASM_RE.search(text):
-        findings.append("forbidden retired v0.3/v0.4 token found")
+        findings.append("forbidden retired pre-v0.56 token found")
     if require_entry and not re.search(r"(\b_start\b|\bmain\b)", text):
         findings.append("missing _start/main symbol in objdump evidence")
     return not findings, findings
