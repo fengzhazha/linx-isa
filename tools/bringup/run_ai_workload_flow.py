@@ -981,6 +981,8 @@ def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
         "unknown type name '__vbuf__'",
         "use of undeclared identifier 'blkv_get_",
         "Linx smoke TCOPYIN supports only unboxed tiles",
+        "Linx scalar MATMUL supports only unboxed layouts",
+        "Linx scalar MATMUL does not support ACC tile operands",
         "TADD not support Boxed Layout!",
     ]
     if any(marker in text for marker in unsupported_linx_source_markers):

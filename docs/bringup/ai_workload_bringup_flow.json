@@ -230,6 +230,8 @@
           "unknown type name '__vbuf__'",
           "use of undeclared identifier 'blkv_get_'",
           "Linx smoke TCOPYIN supports only unboxed tiles",
+          "Linx scalar MATMUL supports only unboxed layouts",
+          "Linx scalar MATMUL does not support ACC tile operands",
           "TADD not support Boxed Layout!"
         ]
       },

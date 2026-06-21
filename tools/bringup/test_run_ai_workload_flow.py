@@ -33,6 +33,13 @@ class AiWorkloadFlowTests(unittest.TestCase):
         self.assertEqual(owner, "benchmark")
         self.assertIn("runtime contract", evidence)
 
+    def test_supernpu_matmul_acc_contract_is_benchmark_owned(self) -> None:
+        owner, evidence = self.classify(
+            "error: static assertion failed: Linx scalar MATMUL does not support ACC tile operands\n"
+        )
+        self.assertEqual(owner, "benchmark")
+        self.assertIn("runtime contract", evidence)
+
     def test_supernpu_direct_boot_libc_dependency_is_benchmark_owned(self) -> None:
         owner, evidence = self.classify("ld.lld: error: undefined symbol: malloc\n")
         self.assertEqual(owner, "benchmark")

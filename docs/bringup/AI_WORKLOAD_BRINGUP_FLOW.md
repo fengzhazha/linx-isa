@@ -92,7 +92,11 @@ The runner stops on the first red hard-break stage unless
   until the Linx direct-boot model lane supports that runtime contract.
   `test_MatMacc` is currently a bounded `4x4` int64 row-major MATMUL+MATMACC
   smoke; its original TileLeft/TileRight/TileAcc plus TCVT float path remains
-  deferred on the same model-lane runtime contract. `TSqrt` is currently a
+  deferred on the same model-lane runtime contract. `MatMul_e4m3` remains a
+  benchmark-owned maturity packet: keep the original FP8 e4m3 conversion,
+  TileLeft/TileRight inputs, TileAcc output, and vector-kernel conversion
+  contract intact until the Linx direct-boot lane has real boxed/ACC/FP8 support.
+  Do not replace it with the existing int64 `MatMul` smoke. `TSqrt` is currently a
   bounded `4x4` int64 perfect-square direct-boot smoke; broader integer and
   floating-point sqrt remain deferred until the model lane has matching
   evidence. `TExp` is currently a bounded `4x4` int64 rounded-exp
