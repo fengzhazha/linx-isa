@@ -82,9 +82,9 @@ The runner stops on the first red hard-break stage unless
   `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TReshape`, `TTrans`, `TPad`, `TRowMax`, `TRowMaxExpand`,
   `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
-  `TDivs`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`, `TAnd`,
-  `TOr`, and `TCmp`; keep future promotions similarly bounded and prove each
-  exact case through QEMU and `gfsim -f <elf>`. `MatMacc` is currently a
+  `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
+  `TAnd`, `TOr`, and `TCmp`; keep future promotions similarly bounded and
+  prove each exact case through QEMU and `gfsim -f <elf>`. `MatMacc` is currently a
   bounded `4x4` int64 row-major multiply-accumulate smoke; col-major MatMacc
   has QEMU-pass/model-fail evidence and remains a model-lane maturity packet.
   `test_MatMul` is currently a bounded `4x4` int64 row-major MATMUL smoke;
@@ -95,7 +95,10 @@ The runner stops on the first red hard-break stage unless
   deferred on the same model-lane runtime contract. `TSqrt` is currently a
   bounded `4x4` int64 perfect-square direct-boot smoke; broader integer and
   floating-point sqrt remain deferred until the model lane has matching
-  evidence.
+  evidence. `TExp` is currently a bounded `4x4` int64 rounded-exp
+  direct-boot smoke using a comparison ladder; float/half exponential and
+  compiler-generated constant-table paths remain deferred until the model lane
+  has matching evidence.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
   they can enter QEMU/model stages individually.
