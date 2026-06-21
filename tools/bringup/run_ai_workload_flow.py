@@ -265,6 +265,70 @@ PTO_TMATMUL_ACC_I32_HARNESS_SOURCE = pto_i32_matmul_harness_source(
     use_bias=False,
     extra_first_tile=True,
 )
+PTO_RELU_F32_HARNESS_SOURCE = r"""extern "C" void relu_f32(float *out_ptr, float *x_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 32;
+
+float src[kElems];
+float dst[kElems];
+
+static inline float src_value(int i) {
+  return static_cast<float>((i % 11) - 5);
+}
+
+static inline float expected_value(float x) {
+  return x > 0.0f ? x : 0.0f;
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    src[i] = src_value(i);
+    dst[i] = -99.0f;
+  }
+
+  relu_f32(dst, src, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (dst[i] != expected_value(src[i])) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
@@ -274,8 +338,16 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
         "pto-tmatmul-acc-i32-harness.cpp",
         PTO_TMATMUL_ACC_I32_HARNESS_SOURCE,
     ),
+    "relu_f32": ("pto-relu-f32-harness.cpp", PTO_RELU_F32_HARNESS_SOURCE),
 }
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
+    "elementwise/relu_fp32.cpp": {
+        "standalone_harness": "relu_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO relu_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 ReLU direct-boot smoke harness",
+    },
     "memory/tload_store.cpp": {
         "standalone_harness": "tload_store_i32",
         "harness_profile": "qemu_smoke",
