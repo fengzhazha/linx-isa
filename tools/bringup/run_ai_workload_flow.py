@@ -129,13 +129,14 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
   linx_pto_exit(static_cast<unsigned int>(main()));
 }
 """
-PTO_GEMM_I32_HARNESS_SOURCE = r"""extern "C" void gemm_i32(int *lhs_ptr, int *rhs_ptr, int *dst_ptr);
+PTO_I32_MATMUL_HARNESS_TEMPLATE = r"""extern "C" void __FUNCTION_NAME__(int *lhs_ptr, int *rhs_ptr, int *dst_ptr);
 
 namespace {
 
 constexpr int kM = 16;
 constexpr int kN = 16;
 constexpr int kK = 16;
+constexpr int kTK = 4;
 
 int lhs[kM * kK];
 int rhs[kN * kK];
@@ -154,11 +155,12 @@ static inline int bias_value(int m, int n) {
 }
 
 static inline int expected_value(int m, int n) {
-  long long acc = static_cast<long long>(bias_value(m, n));
+  long long acc = __EXPECTED_BIAS__;
   for (int k = 0; k < kK; ++k) {
     acc += static_cast<long long>(lhs_value(m, k)) *
            static_cast<long long>(rhs_value(n, k));
   }
+__EXTRA_EXPECTED_ACC__
   return static_cast<int>(acc);
 }
 
@@ -202,11 +204,11 @@ int main() {
   }
   for (int m = 0; m < kM; ++m) {
     for (int n = 0; n < kN; ++n) {
-      dst[m * kN + n] = bias_value(m, n);
+      dst[m * kN + n] = __INITIAL_DST_VALUE__;
     }
   }
 
-  gemm_i32(lhs, rhs, dst);
+  __FUNCTION_NAME__(lhs, rhs, dst);
 
   for (int m = 0; m < kM; ++m) {
     for (int n = 0; n < kN; ++n) {
@@ -222,10 +224,56 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
   linx_pto_exit(static_cast<unsigned int>(main()));
 }
 """
+
+
+def pto_i32_matmul_harness_source(
+    function_name: str,
+    *,
+    use_bias: bool,
+    extra_first_tile: bool,
+) -> str:
+    extra_expected_acc = ""
+    if extra_first_tile:
+        extra_expected_acc = """  for (int k = 0; k < kTK; ++k) {
+    acc += static_cast<long long>(lhs_value(m, k)) *
+           static_cast<long long>(rhs_value(n, k));
+  }
+"""
+    return (
+        PTO_I32_MATMUL_HARNESS_TEMPLATE.replace("__FUNCTION_NAME__", function_name)
+        .replace(
+            "__EXPECTED_BIAS__",
+            "static_cast<long long>(bias_value(m, n))" if use_bias else "0",
+        )
+        .replace("__INITIAL_DST_VALUE__", "bias_value(m, n)" if use_bias else "0")
+        .replace("__EXTRA_EXPECTED_ACC__", extra_expected_acc)
+    )
+
+
+PTO_GEMM_I32_HARNESS_SOURCE = pto_i32_matmul_harness_source(
+    "gemm_i32",
+    use_bias=True,
+    extra_first_tile=False,
+)
+PTO_MAMULB_I32_HARNESS_SOURCE = pto_i32_matmul_harness_source(
+    "mamulb_i32",
+    use_bias=False,
+    extra_first_tile=False,
+)
+PTO_TMATMUL_ACC_I32_HARNESS_SOURCE = pto_i32_matmul_harness_source(
+    "tmatmul_acc_i32",
+    use_bias=False,
+    extra_first_tile=True,
+)
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
     "gemm_i32": ("pto-gemm-i32-harness.cpp", PTO_GEMM_I32_HARNESS_SOURCE),
+    "mamulb_i32": ("pto-mamulb-i32-harness.cpp", PTO_MAMULB_I32_HARNESS_SOURCE),
+    "tmatmul_acc_i32": (
+        "pto-tmatmul-acc-i32-harness.cpp",
+        PTO_TMATMUL_ACC_I32_HARNESS_SOURCE,
+    ),
 }
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
     "memory/tload_store.cpp": {
@@ -241,6 +289,20 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO gemm_i32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog int32 GEMM direct-boot smoke harness",
+    },
+    "matmul/mamulb.cpp": {
+        "standalone_harness": "mamulb_i32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO mamulb_i32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog int32 MAMULB direct-boot smoke harness",
+    },
+    "matmul/tmatmul_acc.cpp": {
+        "standalone_harness": "tmatmul_acc_i32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO tmatmul_acc_i32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog int32 TMATMUL.ACC direct-boot smoke harness",
     }
 }
 

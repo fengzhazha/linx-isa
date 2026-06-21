@@ -106,13 +106,14 @@ The runner stops on the first red hard-break stage unless
 - `pto_kernel`: cataloged PTO kernel sources. Most entries currently
   participate in source and compile/static stages only; an ABI-specific
   standalone ELF harness is required before they can enter QEMU/model stages
-  individually. Current promoted catalog smokes are `pto-kernel-tload_store`
-  and `pto-kernel-gemm`: the runner generates per-case harnesses, compiles
-  `memory/tload_store.cpp` or `matmul/gemm.cpp` with `-DPTO_QEMU_SMOKE=1`,
-  emits direct-boot Linx ELFs plus objdump/raw-bin side artifacts, then promotes
-  each passing ELF through QEMU and `gfsim -f <elf>`. The full non-smoke tile
-  paths remain covered by AVS parity/model maturity suites until each catalog
-  kernel has its own full-shape harness and oracle.
+  individually. Current promoted catalog smokes are `pto-kernel-tload_store`,
+  `pto-kernel-gemm`, `pto-kernel-mamulb`, and `pto-kernel-tmatmul_acc`: the
+  runner generates per-case harnesses, compiles the matching source with
+  `-DPTO_QEMU_SMOKE=1`, emits direct-boot Linx ELFs plus objdump/raw-bin side
+  artifacts, then promotes each passing ELF through QEMU and
+  `gfsim -f <elf>`. The full non-smoke tile paths remain covered by AVS
+  parity/model maturity suites until each catalog kernel has its own full-shape
+  harness and oracle.
 
 ## Owner Classification
 
