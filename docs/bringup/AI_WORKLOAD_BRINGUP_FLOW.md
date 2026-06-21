@@ -107,8 +107,9 @@ The runner stops on the first red hard-break stage unless
   participate in source and compile/static stages only; an ABI-specific
   standalone ELF harness is required before they can enter QEMU/model stages
   individually. Current promoted catalog smokes are `pto-kernel-tload_store`,
-  `pto-kernel-gemm`, `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and
-  `pto-kernel-relu_fp32` in Tier 1, plus the Tier-2 layout-copy cases
+  `pto-kernel-gemm`, `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`,
+  `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, and `pto-kernel-relu_fp32` in
+  Tier 1, plus the Tier-2 layout-copy cases
   `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
   `pto-kernel-squeeze_fp32`, `pto-kernel-unsqueeze_fp32`,
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
@@ -125,6 +126,10 @@ The runner stops on the first red hard-break stage unless
   harness and oracle. `pto-kernel-add_custom` uses a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded by
   the oracle; do not treat that helper as a general compiler-rt replacement.
+  `pto-kernel-gemm_basic` and `pto-kernel-gemm_demo` use float bit-pattern
+  copy-oracle harnesses for their `PTO_QEMU_SMOKE` branches; treat full float
+  TMATMUL/TCVT/TMULS coverage as still owned by later full-shape parity/model
+  suites.
 
 ## Owner Classification
 

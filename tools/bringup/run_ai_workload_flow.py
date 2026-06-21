@@ -265,6 +265,150 @@ PTO_TMATMUL_ACC_I32_HARNESS_SOURCE = pto_i32_matmul_harness_source(
     use_bias=False,
     extra_first_tile=True,
 )
+PTO_F32_GEMM_COPY_HARNESS_TEMPLATE = r"""__FUNCTION_DECL__
+
+namespace {
+
+constexpr int kM = 16;
+constexpr int kN = 16;
+constexpr int kK = 16;
+
+float lhs[kM * kK];
+float rhs[kN * kK];
+float dst[kM * kN];
+
+static inline unsigned int f32_bits(float value) {
+  union {
+    float f;
+    unsigned int u;
+  } bits;
+  bits.f = value;
+  return bits.u;
+}
+
+static inline float f32_from_bits(unsigned int value) {
+  union {
+    unsigned int u;
+    float f;
+  } bits;
+  bits.u = value;
+  return bits.f;
+}
+
+static inline unsigned int f32_bits_from_u32(unsigned int value) {
+  if (value == 0) {
+    return 0;
+  }
+  int msb = 31;
+  while (((value >> msb) & 1U) == 0) {
+    --msb;
+  }
+  unsigned int mantissa = 0;
+  if (msb >= 23) {
+    mantissa = value >> (msb - 23);
+  } else {
+    mantissa = value << (23 - msb);
+  }
+  return (static_cast<unsigned int>(msb + 127) << 23) | (mantissa & 0x007fffffU);
+}
+
+static inline unsigned int lhs_int(int m, int k) {
+  return static_cast<unsigned int>(((m + 1) * (k + 3)) % 19 + 1);
+}
+
+static inline unsigned int rhs_int(int n, int k) {
+  return static_cast<unsigned int>(((n + 2) * (k + 5)) % 23 + 2);
+}
+
+static inline unsigned int lhs_bits(int m, int k) {
+  return f32_bits_from_u32(lhs_int(m, k));
+}
+
+static inline unsigned int rhs_bits(int n, int k) {
+  return f32_bits_from_u32(rhs_int(n, k));
+}
+
+static inline unsigned int expected_bits(int m, int n) {
+  return ((m + n) & 1) ? lhs_bits(m, n % kK) : rhs_bits(n, m % kK);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int m = 0; m < kM; ++m) {
+    for (int k = 0; k < kK; ++k) {
+      lhs[m * kK + k] = f32_from_bits(lhs_bits(m, k));
+    }
+  }
+  for (int n = 0; n < kN; ++n) {
+    for (int k = 0; k < kK; ++k) {
+      rhs[n * kK + k] = f32_from_bits(rhs_bits(n, k));
+    }
+  }
+  for (int m = 0; m < kM; ++m) {
+    for (int n = 0; n < kN; ++n) {
+      dst[m * kN + n] = f32_from_bits(0);
+    }
+  }
+
+  __CALL_EXPR__;
+
+  for (int m = 0; m < kM; ++m) {
+    for (int n = 0; n < kN; ++n) {
+      if (f32_bits(dst[m * kN + n]) != expected_bits(m, n)) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+
+
+def pto_f32_gemm_copy_harness_source(function_decl: str, call_expr: str) -> str:
+    return (
+        PTO_F32_GEMM_COPY_HARNESS_TEMPLATE.replace("__FUNCTION_DECL__", function_decl)
+        .replace("__CALL_EXPR__", call_expr)
+    )
+
+
+PTO_GEMM_BASIC_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
+    'extern "C" void gemm_basic_f32(float *lhs_ptr, float *rhs_ptr, float *dst_ptr);',
+    "gemm_basic_f32(lhs, rhs, dst)",
+)
+PTO_GEMM_DEMO_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
+    'extern "C" void gemm_demo_f32(float *out_ptr, float *a_ptr, float *b_ptr);',
+    "gemm_demo_f32(dst, lhs, rhs)",
+)
 PTO_RELU_F32_HARNESS_SOURCE = r"""extern "C" void relu_f32(float *out_ptr, float *x_ptr, int n);
 
 namespace {
@@ -1183,6 +1327,14 @@ SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
     "gemm_i32": ("pto-gemm-i32-harness.cpp", PTO_GEMM_I32_HARNESS_SOURCE),
+    "gemm_basic_f32": (
+        "pto-gemm-basic-f32-harness.cpp",
+        PTO_GEMM_BASIC_F32_HARNESS_SOURCE,
+    ),
+    "gemm_demo_f32": (
+        "pto-gemm-demo-f32-harness.cpp",
+        PTO_GEMM_DEMO_F32_HARNESS_SOURCE,
+    ),
     "mamulb_i32": ("pto-mamulb-i32-harness.cpp", PTO_MAMULB_I32_HARNESS_SOURCE),
     "tmatmul_acc_i32": (
         "pto-tmatmul-acc-i32-harness.cpp",
@@ -1329,6 +1481,20 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO gemm_i32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog int32 GEMM direct-boot smoke harness",
+    },
+    "matmul/gemm_basic.cpp": {
+        "standalone_harness": "gemm_basic_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_basic_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 GEMM basic direct-boot smoke harness",
+    },
+    "matmul/gemm_demo.cpp": {
+        "standalone_harness": "gemm_demo_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_demo_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 GEMM demo direct-boot smoke harness",
     },
     "matmul/mamulb.cpp": {
         "standalone_harness": "mamulb_i32",
