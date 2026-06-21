@@ -61,7 +61,7 @@
       "description": "AVS direct-boot PTO/tile suites that produce a Linx ELF through avs/qemu/run_tests.py."
     },
     "pto_kernel": {
-      "description": "Cataloged PTO kernel sources validated for source and compile/static contracts."
+      "description": "Cataloged PTO kernel sources. Most entries validate source and compile/static contracts only; pto-kernel-tload_store has a generated direct-boot smoke ELF harness that can advance through QEMU and LinxCoreModel."
     },
     "supernpu": {
       "description": "SuperNPUBench Makefile cases compiled with PLAT=linx, per-case OBJ_ROOT under the run artifact tree, and the in-repo Linx LLVM toolchain."
@@ -76,7 +76,7 @@
     {
       "id": 1,
       "name": "kernel-pr",
-      "description": "PTO kernel catalog compile/static checks, full smoke-sized AVS PTO parity maturity coverage, and basic SuperNPUBench tile/kernel families."
+      "description": "First standalone PTO catalog smoke harness, PTO kernel catalog compile/static checks, full smoke-sized AVS PTO parity maturity coverage, and basic SuperNPUBench tile/kernel families."
     },
     {
       "id": 2,
@@ -119,7 +119,7 @@
       "owner": "compiler",
       "hard_break": true,
       "why": "Stop before QEMU if the in-repo Linx LLVM toolchain cannot compile, link, or statically inspect the selected cases.",
-      "promotes": "Linx ELF for executable cases, assembly/object/static reports for PTO kernel cases"
+      "promotes": "Linx ELF for executable cases, standalone PTO harness cases, and assembly/object/static reports for non-executable PTO kernel cases"
     },
     {
       "id": "qemu-execution",

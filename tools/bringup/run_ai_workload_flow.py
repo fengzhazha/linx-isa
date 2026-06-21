@@ -71,7 +71,74 @@ LINX_MODEL_SMOKE_SOURCE = r"""extern "C" __attribute__((noreturn, section(".text
   }
 }
 """
+PTO_TLOAD_STORE_HARNESS_SOURCE = r"""extern "C" void tload_store_i32(int *src_ptr, int *dst_ptr);
+
+namespace {
+
+constexpr int kRows = 32;
+constexpr int kCols = 32;
+constexpr int kElems = kRows * kCols;
+
+int src[kElems];
+int dst[kElems];
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    src[i] = (i * 17) ^ (i >> 1);
+    dst[i] = -1;
+  }
+
+  tload_store_i32(src, dst);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (dst[i] != src[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
+PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
+    "memory/tload_store.cpp": {
+        "standalone_harness": "tload_store_i32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO tload_store standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog tload_store direct-boot smoke harness",
+    }
+}
 
 
 @dataclasses.dataclass
@@ -472,6 +539,9 @@ def discover_cases(root: Path) -> list[Case]:
                 continue
             source = catalog.parent / entry
             name = Path(entry).stem
+            standalone = PTO_STANDALONE_HARNESSES.get(entry, {})
+            metadata = {"catalog_entry": entry}
+            metadata.update(standalone)
             cases.append(
                 Case(
                     id=f"pto-kernel-{slug(name)}",
@@ -483,10 +553,13 @@ def discover_cases(root: Path) -> list[Case]:
                     workdir=root,
                     compile_command=None,
                     qemu_command=None,
-                    model_eligible=False,
-                    produces_elf=False,
-                    expected="compile/static contract; standalone ELF harness pending",
-                    metadata={"catalog_entry": entry},
+                    model_eligible=bool(standalone),
+                    produces_elf=bool(standalone),
+                    expected=standalone.get(
+                        "expected",
+                        "compile/static contract; standalone ELF harness pending",
+                    ),
+                    metadata=metadata,
                 )
             )
 
@@ -941,6 +1014,42 @@ def pto_compile_command(root: Path, case: Case, paths: dict[str, str], asm_out: 
     ]
 
 
+def pto_kernel_elf_command(
+    root: Path,
+    case: Case,
+    paths: dict[str, str],
+    harness_source: Path,
+    linker_script: Path,
+    elf_out: Path,
+) -> list[str]:
+    cmd = [
+        paths["clangxx"],
+        "-target",
+        "linx64-linx-none-elf",
+        "-O2",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-fno-vectorize",
+        "-fno-slp-vectorize",
+        "-nostdlib",
+    ]
+    cmd.extend(str(flag) for flag in case.metadata.get("compile_defines", []))
+    cmd += [
+        "-I",
+        str(root / "workloads" / "pto_kernels" / "include"),
+        str(case.source_paths[0]),
+        str(harness_source),
+        "-Wl,-e,_start",
+        f"-Wl,-T,{linker_script}",
+        "-o",
+        str(elf_out),
+    ]
+    return cmd
+
+
 def supernpu_make_command(
     case: Case,
     paths: dict[str, str],
@@ -1138,6 +1247,133 @@ def compiler_contract(
             continue
 
         if case.kind == "pto_kernel":
+            if case.produces_elf:
+                harness_name = str(case.metadata.get("standalone_harness", ""))
+                if harness_name != "tload_store_i32":
+                    rows.append(
+                        stage_row(
+                            state,
+                            "compiler-contract",
+                            "fail",
+                            owner="benchmark",
+                            evidence=f"unsupported PTO standalone harness: {harness_name}",
+                        )
+                    )
+                    continue
+                harness_source = case_artifacts / "pto-tload-store-harness.cpp"
+                linker_script = case_artifacts / "linx-pto-directboot.ld"
+                elf = case_artifacts / f"{case.id}.elf"
+                harness_source.parent.mkdir(parents=True, exist_ok=True)
+                harness_source.write_text(PTO_TLOAD_STORE_HARNESS_SOURCE, encoding="utf-8")
+                linker_script.write_text(LINX_DIRECT_BOOT_LINK_SCRIPT, encoding="utf-8")
+                cmd = pto_kernel_elf_command(root, case, paths, harness_source, linker_script, elf)
+                result = run_command(
+                    cmd,
+                    cwd=root,
+                    env=env,
+                    timeout=timeout,
+                    log_path=log_path,
+                    dry_run=dry_run,
+                )
+                artifacts.update(
+                    {
+                        "log": str(log_path),
+                        "harness_source": str(harness_source),
+                        "linker_script": str(linker_script),
+                        "elf": str(elf),
+                    }
+                )
+                status = result["status"]
+                evidence = "PTO kernel compiled to standalone Linx ELF"
+                if status == "pass":
+                    if not dry_run and not elf.exists():
+                        status = "fail"
+                        evidence = f"expected ELF was not produced: {elf}"
+                    else:
+                        state.artifacts["elf"] = str(elf)
+                        objdump = Path(paths["llvm_objdump"])
+                        if dry_run or executable(objdump):
+                            dump = run_obj_tool(
+                                paths["llvm_objdump"],
+                                ["-d", str(elf)],
+                                cwd=root,
+                                out_path=case_artifacts / "objdump.disasm.txt",
+                                timeout=120,
+                                dry_run=dry_run,
+                            )
+                            sym = run_obj_tool(
+                                paths["llvm_objdump"],
+                                ["-t", str(elf)],
+                                cwd=root,
+                                out_path=case_artifacts / "objdump.symbols.txt",
+                                timeout=120,
+                                dry_run=dry_run,
+                            )
+                            sec = run_obj_tool(
+                                paths["llvm_objdump"],
+                                ["-h", str(elf)],
+                                cwd=root,
+                                out_path=case_artifacts / "objdump.sections.txt",
+                                timeout=120,
+                                dry_run=dry_run,
+                            )
+                            rel = run_obj_tool(
+                                paths["llvm_objdump"],
+                                ["-r", str(elf)],
+                                cwd=root,
+                                out_path=case_artifacts / "objdump.relocs.txt",
+                                timeout=120,
+                                dry_run=dry_run,
+                            )
+                            artifacts.update(
+                                {
+                                    "disasm": dump["output"],
+                                    "symbols": sym["output"],
+                                    "sections": sec["output"],
+                                    "relocations": rel["output"],
+                                }
+                            )
+                            if not dry_run:
+                                text = "\n".join(
+                                    Path(p).read_text(encoding="utf-8", errors="replace")
+                                    for p in [dump["output"], sym["output"], sec["output"], rel["output"]]
+                                    if Path(p).exists()
+                                )
+                                ok, findings = static_check_text(text, require_entry=True)
+                                if not ok:
+                                    status = "fail"
+                                    evidence = "; ".join(findings)
+                        objcopy = Path(paths["llvm_objcopy"])
+                        if dry_run or executable(objcopy):
+                            raw = case_artifacts / f"{case.id}.bin"
+                            objcopy_row = run_obj_tool(
+                                paths["llvm_objcopy"],
+                                ["-O", "binary", str(elf), str(raw)],
+                                cwd=root,
+                                out_path=case_artifacts / "objcopy.log",
+                                timeout=120,
+                                dry_run=dry_run,
+                            )
+                            artifacts["raw_bin"] = str(raw)
+                            artifacts["objcopy_log"] = objcopy_row["output"]
+                elif status == "not_run":
+                    state.artifacts["elf"] = str(elf)
+                    evidence = "dry-run standalone PTO compile command recorded"
+                else:
+                    evidence = "PTO kernel standalone ELF compile/link failed"
+                rows.append(
+                    stage_row(
+                        state,
+                        "compiler-contract",
+                        status,
+                        owner="compiler",
+                        evidence=evidence,
+                        command=result["command"],
+                        artifacts=artifacts,
+                    )
+                )
+                continue
+
             asm_out = case_artifacts / f"{case.id}.s"
             cmd = pto_compile_command(root, case, paths, asm_out)
             result = run_command(
@@ -1386,6 +1622,55 @@ def qemu_execution(
                     result["status"],
                     owner="emulator",
                     evidence="QEMU direct-boot AVS suite passed" if result["status"] == "pass" else "QEMU direct-boot AVS suite failed",
+                    command=result["command"],
+                    artifacts=artifacts,
+                )
+            )
+            continue
+        if case.kind == "pto_kernel":
+            elf = Path(state.artifacts.get("elf", ""))
+            if not elf.exists() and not dry_run:
+                rows.append(
+                    stage_row(
+                        state,
+                        "qemu-execution",
+                        "fail",
+                        owner="emulator",
+                        evidence="missing compiler-produced PTO ELF for QEMU",
+                    )
+                )
+                continue
+            cmd = [
+                paths["qemu"],
+                "-machine",
+                "virt",
+                "-bios",
+                "none",
+                "-kernel",
+                str(elf),
+                "-nographic",
+                "-monitor",
+                "none",
+            ]
+            result = run_command(
+                cmd,
+                cwd=root,
+                env=env,
+                timeout=timeout,
+                log_path=log_path,
+                dry_run=dry_run,
+            )
+            result = normalize_qemu_finisher_result(result, log_path)
+            artifacts.update({"log": str(log_path), "elf": str(elf)})
+            if result["status"] == "pass":
+                state.qemu_digests = parse_digests(log_path)
+            rows.append(
+                stage_row(
+                    state,
+                    "qemu-execution",
+                    result["status"],
+                    owner="emulator",
+                    evidence="PTO kernel ELF passed QEMU" if result["status"] == "pass" else "PTO kernel QEMU execution failed",
                     command=result["command"],
                     artifacts=artifacts,
                 )
