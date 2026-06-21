@@ -463,6 +463,193 @@ PTO_GEMM_PERFORMANCE_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
     "gemm_performance_f32(lhs, rhs, dst, kRepeatTiles)",
     repeat_tiles=3,
 )
+PTO_FP16_GEMM_REUSE_HARNESS_TEMPLATE = r"""#include <common/linx_lowp_types.hpp>
+
+__FUNCTION_DECL__
+
+namespace {
+
+constexpr int kM = 16;
+constexpr int kN = 16;
+constexpr int kK = 16;
+
+pto::fp16_t lhs[kM * kK];
+pto::fp16_t rhs[kK * kN];
+pto::fp16_t dst[kM * kN];
+
+static inline unsigned int f32_bits(float value) {
+  union {
+    float f;
+    unsigned int u;
+  } bits;
+  bits.f = value;
+  return bits.u;
+}
+
+static inline float f32_from_bits(unsigned int value) {
+  union {
+    unsigned int u;
+    float f;
+  } bits;
+  bits.u = value;
+  return bits.f;
+}
+
+static inline unsigned int f32_bits_from_u32(unsigned int value) {
+  if (value == 0) {
+    return 0;
+  }
+  int msb = 31;
+  while (((value >> msb) & 1U) == 0) {
+    --msb;
+  }
+  unsigned int mantissa = 0;
+  if (msb >= 23) {
+    mantissa = value >> (msb - 23);
+  } else {
+    mantissa = value << (23 - msb);
+  }
+  return (static_cast<unsigned int>(msb + 127) << 23) | (mantissa & 0x007fffffU);
+}
+
+static inline unsigned int u32_from_f32_bits(unsigned int bits) {
+  if ((bits & 0x7fffffffU) == 0) {
+    return 0;
+  }
+  const unsigned int exp = (bits >> 23) & 0xffU;
+  const unsigned int mantissa = (bits & 0x007fffffU) | 0x00800000U;
+  const int shift = static_cast<int>(exp) - 127 - 23;
+  if (shift >= 0) {
+    return mantissa << shift;
+  }
+  return mantissa >> static_cast<unsigned int>(-shift);
+}
+
+static inline unsigned short fp16_bits_from_u32(unsigned int value) {
+  if (value == 0) {
+    return 0;
+  }
+  int msb = 31;
+  while (((value >> msb) & 1U) == 0) {
+    --msb;
+  }
+  unsigned int mantissa = 0;
+  if (msb >= 10) {
+    mantissa = value >> (msb - 10);
+  } else {
+    mantissa = value << (10 - msb);
+  }
+  return static_cast<unsigned short>(((msb + 15) << 10) | (mantissa & 0x03ffU));
+}
+
+static inline unsigned int lhs_int(int m, int k) {
+  return static_cast<unsigned int>(((m + (2 * k)) % 5) + 1);
+}
+
+static inline unsigned int rhs_int(int k, int n) {
+  return static_cast<unsigned int>((((3 * k) + n) % 7) + 1);
+}
+
+static inline unsigned int expected_int(int m, int n) {
+  unsigned int acc = 0;
+  for (int k = 0; k < kK; ++k) {
+    acc += lhs_int(m, k) * rhs_int(k, n);
+  }
+  return acc;
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+extern "C" float __mulsf3(float a, float b) {
+  const unsigned int a_int = u32_from_f32_bits(f32_bits(a));
+  const unsigned int b_int = u32_from_f32_bits(f32_bits(b));
+  return f32_from_bits(f32_bits_from_u32(a_int * b_int));
+}
+
+extern "C" float __addsf3(float a, float b) {
+  const unsigned int a_int = u32_from_f32_bits(f32_bits(a));
+  const unsigned int b_int = u32_from_f32_bits(f32_bits(b));
+  return f32_from_bits(f32_bits_from_u32(a_int + b_int));
+}
+
+int main() {
+  for (int m = 0; m < kM; ++m) {
+    for (int k = 0; k < kK; ++k) {
+      lhs[m * kK + k].bits = fp16_bits_from_u32(lhs_int(m, k));
+    }
+  }
+  for (int k = 0; k < kK; ++k) {
+    for (int n = 0; n < kN; ++n) {
+      rhs[k * kN + n].bits = fp16_bits_from_u32(rhs_int(k, n));
+    }
+  }
+  for (int i = 0; i < kM * kN; ++i) {
+    dst[i].bits = 0;
+  }
+
+  __CALL_EXPR__;
+
+  for (int m = 0; m < kM; ++m) {
+    for (int n = 0; n < kN; ++n) {
+      if (dst[m * kN + n].bits != fp16_bits_from_u32(expected_int(m, n))) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+
+
+def pto_fp16_gemm_reuse_harness_source(function_name: str) -> str:
+    function_decl = (
+        f'extern "C" void {function_name}(pto::fp16_t *lhs_ptr, '
+        "pto::fp16_t *rhs_ptr, pto::fp16_t *dst_ptr);"
+    )
+    return (
+        PTO_FP16_GEMM_REUSE_HARNESS_TEMPLATE.replace("__FUNCTION_DECL__", function_decl)
+        .replace("__CALL_EXPR__", f"{function_name}(lhs, rhs, dst)")
+    )
+
+
+PTO_GEMM_REUSE_A_FP16_HARNESS_SOURCE = pto_fp16_gemm_reuse_harness_source(
+    "gemm_reuse_a_f16"
+)
+PTO_GEMM_REUSE_B_FP16_HARNESS_SOURCE = pto_fp16_gemm_reuse_harness_source(
+    "gemm_reuse_b_f16"
+)
+PTO_GEMM_REUSE_AB_FP16_HARNESS_SOURCE = pto_fp16_gemm_reuse_harness_source(
+    "gemm_reuse_ab_f16"
+)
 PTO_RELU_F32_HARNESS_SOURCE = r"""extern "C" void relu_f32(float *out_ptr, float *x_ptr, int n);
 
 namespace {
@@ -1393,6 +1580,18 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
         "pto-gemm-performance-f32-harness.cpp",
         PTO_GEMM_PERFORMANCE_F32_HARNESS_SOURCE,
     ),
+    "gemm_reuse_a_f16": (
+        "pto-gemm-reuse-a-f16-harness.cpp",
+        PTO_GEMM_REUSE_A_FP16_HARNESS_SOURCE,
+    ),
+    "gemm_reuse_b_f16": (
+        "pto-gemm-reuse-b-f16-harness.cpp",
+        PTO_GEMM_REUSE_B_FP16_HARNESS_SOURCE,
+    ),
+    "gemm_reuse_ab_f16": (
+        "pto-gemm-reuse-ab-f16-harness.cpp",
+        PTO_GEMM_REUSE_AB_FP16_HARNESS_SOURCE,
+    ),
     "mamulb_i32": ("pto-mamulb-i32-harness.cpp", PTO_MAMULB_I32_HARNESS_SOURCE),
     "tmatmul_acc_i32": (
         "pto-tmatmul-acc-i32-harness.cpp",
@@ -1560,6 +1759,27 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO gemm_performance_f32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog float32 GEMM performance repeat direct-boot smoke harness",
+    },
+    "matmul/gemm_reuse_a_fp16.cpp": {
+        "standalone_harness": "gemm_reuse_a_f16",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_reuse_a_f16 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog fp16 GEMM reuse-A direct-boot smoke harness",
+    },
+    "matmul/gemm_reuse_b_fp16.cpp": {
+        "standalone_harness": "gemm_reuse_b_f16",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_reuse_b_f16 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog fp16 GEMM reuse-B direct-boot smoke harness",
+    },
+    "matmul/gemm_reuse_ab_fp16.cpp": {
+        "standalone_harness": "gemm_reuse_ab_f16",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_reuse_ab_f16 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog fp16 GEMM blocked reuse-A/B direct-boot smoke harness",
     },
     "matmul/mamulb.cpp": {
         "standalone_harness": "mamulb_i32",

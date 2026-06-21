@@ -164,12 +164,29 @@ class AiWorkloadFlowTests(unittest.TestCase):
 
     def test_other_pto_catalog_cases_remain_compile_static(self) -> None:
         cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
-        case = next(case for case in cases if case.id == "pto-kernel-add_custom")
+        case = next(case for case in cases if case.id == "pto-kernel-gelu_fp32")
 
         self.assertEqual(case.kind, "pto_kernel")
         self.assertFalse(case.produces_elf)
         self.assertFalse(case.model_eligible)
         self.assertNotIn("standalone_harness", case.metadata)
+
+    def test_pto_fp16_reuse_cases_have_standalone_harnesses(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        expected = {
+            "pto-kernel-gemm_reuse_a_fp16": "gemm_reuse_a_f16",
+            "pto-kernel-gemm_reuse_b_fp16": "gemm_reuse_b_f16",
+            "pto-kernel-gemm_reuse_ab_fp16": "gemm_reuse_ab_f16",
+        }
+
+        for case_id, harness in expected.items():
+            with self.subTest(case_id=case_id):
+                case = next(case for case in cases if case.id == case_id)
+                self.assertEqual(case.kind, "pto_kernel")
+                self.assertTrue(case.produces_elf)
+                self.assertTrue(case.model_eligible)
+                self.assertEqual(case.metadata["standalone_harness"], harness)
+                self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
 
     def case(self, case_id: str) -> run_ai_workload_flow.Case:
         return run_ai_workload_flow.Case(

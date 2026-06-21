@@ -132,7 +132,16 @@ The runner stops on the first red hard-break stage unless
   their `PTO_QEMU_SMOKE` branches; `gemm_performance` keeps `repeat_tiles=3`
   and verifies the final repeat through a precomputed expected-bit table. Treat
   full float TMATMUL/TCVT/TMULS coverage as still owned by later full-shape
-  parity/model suites.
+  parity/model suites. `pto-kernel-gemm_reuse_a_fp16`,
+  `pto-kernel-gemm_reuse_b_fp16`, and `pto-kernel-gemm_reuse_ab_fp16` now have
+  direct-boot FP16 storage harnesses with harness-local positive-integer
+  `__mulsf3`/`__addsf3` shims. These cases pass source, compiler, and QEMU at
+  the default `PTO_QEMU_SMOKE=1` 16x16x16 shape, then fail in `gfsim` with
+  model-owned fix packets; do not list them as promoted final-green until the
+  model reaches the finisher. The PTO sources accept `PTO_QEMU_SMOKE_DIM` for
+  controlled future probes, but the runner keeps the default 16x16x16 shape
+  because smaller override probes must first prove the same QEMU oracle
+  behavior.
 
 ## Owner Classification
 
