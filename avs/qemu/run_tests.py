@@ -603,6 +603,11 @@ def main(argv: list[str]) -> int:
         help="Fail if no QEMU stdout/stderr output is seen for this many seconds (0 to disable).",
     )
     parser.add_argument("--compile-only", action="store_true", help="Only compile/link; do not run QEMU")
+    parser.add_argument(
+        "--smoke-source-overrides",
+        action="store_true",
+        help="Use smoke source overrides for selected suites even when running QEMU",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--list-suites", action="store_true", help="List available suites and exit")
     parser.add_argument("--all", action="store_true", help="Enable all suites (including float/atomic)")
@@ -758,7 +763,7 @@ def main(argv: list[str]) -> int:
         rel = SUITES[suite]["src"]
         if translation_only and suite == "translation_corpus":
             continue
-        if args.compile_only:
+        if args.compile_only or args.smoke_source_overrides:
             rel = COMPILE_ONLY_SUITE_SOURCE_OVERRIDE.get(suite, rel)
         add_source(SCRIPT_DIR / rel)
     for path in generated_translation_sources:

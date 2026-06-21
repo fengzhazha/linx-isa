@@ -415,7 +415,11 @@ def discover_cases(root: Path) -> list[Case]:
             model_eligible=True,
             produces_elf=True,
             expected="QEMU PASS marker, then gfsim exit 0",
-            metadata={"avs_suite": "tile", "description": "PTO tile direct-boot smoke"},
+            metadata={
+                "avs_suite": "tile",
+                "avs_source_profile": "compile-smoke",
+                "description": "PTO tile direct-boot compile-smoke source",
+            },
         )
     )
     cases.append(
@@ -849,6 +853,8 @@ def avs_command(
         cmd.append("--compile-only")
     else:
         cmd += ["--qemu", paths["qemu"]]
+        if case.metadata.get("avs_source_profile") == "compile-smoke":
+            cmd.append("--smoke-source-overrides")
     return cmd
 
 
@@ -921,6 +927,21 @@ def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
     if any(marker in text for marker in source_markers):
         return "benchmark", "SuperNPUBench source/toolchain manifest mismatch"
     return "compiler", "SuperNPUBench compile failed"
+
+
+def classify_avs_compile_failure(log_path: Path) -> tuple[str, str]:
+    text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
+    source_markers = [
+        "__builtin_linx_lc",
+        "<<<",
+        ">>>",
+        "PTO kernel",
+        "block_vector_kernels.hpp",
+        "block_vector_compat.hpp",
+    ]
+    if any(marker in text for marker in source_markers):
+        return "benchmark", "AVS PTO source/API contract failed under Linx clang"
+    return "compiler", "AVS compile failed"
 
 
 def run_obj_tool(
@@ -1007,13 +1028,21 @@ def compiler_contract(
             artifacts.update({"log": str(log_path), "object": str(obj)})
             if result["status"] == "pass" and obj.exists():
                 state.artifacts["object"] = str(obj)
+            owner = "compiler"
+            evidence = (
+                "AVS direct-boot suite compiled"
+                if result["status"] == "pass"
+                else "AVS compile failed"
+            )
+            if result["status"] not in PASS_STATUSES:
+                owner, evidence = classify_avs_compile_failure(log_path)
             rows.append(
                 stage_row(
                     state,
                     "compiler-contract",
                     result["status"],
-                    owner="compiler",
-                    evidence="AVS direct-boot suite compiled" if result["status"] == "pass" else "AVS compile failed",
+                    owner=owner,
+                    evidence=evidence,
                     command=result["command"],
                     artifacts=artifacts,
                 )
@@ -1342,12 +1371,6 @@ def qemu_execution(
 def find_smoke_elf(states: list[CaseState], override: str | None) -> Path | None:
     if override:
         return Path(override).expanduser().resolve()
-    for state in states:
-        if state.case.id == "avs-tile-smoke":
-            row = state.stages.get("qemu-execution")
-            elf = state.artifacts.get("elf")
-            if row and row["status"] in PASS_STATUSES and elf:
-                return Path(elf)
     return None
 
 
@@ -1752,7 +1775,7 @@ def write_skill_doc_evolution(out_dir: Path, states: list[CaseState], evolve_not
         if state.failure_owner:
             counts[state.failure_owner] = counts.get(state.failure_owner, 0) + 1
     if evolve_note:
-        line = f"skill-evolve: updated {evolve_note}"
+        line = f"skill-evolve: update {evolve_note}"
     else:
         line = "skill-evolve: no-update (runner emitted reusable evidence; update skills only after a material repeated finding)"
     payload = {
@@ -1950,7 +1973,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--gfsim", default="")
     ap.add_argument("--model-smoke-elf", default="")
     ap.add_argument("--skip-model-build", action="store_true")
-    ap.add_argument("--skill-evolve-note", default="", help="Emit `skill-evolve: updated <note>` in the run closeout")
+    ap.add_argument("--skill-evolve-note", default="", help="Emit `skill-evolve: update <note>` in the run closeout")
     ap.add_argument("--compile-timeout", type=int, default=900)
     ap.add_argument("--qemu-timeout", type=int, default=240)
     ap.add_argument("--model-timeout", type=int, default=600)

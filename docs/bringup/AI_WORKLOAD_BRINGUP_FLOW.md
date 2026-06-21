@@ -59,6 +59,11 @@ The runner stops on the first red hard-break stage unless
 
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
   `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
+  Tier-0 tile smoke uses the AVS compile-smoke source override during QEMU
+  execution so it exercises the PTO/QEMU/model handoff before the full tile
+  runtime source is green. Keep this case-level smoke separate from
+  `model-build-smoke`; the global model smoke must remain a generated tiny ELF
+  unless `--model-smoke-elf` is explicitly provided.
 - `supernpu`: SuperNPUBench `compile.all` Makefile cases compiled with
   `PLAT=linx`. The runner passes a per-case `OBJ_ROOT` under
   `cases/<case>/compiler/supernpu-output/`, links these as direct-boot Linx
