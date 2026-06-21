@@ -132,8 +132,8 @@
       ],
       "owner": "model",
       "hard_break": true,
-      "why": "Stop before model workload execution if the C++ LinxCoreModel cannot build or run a known smoke ELF within the model runtime timeout.",
-      "promotes": "available gfsim binary and a bounded model smoke transcript"
+      "why": "Stop before model workload execution if the C++ LinxCoreModel cannot build or run a known generated smoke ELF within the model runtime timeout.",
+      "promotes": "fresh gfsim binary plus generated model-smoke source, linker script, ELF, and bounded smoke transcript"
     },
     {
       "id": "linxcoremodel-execution",

@@ -49,6 +49,20 @@ SECTIONS {
   } :data
 }
 """
+LINX_MODEL_SMOKE_SOURCE = r"""extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  __asm__ volatile(
+      "BSTART.STD\n"
+      "lui 65545, ->u\n"
+      "lui 5, ->t\n"
+      "addi t#1, 1365, ->t\n"
+      "c.swi t#1, [u#1, 0]\n"
+      "BSTOP\n"
+      ::: "memory");
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 
 
@@ -1287,12 +1301,48 @@ def find_smoke_elf(states: list[CaseState], override: str | None) -> Path | None
             elf = state.artifacts.get("elf")
             if row and row["status"] in PASS_STATUSES and elf:
                 return Path(elf)
-    for state in states:
-        row = state.stages.get("qemu-execution")
-        elf = state.artifacts.get("elf")
-        if row and row["status"] == "pass" and elf:
-            return Path(elf)
     return None
+
+
+def build_model_smoke_elf(
+    root: Path,
+    paths: dict[str, str],
+    stage_dir: Path,
+    env: dict[str, str],
+    dry_run: bool,
+    timeout: int,
+) -> tuple[Path, list[dict[str, Any]]]:
+    source = stage_dir / "linx-model-smoke.cpp"
+    linker = stage_dir / "linx-model-smoke.ld"
+    elf = stage_dir / "linx-model-smoke.elf"
+    source.write_text(LINX_MODEL_SMOKE_SOURCE, encoding="utf-8")
+    linker.write_text(LINX_DIRECT_BOOT_LINK_SCRIPT, encoding="utf-8")
+    cmd = [
+        paths["clangxx"],
+        "-target",
+        "linx64-linx-none-elf",
+        "-O2",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-nostdlib",
+        str(source),
+        "-Wl,-e,_start",
+        f"-Wl,-T,{linker}",
+        "-o",
+        str(elf),
+    ]
+    row = run_command(
+        cmd,
+        cwd=root,
+        env=env,
+        timeout=timeout,
+        log_path=stage_dir / "linx-model-smoke-compile.log",
+        dry_run=dry_run,
+    )
+    return elf, [row]
 
 
 def model_build_smoke(
@@ -1311,7 +1361,7 @@ def model_build_smoke(
     stage_dir.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     rows: list[dict[str, Any]] = []
-    if not dry_run and not executable(gfsim) and not skip_build:
+    if not dry_run and not skip_build:
         configure = run_command(
             [
                 "cmake",
@@ -1347,8 +1397,21 @@ def model_build_smoke(
             }
         )
 
-    gfsim_exists = dry_run or executable(gfsim)
     smoke_elf = find_smoke_elf(states, smoke_elf_override)
+    if smoke_elf is None:
+        smoke_elf, smoke_compile_rows = build_model_smoke_elf(
+            root,
+            paths,
+            stage_dir,
+            env,
+            dry_run,
+            build_timeout,
+        )
+        rows.extend(smoke_compile_rows)
+    else:
+        smoke_compile_rows = []
+
+    gfsim_exists = dry_run or executable(gfsim)
     smoke_row: dict[str, Any] | None = None
     if gfsim_exists and smoke_elf is not None:
         smoke_cmd = [str(gfsim), "-f", str(smoke_elf)]
@@ -1363,9 +1426,14 @@ def model_build_smoke(
         rows.append(smoke_row)
 
     failed_build = next((row for row in rows if row.get("status") not in PASS_STATUSES), None)
+    owner = "model"
     if failed_build is not None:
         status = failed_build["status"]
-        evidence = "LinxCoreModel build/smoke timed out" if status == "timeout" else "LinxCoreModel build/smoke failed"
+        owner = "compiler" if failed_build in smoke_compile_rows else "model"
+        if failed_build in smoke_compile_rows:
+            evidence = "model smoke ELF compile timed out" if status == "timeout" else "model smoke ELF compile failed"
+        else:
+            evidence = "LinxCoreModel build/smoke timed out" if status == "timeout" else "LinxCoreModel build/smoke failed"
     elif not gfsim_exists:
         status = "fail"
         evidence = f"gfsim not found or not executable: {gfsim}"
@@ -1382,7 +1450,7 @@ def model_build_smoke(
     row = {
         "stage": "model-build-smoke",
         "status": status,
-        "owner": "model",
+        "owner": owner,
         "evidence": evidence,
         "gfsim": str(gfsim),
         "smoke_elf": str(smoke_elf) if smoke_elf is not None else None,
@@ -1396,18 +1464,26 @@ def model_build_smoke(
     }
     if smoke_elf is not None:
         artifacts["smoke_elf"] = str(smoke_elf)
+    if smoke_elf_override is None:
+        artifacts.update(
+            {
+                "smoke_source": str(stage_dir / "linx-model-smoke.cpp"),
+                "smoke_linker_script": str(stage_dir / "linx-model-smoke.ld"),
+                "smoke_compile_log": str(stage_dir / "linx-model-smoke-compile.log"),
+            }
+        )
     for state in states:
         state.stages["model-build-smoke"] = {
             "stage": "model-build-smoke",
             "status": status,
-            "owner": "model",
+            "owner": owner,
             "evidence": evidence,
             "command": row["commands"][-1]["command"] if row["commands"] else None,
             "commands": rows,
             "artifacts": artifacts,
         }
         if status not in PASS_STATUSES:
-            mark_failure(state, "model-build-smoke", "model", evidence)
+            mark_failure(state, "model-build-smoke", owner, evidence)
     return row
 
 

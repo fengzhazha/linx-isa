@@ -34,14 +34,16 @@ when testing an external lane. The pin lane defaults to in-repo Linx LLVM,
 `model/LinxCoreModel/bin/gfsim`.
 
 Timeouts are lane-specific: `--model-build-timeout` gates CMake configure/build
-only, while `--model-timeout` gates `gfsim -f <elf>` smoke and workload runs.
+and generated model-smoke ELF compilation, while `--model-timeout` gates
+`gfsim -f <elf>` smoke and workload runs. Non-dry runs rebuild
+`model/LinxCoreModel/bin/gfsim` unless `--skip-model-build` is passed.
 
 ## Stage Order
 
 1. `source-contract`: validate PTO catalogs, SuperNPUBench manifests, source paths, hashes, and normalized case records.
 2. `compiler-contract`: compile with `compiler/llvm/build-linxisa-clang/bin`, produce ELF/object/asm evidence, and run static checks.
 3. `qemu-execution`: run compiler-passing executable cases in Linx QEMU and capture logs/digests.
-4. `model-build-smoke`: build or locate `model/LinxCoreModel/bin/gfsim`, then run a smoke ELF when available.
+4. `model-build-smoke`: rebuild or locate `model/LinxCoreModel/bin/gfsim`, then run a known tiny Linx smoke ELF. By default the runner generates `cases/_model/linx-model-smoke.{cpp,ld,elf}`; `--model-smoke-elf` can override it.
 5. `linxcoremodel-execution`: run only QEMU-passing ELFs through `gfsim -f <elf>`.
 6. `differential-triage`: compare QEMU/model digest evidence when both sides emit it.
 7. `fix-packets`: emit bounded agent packets for the first failing owner.
@@ -87,3 +89,5 @@ Every run emits:
 - `skill_evolution.{json,md}`: explicit skill closeout.
 - `cases/<case>/...`: source hashes, compile logs, ELF/object/asm, objdump,
   optional raw bin, QEMU log, model log, and fix packet links when relevant.
+- `cases/_model/`: CMake logs plus generated model-smoke source, linker script,
+  ELF, compile log, and `gfsim` smoke transcript.
