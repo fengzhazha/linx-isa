@@ -210,6 +210,42 @@
     "fix-packets": "integration",
     "skill-doc-evolution": "docs-skills"
   },
+  "owner_decision_rules": {
+    "case_selection": {
+      "contains_match": "--case <text> selects cases whose id, suite, or kind contains <text>.",
+      "exact_match": "--case =<text> selects only cases whose id, suite, or kind equals <text>; quote the argument in zsh shells."
+    },
+    "supernpu_compiler_contract": [
+      {
+        "owner": "benchmark",
+        "evidence": "SuperNPUBench Linx tile API implementation is not available",
+        "markers": [
+          "use of undeclared identifier '<TOKEN>_Impl'"
+        ]
+      },
+      {
+        "owner": "benchmark",
+        "evidence": "SuperNPUBench source uses unsupported Linx tile runtime contract",
+        "markers": [
+          "unknown type name '__vbuf__'",
+          "use of undeclared identifier 'blkv_get_'",
+          "Linx smoke TCOPYIN supports only unboxed tiles",
+          "TADD not support Boxed Layout!"
+        ]
+      },
+      {
+        "owner": "benchmark",
+        "evidence": "SuperNPUBench source is not adapted to the Linx direct-boot runtime",
+        "markers": [
+          "undefined symbol: malloc",
+          "undefined symbol: free",
+          "undefined symbol: exit",
+          "undefined symbol: memcpy",
+          "undefined symbol: __divsf3"
+        ]
+      }
+    ]
+  },
   "final_target": {
     "model_root": "model/LinxCoreModel",
     "binary": "model/LinxCoreModel/bin/gfsim",

@@ -28,6 +28,9 @@ workloads/generated/<run-id>/ai-bringup/
 - `full`: Tiers 0-4. Full AI workload matrix.
 
 Use `--tier`, `--kind`, `--case`, and `--limit` to narrow local debugging.
+By default `--case` is a substring filter across case id, suite, and kind.
+Prefix the selector with `=` for exact matching, for example
+`--case '=supernpu-tileop_api-TSub'`.
 Use `--clang`, `--clangxx`, `--lld`, `--qemu`, `--model-root`, or `--gfsim`
 when testing an external lane. The pin lane defaults to in-repo Linx LLVM,
 `emulator/qemu/build/qemu-system-linx64`, and
@@ -84,6 +87,10 @@ The runner stops on the first red hard-break stage unless
 The first failing boundary assigns the fix lane:
 
 - `benchmark`: source, manifest, API, or workload normalization failure.
+  SuperNPUBench compiler-stage logs are still benchmark-owned when they show a
+  missing Linx tile API implementation such as `*_Impl`, unsupported Linx tile
+  runtime contracts such as vector-kernel syntax or boxed layouts, or
+  direct-boot source paths that still depend on host libc/soft-float symbols.
 - `compiler`: clang, LLVM backend, MC, link, entry symbol, relocation, or retired-token static failure.
 - `emulator`: legal compiler output fails under QEMU.
 - `model`: QEMU-passing ELF fails to build, load, decode, execute, or match digest evidence in `gfsim`.

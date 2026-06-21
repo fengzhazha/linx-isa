@@ -568,12 +568,19 @@ def filter_cases(
         selected = [
             case
             for case in selected
-            if any(pattern in case.id or pattern in case.suite or pattern in case.kind for pattern in patterns)
+            if any(case_matches_pattern(case, pattern) for pattern in patterns)
         ]
     selected.sort(key=lambda c: (c.tier, c.kind, c.suite, c.id))
     if limit > 0:
         selected = selected[:limit]
     return selected
+
+
+def case_matches_pattern(case: Case, pattern: str) -> bool:
+    if pattern.startswith("="):
+        exact = pattern[1:]
+        return exact in {case.id, case.suite, case.kind}
+    return pattern in case.id or pattern in case.suite or pattern in case.kind
 
 
 def tool_paths(root: Path, args: argparse.Namespace) -> dict[str, str]:
@@ -968,6 +975,30 @@ def supernpu_make_command(
 
 def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
     text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
+    if re.search(r"use of undeclared identifier '[A-Z0-9_]+_Impl'", text):
+        return "benchmark", "SuperNPUBench Linx tile API implementation is not available"
+    unsupported_linx_source_markers = [
+        "unknown type name '__vbuf__'",
+        "use of undeclared identifier 'blkv_get_",
+        "Linx smoke TCOPYIN supports only unboxed tiles",
+        "TADD not support Boxed Layout!",
+    ]
+    if any(marker in text for marker in unsupported_linx_source_markers):
+        return "benchmark", "SuperNPUBench source uses unsupported Linx tile runtime contract"
+    direct_boot_runtime_markers = [
+        "undefined symbol: calloc",
+        "undefined symbol: malloc",
+        "undefined symbol: free",
+        "undefined symbol: puts",
+        "undefined symbol: printf",
+        "undefined symbol: exit",
+        "undefined symbol: memcpy",
+        "undefined symbol: __divsf3",
+        "undefined symbol: __mulsf3",
+        "undefined symbol: __addsf3",
+    ]
+    if any(marker in text for marker in direct_boot_runtime_markers):
+        return "benchmark", "SuperNPUBench source is not adapted to the Linx direct-boot runtime"
     source_markers = [
         "-mlxbc",
         "-enable-all-vector-as-tilereg",
@@ -1831,7 +1862,11 @@ def write_skill_doc_evolution(out_dir: Path, states: list[CaseState], evolve_not
         if state.failure_owner:
             counts[state.failure_owner] = counts.get(state.failure_owner, 0) + 1
     if evolve_note:
-        line = f"skill-evolve: update {evolve_note}"
+        note = evolve_note.strip()
+        if note.startswith(("updated", "no-update")):
+            line = f"skill-evolve: {note}"
+        else:
+            line = f"skill-evolve: updated {note}"
     else:
         line = "skill-evolve: no-update (runner emitted reusable evidence; update skills only after a material repeated finding)"
     payload = {
@@ -2008,7 +2043,12 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--flow", default=str(default_flow_path(root)))
     ap.add_argument("--profile", default="smoke")
     ap.add_argument("--tier", type=int, action="append", default=[], help="Override profile tiers; may repeat")
-    ap.add_argument("--case", action="append", default=[], help="Select cases whose id/suite/kind contains this text; may repeat")
+    ap.add_argument(
+        "--case",
+        action="append",
+        default=[],
+        help="Select cases whose id/suite/kind contains this text; prefix with '=' for an exact id/suite/kind match; may repeat",
+    )
     ap.add_argument("--kind", action="append", choices=["avs_pto", "pto_kernel", "supernpu"], default=[])
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--stage", action="append", default=[], help="Run one stage id; may repeat")
