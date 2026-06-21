@@ -7,6 +7,7 @@ This directory tracks `v0.56` architecture and implementation alignment, with AV
 - Onboarding and workspace setup: `docs/bringup/GETTING_STARTED.md`
 - Execution-order blocker runbook: `docs/bringup/SUPERPROJECT_BRINGUP_CHECKLIST.md`
 - Benchmark/QEMU/Linux hard-break flow: `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`
+- AI workload/QEMU/LinxCoreModel hard-break flow: `docs/bringup/AI_WORKLOAD_BRINGUP_FLOW.md`
 
 ## Normative Contract
 
@@ -24,6 +25,8 @@ This directory tracks `v0.56` architecture and implementation alignment, with AV
 - `docs/bringup/SPEC_WORKLOAD_PLAN.md`
 - `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md`
 - `docs/bringup/benchmark_qemu_linux_flow.json` (machine-readable hard-break flow)
+- `docs/bringup/AI_WORKLOAD_BRINGUP_FLOW.md`
+- `docs/bringup/ai_workload_bringup_flow.json` (machine-readable AI workload hard-break flow)
 - `docs/bringup/MATURITY_PLAN.md`
 - `docs/bringup/SIMT_COMPILER_MATURITY_PLAN.md`
 - `docs/bringup/SIMT_COMPILER_SUPPORTED_SUBSET.md`
@@ -72,6 +75,10 @@ Canonical profile/tier runner:
 Benchmark/QEMU/Linux hard-break runner:
 
 `python3 tools/bringup/run_benchmark_linux_flow.py --profile pr --dry-run --report-out workloads/generated/flow-pr-dry-run/report.json`
+
+AI workload/QEMU/LinxCoreModel hard-break runner:
+
+`python3 tools/bringup/run_ai_workload_flow.py --profile smoke --dry-run`
 
 Compatibility entrypoints:
 

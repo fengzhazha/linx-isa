@@ -29,6 +29,7 @@ This is the canonical navigation contract for contributors and agents.
 - Linux libc source forks: `lib/glibc/`, `lib/musl/`
 - PTO assembler fork: `compiler/ptoas/`
 - PTO kernels/tools/headers (submodule): `workloads/pto_kernels/`
+- SuperNPUBench AI workload suite (submodule): `workloads/SuperNPUBench/`
 - PTO header include root: `workloads/pto_kernels/include/`
 - LLVM opcode sync helper: `tools/isa/sync_generated_opcodes.sh`
 
@@ -36,6 +37,8 @@ This is the canonical navigation contract for contributors and agents.
 
 - CoreMark upstream: `workloads/coremark/upstream/`
 - Dhrystone upstream: `workloads/dhrystone/upstream/`
+- AI workload hard-break flow: `tools/bringup/run_ai_workload_flow.py`
+- AI workload flow contract: `docs/bringup/ai_workload_bringup_flow.json`
 - PolyBench source cache: `workloads/third_party/PolyBenchC/`
 - ctuning runner: `workloads/ctuning/`
 

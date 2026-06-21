@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "flow_id": "ai-workload-qemu-linxcoremodel-hardbreak",
+  "description": "Fail-fast bring-up flow for promoting PTO and SuperNPUBench AI workloads from source contracts through Linx LLVM, QEMU, and the C++ LinxCoreModel.",
+  "artifact_policy": {
+    "canonical_root": "workloads/generated",
+    "default_subdir": "ai-bringup",
+    "forbidden_roots": [
+      "workloads/generated-*"
+    ],
+    "rule": "AI workload bring-up artifacts must be placed under workloads/generated/<run-id>/ai-bringup/ or a temp directory, never as ad-hoc sibling directories under workloads/."
+  },
+  "profiles": {
+    "smoke": {
+      "description": "Tier-0 proof that source discovery, PTO parity/tile smoke, and minimal SuperNPUBench tileop cases can enter the flow.",
+      "tiers": [
+        0
+      ]
+    },
+    "pr": {
+      "description": "Fast promotion lane for Tier 0 and Tier 1 AI workload bring-up.",
+      "tiers": [
+        0,
+        1
+      ]
+    },
+    "nightly": {
+      "description": "Expanded AI workload lane for matrix, memory, reduction, accelerator, and model suites.",
+      "tiers": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "full": {
+      "description": "Full AI workload matrix. Required final target is all promoted cases passing in C++ LinxCoreModel.",
+      "tiers": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  },
+  "case_kinds": {
+    "avs_pto": {
+      "description": "AVS direct-boot PTO/tile suites that produce a Linx ELF through avs/qemu/run_tests.py."
+    },
+    "pto_kernel": {
+      "description": "Cataloged PTO kernel sources validated for source and compile/static contracts."
+    },
+    "supernpu": {
+      "description": "SuperNPUBench Makefile cases compiled with PLAT=linx and the in-repo Linx LLVM toolchain."
+    }
+  },
+  "tiers": [
+    {
+      "id": 0,
+      "name": "smoke",
+      "description": "Tiny known-good Linx AVS smoke, PTO parity/tile smoke, and minimal SuperNPUBench tileop cases."
+    },
+    {
+      "id": 1,
+      "name": "kernel-pr",
+      "description": "PTO kernel catalog compile/static checks plus basic SuperNPUBench tile/kernel families."
+    },
+    {
+      "id": 2,
+      "name": "ai-kernel-domains",
+      "description": "Matrix, reduction, memory, and accelerator cases with digest/trace capture when available."
+    },
+    {
+      "id": 3,
+      "name": "model-workloads",
+      "description": "DeepSeek/model-oriented cases and larger shapes suitable for nightly runs."
+    },
+    {
+      "id": 4,
+      "name": "full-matrix",
+      "description": "Full PTO and SuperNPUBench matrix for final LinxCoreModel maturity closure."
+    }
+  ],
+  "stages": [
+    {
+      "id": "source-contract",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "benchmark",
+      "hard_break": true,
+      "why": "Stop before compiler or model work if PTO catalogs, SuperNPUBench manifests, source paths, or normalized case records are invalid.",
+      "promotes": "valid cases with source hashes and reproducible build metadata"
+    },
+    {
+      "id": "compiler-contract",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "compiler",
+      "hard_break": true,
+      "why": "Stop before QEMU if the in-repo Linx LLVM toolchain cannot compile, link, or statically inspect the selected cases.",
+      "promotes": "Linx ELF for executable cases, assembly/object/static reports for PTO kernel cases"
+    },
+    {
+      "id": "qemu-execution",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "emulator",
+      "hard_break": true,
+      "why": "Stop before model execution if QEMU cannot run the legal compiler-produced Linx artifact.",
+      "promotes": "QEMU-passing Linx ELFs with log, optional trace, and digest evidence"
+    },
+    {
+      "id": "model-build-smoke",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "model",
+      "hard_break": true,
+      "why": "Stop before model workload execution if the C++ LinxCoreModel cannot build or run a known smoke ELF.",
+      "promotes": "available gfsim binary and a model smoke transcript"
+    },
+    {
+      "id": "linxcoremodel-execution",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "model",
+      "hard_break": true,
+      "why": "Final execution target: run only QEMU-passing ELFs through model/LinxCoreModel/bin/gfsim.",
+      "promotes": "model-passing cases with stop reason, log, optional trace, and digest evidence"
+    },
+    {
+      "id": "differential-triage",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "integration",
+      "hard_break": false,
+      "why": "Compare QEMU and model evidence, then assign first-failure owners using the stage ownership map.",
+      "promotes": "owner-classified failures and green final cases"
+    },
+    {
+      "id": "fix-packets",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "integration",
+      "hard_break": false,
+      "why": "Emit bounded fix packets for benchmark, compiler, emulator, model, and docs-skills agents.",
+      "promotes": "per-failure reproduction packets with artifact links and expected next boundary"
+    },
+    {
+      "id": "skill-doc-evolution",
+      "profiles": [
+        "smoke",
+        "pr",
+        "nightly",
+        "full"
+      ],
+      "owner": "docs-skills",
+      "hard_break": false,
+      "why": "Close every run with a skill-evolve update/no-update decision and document reusable flow changes.",
+      "promotes": "skill-evolve closeout line and documentation delta summary"
+    }
+  ],
+  "owner_map": {
+    "source-contract": "benchmark",
+    "compiler-contract": "compiler",
+    "qemu-execution": "emulator",
+    "model-build-smoke": "model",
+    "linxcoremodel-execution": "model",
+    "differential-triage": "integration",
+    "fix-packets": "integration",
+    "skill-doc-evolution": "docs-skills"
+  },
+  "final_target": {
+    "model_root": "model/LinxCoreModel",
+    "binary": "model/LinxCoreModel/bin/gfsim",
+    "command": "model/LinxCoreModel/bin/gfsim -f <linx.elf>",
+    "artifact": "Linx ELF"
+  }
+}
