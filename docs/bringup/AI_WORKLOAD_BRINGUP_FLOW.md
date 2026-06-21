@@ -33,6 +33,9 @@ when testing an external lane. The pin lane defaults to in-repo Linx LLVM,
 `emulator/qemu/build/qemu-system-linx64`, and
 `model/LinxCoreModel/bin/gfsim`.
 
+Timeouts are lane-specific: `--model-build-timeout` gates CMake configure/build
+only, while `--model-timeout` gates `gfsim -f <elf>` smoke and workload runs.
+
 ## Stage Order
 
 1. `source-contract`: validate PTO catalogs, SuperNPUBench manifests, source paths, hashes, and normalized case records.
@@ -52,7 +55,9 @@ The runner stops on the first red hard-break stage unless
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
   `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
 - `supernpu`: SuperNPUBench `compile.all` Makefile cases compiled with
-  `PLAT=linx`. These produce SuperNPUBench Linx ELFs and are model-eligible.
+  `PLAT=linx`. The runner links these as direct-boot Linx ELFs with `_start`
+  first at `0x10000`; object dumps, raw bins, and linker scripts are side
+  artifacts for QEMU/model triage.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
   they can enter QEMU/model stages individually.

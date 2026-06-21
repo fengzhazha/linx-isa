@@ -25,6 +25,30 @@ FORBIDDEN_ASM_RE = re.compile(
     r"((^|[^A-Za-z0-9_])L\.|set_flag|wait_flag|TSync|B\.SET|B\.WAIT)",
     re.IGNORECASE,
 )
+FINISHER_PASS_LOW8 = 0x55
+FINISHER_FAIL_LOW8 = 0x33
+FINISHER_RESET_LOW8 = 0x77
+LINX_DIRECT_BOOT_LINK_SCRIPT = """ENTRY(_start)
+PHDRS {
+  text PT_LOAD FLAGS(5);
+  data PT_LOAD FLAGS(6);
+}
+SECTIONS {
+  . = 0x00010000;
+  .text : { KEEP(*(.text._start)) *(.text*) } :text
+  .rodata : { *(.rodata*) *(.eh_frame*) } :text
+  . = ALIGN(0x1000);
+  .init_array : { *(.init_array*) *(.fini_array*) } :data
+  .data : { *(.sdata*) *(.data*) *(.got*) } :data
+  .bss (NOLOAD) : { *(.bss*) *(.sbss*) *(.relro_padding*) *(COMMON) } :data
+  . = ALIGN(16);
+  .bootstack (NOLOAD) : {
+    __start_init_stack = .;
+    . += 0x4000;
+    __end_init_stack = .;
+  } :data
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 
 
@@ -508,6 +532,10 @@ def run_command(
         )
     except subprocess.TimeoutExpired as exc:
         output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        elif not isinstance(output, str):
+            output = str(output)
         log_path.write_text(f"$ {rendered}\n\n{output}", encoding="utf-8", errors="replace")
         row["status"] = "timeout"
         row["returncode"] = 124
@@ -521,6 +549,26 @@ def run_command(
     row["returncode"] = proc.returncode
     row["status"] = "pass" if proc.returncode == 0 else "fail"
     return row
+
+
+def normalize_qemu_finisher_result(result: dict[str, Any], log_path: Path) -> dict[str, Any]:
+    """Treat the Linx direct-boot test finisher as a successful QEMU exit."""
+    returncode = int(result.get("returncode", 0))
+    finisher_low8 = returncode & 0xFF
+    if result.get("status") == "fail" and finisher_low8 == FINISHER_PASS_LOW8:
+        result = dict(result)
+        result["status"] = "pass"
+        result["finisher"] = "pass"
+        with log_path.open("a", encoding="utf-8", errors="replace") as log:
+            log.write(f"\n[ai-flow] guest finisher pass exit={returncode}\n")
+        return result
+    if result.get("status") == "fail" and finisher_low8 == FINISHER_FAIL_LOW8:
+        result = dict(result)
+        result["finisher"] = "fail"
+    elif result.get("status") == "fail" and finisher_low8 == FINISHER_RESET_LOW8:
+        result = dict(result)
+        result["finisher"] = "reset"
+    return result
 
 
 def parse_digests(path: Path) -> dict[str, str]:
@@ -681,14 +729,23 @@ def pto_compile_command(root: Path, case: Case, paths: dict[str, str], asm_out: 
     ]
 
 
-def supernpu_make_command(case: Case, paths: dict[str, str], *, target: str | None = None) -> str:
+def supernpu_make_command(
+    case: Case,
+    paths: dict[str, str],
+    *,
+    target: str | None = None,
+    linker_script: Path | None = None,
+) -> str:
     vars_part = " ".join(
         f"{shlex.quote(k)}={shlex.quote(str(v))}"
         for k, v in sorted(case.metadata["make_vars"].items())
     )
     compiler_dir = shlex.quote(str(Path(paths["clang"]).parent))
     linx_compile_flags = shlex.quote("-c -target linx64-linx-none-elf -fenable-matrix -O2")
-    linx_link_flags = shlex.quote("-target linx64-linx-none-elf -nostdlib")
+    linker_flags = "-Wl,-e,_start"
+    if linker_script is not None:
+        linker_flags += f" -Wl,-T,{linker_script}"
+    linx_link_flags = shlex.quote(f"-target linx64-linx-none-elf -nostdlib {linker_flags}")
     prefix = (
         f"make {vars_part} PLAT=linx COMPILER_DIR={compiler_dir} "
         f"CC_O={linx_compile_flags} CC_LINK={linx_link_flags}"
@@ -854,7 +911,11 @@ def compiler_contract(
             continue
 
         if case.kind == "supernpu":
-            cmd = supernpu_make_command(case, paths)
+            linker_script = case_artifacts / "linx-supernpu-directboot.ld"
+            linker_script.parent.mkdir(parents=True, exist_ok=True)
+            linker_script.write_text(LINX_DIRECT_BOOT_LINK_SCRIPT, encoding="utf-8")
+            artifacts["linker_script"] = str(linker_script)
+            cmd = supernpu_make_command(case, paths, linker_script=linker_script)
             result = run_command(
                 cmd,
                 cwd=case.workdir,
@@ -1064,7 +1125,18 @@ def qemu_execution(
                     )
                 )
                 continue
-            cmd = f"{shlex.quote(paths['qemu'])} -run-supertest -blk_optimize force_tb_chained {shlex.quote(str(elf))}"
+            cmd = [
+                paths["qemu"],
+                "-machine",
+                "virt",
+                "-bios",
+                "none",
+                "-kernel",
+                str(elf),
+                "-nographic",
+                "-monitor",
+                "none",
+            ]
             result = run_command(
                 cmd,
                 cwd=root,
@@ -1073,6 +1145,7 @@ def qemu_execution(
                 log_path=log_path,
                 dry_run=dry_run,
             )
+            result = normalize_qemu_finisher_result(result, log_path)
             artifacts.update({"log": str(log_path), "elf": str(elf)})
             if result["status"] == "pass":
                 state.qemu_digests = parse_digests(log_path)
@@ -1122,7 +1195,8 @@ def model_build_smoke(
     states: list[CaseState],
     paths: dict[str, str],
     dry_run: bool,
-    timeout: int,
+    build_timeout: int,
+    smoke_timeout: int,
     skip_build: bool,
     smoke_elf_override: str | None,
 ) -> dict[str, Any]:
@@ -1134,10 +1208,17 @@ def model_build_smoke(
     rows: list[dict[str, Any]] = []
     if not dry_run and not executable(gfsim) and not skip_build:
         configure = run_command(
-            ["cmake", "-S", str(model_root), "-B", str(model_root / "build")],
+            [
+                "cmake",
+                "-S",
+                str(model_root),
+                "-B",
+                str(model_root / "build"),
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+            ],
             cwd=root,
             env=env,
-            timeout=timeout,
+            timeout=build_timeout,
             log_path=stage_dir / "cmake-configure.log",
             dry_run=False,
         )
@@ -1147,7 +1228,7 @@ def model_build_smoke(
                 ["cmake", "--build", str(model_root / "build"), "--target", "gfsim"],
                 cwd=root,
                 env=env,
-                timeout=timeout,
+                timeout=build_timeout,
                 log_path=stage_dir / "cmake-build-gfsim.log",
                 dry_run=False,
             )
@@ -1156,7 +1237,7 @@ def model_build_smoke(
         rows.append(
             {
                 "status": "not_run",
-                "command": f"cmake -S {model_root} -B {model_root / 'build'} && cmake --build {model_root / 'build'} --target gfsim",
+                "command": f"cmake -S {model_root} -B {model_root / 'build'} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && cmake --build {model_root / 'build'} --target gfsim",
                 "log": str(stage_dir / "cmake-build-gfsim.log"),
             }
         )
@@ -1170,7 +1251,7 @@ def model_build_smoke(
             smoke_cmd,
             cwd=model_root,
             env=env,
-            timeout=timeout,
+            timeout=smoke_timeout,
             log_path=stage_dir / "gfsim-smoke.log",
             dry_run=dry_run,
         )
@@ -1179,7 +1260,7 @@ def model_build_smoke(
     failed_build = next((row for row in rows if row.get("status") not in PASS_STATUSES), None)
     if failed_build is not None:
         status = failed_build["status"]
-        evidence = "LinxCoreModel build/smoke failed"
+        evidence = "LinxCoreModel build/smoke timed out" if status == "timeout" else "LinxCoreModel build/smoke failed"
     elif not gfsim_exists:
         status = "fail"
         evidence = f"gfsim not found or not executable: {gfsim}"
@@ -1202,8 +1283,25 @@ def model_build_smoke(
         "smoke_elf": str(smoke_elf) if smoke_elf is not None else None,
         "commands": rows,
     }
-    if status not in PASS_STATUSES:
-        for state in states:
+    artifacts = {
+        "gfsim": str(gfsim),
+        "configure_log": str(stage_dir / "cmake-configure.log"),
+        "build_log": str(stage_dir / "cmake-build-gfsim.log"),
+        "smoke_log": str(stage_dir / "gfsim-smoke.log"),
+    }
+    if smoke_elf is not None:
+        artifacts["smoke_elf"] = str(smoke_elf)
+    for state in states:
+        state.stages["model-build-smoke"] = {
+            "stage": "model-build-smoke",
+            "status": status,
+            "owner": "model",
+            "evidence": evidence,
+            "command": row["commands"][-1]["command"] if row["commands"] else None,
+            "commands": rows,
+            "artifacts": artifacts,
+        }
+        if status not in PASS_STATUSES:
             mark_failure(state, "model-build-smoke", "model", evidence)
     return row
 
@@ -1417,12 +1515,15 @@ def next_boundary(stage_id: str | None) -> str:
     return order[min(idx + 1, len(order) - 1)]
 
 
-def write_skill_doc_evolution(out_dir: Path, states: list[CaseState]) -> dict[str, Any]:
+def write_skill_doc_evolution(out_dir: Path, states: list[CaseState], evolve_note: str | None = None) -> dict[str, Any]:
     counts: dict[str, int] = {}
     for state in states:
         if state.failure_owner:
             counts[state.failure_owner] = counts.get(state.failure_owner, 0) + 1
-    line = "skill-evolve: no-update (runner emitted reusable evidence; update skills only after a material repeated finding)"
+    if evolve_note:
+        line = f"skill-evolve: updated {evolve_note}"
+    else:
+        line = "skill-evolve: no-update (runner emitted reusable evidence; update skills only after a material repeated finding)"
     payload = {
         "stage": "skill-doc-evolution",
         "status": "pass",
@@ -1618,6 +1719,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--gfsim", default="")
     ap.add_argument("--model-smoke-elf", default="")
     ap.add_argument("--skip-model-build", action="store_true")
+    ap.add_argument("--skill-evolve-note", default="", help="Emit `skill-evolve: updated <note>` in the run closeout")
     ap.add_argument("--compile-timeout", type=int, default=900)
     ap.add_argument("--qemu-timeout", type=int, default=240)
     ap.add_argument("--model-timeout", type=int, default=600)
@@ -1673,6 +1775,7 @@ def main(argv: list[str]) -> int:
                 paths,
                 args.dry_run,
                 args.model_build_timeout,
+                args.model_timeout,
                 args.skip_model_build,
                 args.model_smoke_elf or None,
             )
@@ -1690,7 +1793,7 @@ def main(argv: list[str]) -> int:
         elif stage_id == "fix-packets":
             rows = write_fix_packets(out_dir, states)
         elif stage_id == "skill-doc-evolution":
-            skill_evolution = write_skill_doc_evolution(out_dir, states)
+            skill_evolution = write_skill_doc_evolution(out_dir, states, args.skill_evolve_note or None)
             rows = skill_evolution
         else:
             raise SystemExit(f"error: unsupported stage id in flow: {stage_id}")
