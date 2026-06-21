@@ -30,7 +30,7 @@ workloads/generated/<run-id>/ai-bringup/
 Use `--tier`, `--kind`, `--case`, and `--limit` to narrow local debugging.
 By default `--case` is a substring filter across case id, suite, and kind.
 Prefix the selector with `=` for exact matching, for example
-`--case '=supernpu-tileop_api-TAnd'`.
+`--case '=supernpu-tileop_api-TOr'`.
 Use `--clang`, `--clangxx`, `--lld`, `--qemu`, `--model-root`, or `--gfsim`
 when testing an external lane. The pin lane defaults to in-repo Linx LLVM,
 `emulator/qemu/build/qemu-system-linx64`, and
@@ -78,7 +78,7 @@ The runner stops on the first red hard-break stage unless
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
   directory for QEMU/model triage. Current direct-boot green tileop cases are
-  `MatMul`, `TAdd`, `TSub`, and `TAnd`; keep future promotions similarly
+  `MatMul`, `TAdd`, `TSub`, `TAnd`, and `TOr`; keep future promotions similarly
   bounded and prove each exact case through QEMU and `gfsim -f <elf>`.
 - `pto_kernel`: cataloged PTO kernel sources. These currently participate in
   source and compile/static stages; a standalone ELF harness is required before
