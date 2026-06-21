@@ -115,15 +115,16 @@ The runner stops on the first red hard-break stage unless
   `pto-kernel-stack_fp32`, and the Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
   `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
-  `pto-kernel-argmax_fp32`, and `pto-kernel-unique_i32`: the
+  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`, and
+  `pto-kernel-add_custom`: the
   runner generates per-case harnesses, compiles the matching source with
   `-DPTO_QEMU_SMOKE=1`, emits direct-boot Linx ELFs plus objdump/raw-bin side
   artifacts, then promotes each passing ELF through QEMU and
   `gfsim -f <elf>`. The full non-smoke tile paths remain covered by AVS
   parity/model maturity suites until each catalog kernel has its own full-shape
-  harness and oracle. Keep `pto-kernel-add_custom` compile/static-only for now:
-  its direct-boot float add path links against unresolved `__addsf3` without a
-  soft-float runtime helper contract.
+  harness and oracle. `pto-kernel-add_custom` uses a harness-local freestanding
+  `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded by
+  the oracle; do not treat that helper as a general compiler-rt replacement.
 
 ## Owner Classification
 

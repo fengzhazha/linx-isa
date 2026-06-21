@@ -1053,6 +1053,132 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
   linx_pto_exit(static_cast<unsigned int>(main()));
 }
 """
+PTO_ADD_CUSTOM_F32_HARNESS_SOURCE = r"""#include <common/runtime/kernel_shapes.hpp>
+
+extern "C" void add_custom_f32(float *x_ptr, float *y_ptr, float *z_ptr);
+
+namespace {
+
+constexpr int kRows = pto::kernels::shapes::kMemoryRows;
+constexpr int kCols = pto::kernels::shapes::kMemoryCols;
+constexpr int kElems = kRows * kCols;
+
+float x[kElems];
+float y[kElems];
+float z[kElems];
+
+static inline unsigned int f32_bits(float value) {
+  union {
+    float f;
+    unsigned int u;
+  } bits;
+  bits.f = value;
+  return bits.u;
+}
+
+static inline float f32_from_bits(unsigned int value) {
+  union {
+    unsigned int u;
+    float f;
+  } bits;
+  bits.u = value;
+  return bits.f;
+}
+
+static inline unsigned int f32_bits_from_u32(unsigned int value) {
+  if (value == 0) {
+    return 0;
+  }
+  int msb = 31;
+  while (((value >> msb) & 1U) == 0) {
+    --msb;
+  }
+  unsigned int mantissa = 0;
+  if (msb >= 23) {
+    mantissa = value >> (msb - 23);
+  } else {
+    mantissa = value << (23 - msb);
+  }
+  return (static_cast<unsigned int>(msb + 127) << 23) | (mantissa & 0x007fffffU);
+}
+
+static inline unsigned int u32_from_f32_bits(unsigned int bits) {
+  if ((bits & 0x7fffffffU) == 0) {
+    return 0;
+  }
+  const unsigned int exponent = (bits >> 23) & 0xffU;
+  const unsigned int mantissa = (bits & 0x007fffffU) | 0x00800000U;
+  const int shift = static_cast<int>(exponent) - 127 - 23;
+  return shift >= 0 ? (mantissa << shift) : (mantissa >> -shift);
+}
+
+static inline unsigned int x_int(int i) {
+  return static_cast<unsigned int>((i % 13) + 1);
+}
+
+static inline unsigned int y_int(int i) {
+  return static_cast<unsigned int>(((i / 7) % 11) + (i & 1));
+}
+
+static inline float make_input(unsigned int value) {
+  return f32_from_bits(f32_bits_from_u32(value));
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+extern "C" float __addsf3(float a, float b) {
+  const unsigned int a_int = u32_from_f32_bits(f32_bits(a));
+  const unsigned int b_int = u32_from_f32_bits(f32_bits(b));
+  return f32_from_bits(f32_bits_from_u32(a_int + b_int));
+}
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    x[i] = make_input(x_int(i));
+    y[i] = make_input(y_int(i));
+    z[i] = make_input(0);
+  }
+
+  add_custom_f32(x, y, z);
+
+  for (int i = 0; i < kElems; ++i) {
+    const unsigned int expected = f32_bits_from_u32(x_int(i) + y_int(i));
+    if (f32_bits(z[i]) != expected) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
@@ -1079,8 +1205,19 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "where_f32": ("pto-where-f32-harness.cpp", PTO_WHERE_F32_HARNESS_SOURCE),
     "argmax_f32": ("pto-argmax-f32-harness.cpp", PTO_ARGMAX_F32_HARNESS_SOURCE),
     "unique_i32": ("pto-unique-i32-harness.cpp", PTO_UNIQUE_I32_HARNESS_SOURCE),
+    "add_custom_f32": (
+        "pto-add-custom-f32-harness.cpp",
+        PTO_ADD_CUSTOM_F32_HARNESS_SOURCE,
+    ),
 }
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
+    "elementwise/add_custom.cpp": {
+        "standalone_harness": "add_custom_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO add_custom_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 add_custom direct-boot smoke harness",
+    },
     "elementwise/relu_fp32.cpp": {
         "standalone_harness": "relu_f32",
         "harness_profile": "qemu_smoke",
