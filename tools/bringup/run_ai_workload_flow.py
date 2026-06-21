@@ -272,6 +272,7 @@ namespace {
 constexpr int kM = 16;
 constexpr int kN = 16;
 constexpr int kK = 16;
+constexpr int kRepeatTiles = __REPEAT_TILES__;
 
 float lhs[kM * kK];
 float rhs[kN * kK];
@@ -328,8 +329,12 @@ static inline unsigned int rhs_bits(int n, int k) {
   return f32_bits_from_u32(rhs_int(n, k));
 }
 
+static constexpr unsigned int kExpectedBits[kM * kN] = {
+__EXPECTED_BITS_ARRAY__
+};
+
 static inline unsigned int expected_bits(int m, int n) {
-  return ((m + n) & 1) ? lhs_bits(m, n % kK) : rhs_bits(n, m % kK);
+  return kExpectedBits[m * kN + n];
 }
 
 static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
@@ -394,10 +399,54 @@ extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) 
 """
 
 
-def pto_f32_gemm_copy_harness_source(function_decl: str, call_expr: str) -> str:
+def pto_f32_bits_from_u32(value: int) -> int:
+    if value == 0:
+        return 0
+    msb = 31
+    while ((value >> msb) & 1) == 0:
+        msb -= 1
+    if msb >= 23:
+        mantissa = value >> (msb - 23)
+    else:
+        mantissa = value << (23 - msb)
+    return ((msb + 127) << 23) | (mantissa & 0x007FFFFF)
+
+
+def pto_f32_gemm_expected_bits_array(repeat_tiles: int) -> str:
+    expected_rep = max(repeat_tiles, 1) - 1
+
+    def lhs_bits(m: int, k: int) -> int:
+        return pto_f32_bits_from_u32(((m + 1) * (k + 3)) % 19 + 1)
+
+    def rhs_bits(n: int, k: int) -> int:
+        return pto_f32_bits_from_u32(((n + 2) * (k + 5)) % 23 + 2)
+
+    values: list[int] = []
+    for m in range(16):
+        for n in range(16):
+            if (expected_rep + m + n) & 1:
+                values.append(lhs_bits(m, (n + expected_rep) % 16))
+            else:
+                values.append(rhs_bits(n, (m + expected_rep) % 16))
+
+    lines = []
+    for start in range(0, len(values), 8):
+        chunk = ", ".join(f"0x{value:08x}U" for value in values[start : start + 8])
+        lines.append(f"    {chunk},")
+    return "\n".join(lines)
+
+
+def pto_f32_gemm_copy_harness_source(
+    function_decl: str, call_expr: str, repeat_tiles: int = 1
+) -> str:
     return (
         PTO_F32_GEMM_COPY_HARNESS_TEMPLATE.replace("__FUNCTION_DECL__", function_decl)
         .replace("__CALL_EXPR__", call_expr)
+        .replace("__REPEAT_TILES__", str(repeat_tiles))
+        .replace(
+            "__EXPECTED_BITS_ARRAY__",
+            pto_f32_gemm_expected_bits_array(repeat_tiles),
+        )
     )
 
 
@@ -408,6 +457,11 @@ PTO_GEMM_BASIC_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
 PTO_GEMM_DEMO_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
     'extern "C" void gemm_demo_f32(float *out_ptr, float *a_ptr, float *b_ptr);',
     "gemm_demo_f32(dst, lhs, rhs)",
+)
+PTO_GEMM_PERFORMANCE_F32_HARNESS_SOURCE = pto_f32_gemm_copy_harness_source(
+    'extern "C" void gemm_performance_f32(float *lhs_ptr, float *rhs_ptr, float *dst_ptr, int repeat_tiles);',
+    "gemm_performance_f32(lhs, rhs, dst, kRepeatTiles)",
+    repeat_tiles=3,
 )
 PTO_RELU_F32_HARNESS_SOURCE = r"""extern "C" void relu_f32(float *out_ptr, float *x_ptr, int n);
 
@@ -1335,6 +1389,10 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
         "pto-gemm-demo-f32-harness.cpp",
         PTO_GEMM_DEMO_F32_HARNESS_SOURCE,
     ),
+    "gemm_performance_f32": (
+        "pto-gemm-performance-f32-harness.cpp",
+        PTO_GEMM_PERFORMANCE_F32_HARNESS_SOURCE,
+    ),
     "mamulb_i32": ("pto-mamulb-i32-harness.cpp", PTO_MAMULB_I32_HARNESS_SOURCE),
     "tmatmul_acc_i32": (
         "pto-tmatmul-acc-i32-harness.cpp",
@@ -1495,6 +1553,13 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO gemm_demo_f32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog float32 GEMM demo direct-boot smoke harness",
+    },
+    "matmul/gemm_performance.cpp": {
+        "standalone_harness": "gemm_performance_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gemm_performance_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 GEMM performance repeat direct-boot smoke harness",
     },
     "matmul/mamulb.cpp": {
         "standalone_harness": "mamulb_i32",
