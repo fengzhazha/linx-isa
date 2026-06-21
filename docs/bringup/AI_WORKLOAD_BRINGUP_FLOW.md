@@ -114,7 +114,8 @@ The runner stops on the first red hard-break stage unless
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
   `pto-kernel-stack_fp32`, and the Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
-  `pto-kernel-scatter_fp32`, and `pto-kernel-where_fp32`: the
+  `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
+  `pto-kernel-argmax_fp32`, and `pto-kernel-unique_i32`: the
   runner generates per-case harnesses, compiles the matching source with
   `-DPTO_QEMU_SMOKE=1`, emits direct-boot Linx ELFs plus objdump/raw-bin side
   artifacts, then promotes each passing ELF through QEMU and
@@ -122,9 +123,7 @@ The runner stops on the first red hard-break stage unless
   parity/model maturity suites until each catalog kernel has its own full-shape
   harness and oracle. Keep `pto-kernel-add_custom` compile/static-only for now:
   its direct-boot float add path links against unresolved `__addsf3` without a
-  soft-float runtime helper contract. `pto-kernel-argmax_fp32` and
-  `pto-kernel-unique_i32` have generated harnesses and QEMU-pass evidence, but
-  remain model-lane maturity packets until `gfsim` reaches the pass finisher.
+  soft-float runtime helper contract.
 
 ## Owner Classification
 
