@@ -139,6 +139,29 @@ class AiWorkloadFlowTests(unittest.TestCase):
                 self.assertEqual(case.metadata["standalone_harness"], harness)
                 self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
 
+    def test_pto_indexing_layout_catalog_cases_have_standalone_harnesses(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        expected = {
+            "pto-kernel-argmax_fp32": "argmax_f32",
+            "pto-kernel-concat_fp32": "concat_f32",
+            "pto-kernel-gather_fp32": "gather_f32",
+            "pto-kernel-scatter_fp32": "scatter_f32",
+            "pto-kernel-slice_fp32": "slice_f32",
+            "pto-kernel-split_fp32": "split_f32",
+            "pto-kernel-stack_fp32": "stack_f32",
+            "pto-kernel-unique_i32": "unique_i32",
+            "pto-kernel-where_fp32": "where_f32",
+        }
+
+        for case_id, harness in expected.items():
+            with self.subTest(case_id=case_id):
+                case = next(case for case in cases if case.id == case_id)
+                self.assertEqual(case.kind, "pto_kernel")
+                self.assertTrue(case.produces_elf)
+                self.assertTrue(case.model_eligible)
+                self.assertEqual(case.metadata["standalone_harness"], harness)
+                self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
+
     def test_other_pto_catalog_cases_remain_compile_static(self) -> None:
         cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
         case = next(case for case in cases if case.id == "pto-kernel-add_custom")

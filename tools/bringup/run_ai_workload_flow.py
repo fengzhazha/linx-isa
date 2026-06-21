@@ -401,6 +401,658 @@ PTO_FLATTEN_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("flatten_f32"
 PTO_RESHAPE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("reshape_f32")
 PTO_SQUEEZE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("squeeze_f32")
 PTO_UNSQUEEZE_F32_HARNESS_SOURCE = pto_unary_copy_f32_harness_source("unsqueeze_f32")
+PTO_CONCAT_F32_HARNESS_SOURCE = r"""extern "C" void concat_f32(float *out_ptr, float *a_ptr, float *b_ptr, int n_a, int n_b);
+
+namespace {
+
+constexpr int kA = 11;
+constexpr int kB = 7;
+constexpr int kOut = kA + kB;
+
+float a[kA];
+float b[kB];
+float out[kOut];
+
+static inline float a_value(int i) {
+  return static_cast<float>((i % 9) - 4);
+}
+
+static inline float b_value(int i) {
+  return static_cast<float>(20 + i);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kA; ++i) {
+    a[i] = a_value(i);
+  }
+  for (int i = 0; i < kB; ++i) {
+    b[i] = b_value(i);
+  }
+  for (int i = 0; i < kOut; ++i) {
+    out[i] = -99.0f;
+  }
+
+  concat_f32(out, a, b, kA, kB);
+
+  for (int i = 0; i < kA; ++i) {
+    if (out[i] != a[i]) {
+      return 1;
+    }
+  }
+  for (int i = 0; i < kB; ++i) {
+    if (out[kA + i] != b[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_SPLIT_F32_HARNESS_SOURCE = r"""extern "C" void split_f32(float *out_a_ptr, float *out_b_ptr, float *in_ptr, int n_a, int n_b);
+
+namespace {
+
+constexpr int kA = 9;
+constexpr int kB = 6;
+constexpr int kIn = kA + kB;
+
+float in_values[kIn];
+float out_a[kA];
+float out_b[kB];
+
+static inline float in_value(int i) {
+  return static_cast<float>((i % 17) - 8);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kIn; ++i) {
+    in_values[i] = in_value(i);
+  }
+  for (int i = 0; i < kA; ++i) {
+    out_a[i] = -99.0f;
+  }
+  for (int i = 0; i < kB; ++i) {
+    out_b[i] = -99.0f;
+  }
+
+  split_f32(out_a, out_b, in_values, kA, kB);
+
+  for (int i = 0; i < kA; ++i) {
+    if (out_a[i] != in_values[i]) {
+      return 1;
+    }
+  }
+  for (int i = 0; i < kB; ++i) {
+    if (out_b[i] != in_values[kA + i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_STACK_F32_HARNESS_SOURCE = r"""extern "C" void stack_f32(float *out_ptr, float *a_ptr, float *b_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 12;
+constexpr int kOut = kElems * 2;
+
+float a[kElems];
+float b[kElems];
+float out[kOut];
+
+static inline float a_value(int i) {
+  return static_cast<float>((i % 9) - 3);
+}
+
+static inline float b_value(int i) {
+  return static_cast<float>(30 - i);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    a[i] = a_value(i);
+    b[i] = b_value(i);
+  }
+  for (int i = 0; i < kOut; ++i) {
+    out[i] = -99.0f;
+  }
+
+  stack_f32(out, a, b, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (out[i] != a[i] || out[kElems + i] != b[i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_SLICE_F32_HARNESS_SOURCE = r"""extern "C" void slice_f32(float *out_ptr, float *in_ptr, int start, int len);
+
+namespace {
+
+constexpr int kStart = 5;
+constexpr int kLen = 12;
+constexpr int kInput = 24;
+
+float in_values[kInput];
+float out[kLen];
+
+static inline float in_value(int i) {
+  return static_cast<float>((i % 19) - 9);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kInput; ++i) {
+    in_values[i] = in_value(i);
+  }
+  for (int i = 0; i < kLen; ++i) {
+    out[i] = -99.0f;
+  }
+
+  slice_f32(out, in_values, kStart, kLen);
+
+  for (int i = 0; i < kLen; ++i) {
+    if (out[i] != in_values[kStart + i]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_GATHER_F32_HARNESS_SOURCE = r"""extern "C" void gather_f32(float *out_ptr, float *in_ptr, int *indices_ptr, int n);
+
+namespace {
+
+constexpr int kInput = 16;
+constexpr int kElems = 8;
+
+float in_values[kInput];
+float out[kElems];
+int indices[kElems];
+
+static inline int index_value(int i) {
+  constexpr int kIndices[kElems] = {7, 0, 11, 3, 14, 5, 2, 9};
+  return kIndices[i];
+}
+
+static inline float in_value(int i) {
+  return static_cast<float>((i % 23) - 11);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kInput; ++i) {
+    in_values[i] = in_value(i);
+  }
+  for (int i = 0; i < kElems; ++i) {
+    indices[i] = index_value(i);
+    out[i] = -99.0f;
+  }
+
+  gather_f32(out, in_values, indices, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (out[i] != in_values[index_value(i)]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_SCATTER_F32_HARNESS_SOURCE = r"""extern "C" void scatter_f32(float *out_ptr, float *in_ptr, int *indices_ptr, float *updates_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 8;
+
+float in_values[kElems];
+float updates[kElems];
+float out[kElems];
+int indices[kElems];
+
+static inline int index_value(int i) {
+  constexpr int kIndices[kElems] = {3, 0, 7, 1, 6, 4, 2, 5};
+  return kIndices[i];
+}
+
+static inline float in_value(int i) {
+  return static_cast<float>((i % 11) - 5);
+}
+
+static inline float update_value(int i) {
+  return static_cast<float>(40 + i);
+}
+
+static inline float expected_value(int idx) {
+  for (int i = 0; i < kElems; ++i) {
+    if (index_value(i) == idx) {
+      return update_value(i);
+    }
+  }
+  return in_value(idx);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    in_values[i] = in_value(i);
+    updates[i] = update_value(i);
+    indices[i] = index_value(i);
+    out[i] = -99.0f;
+  }
+
+  scatter_f32(out, in_values, indices, updates, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (out[i] != expected_value(i)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_WHERE_F32_HARNESS_SOURCE = r"""extern "C" void where_f32(float *out_ptr, float *cond_ptr, float *x_ptr, float *y_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 16;
+
+float cond[kElems];
+float x[kElems];
+float y[kElems];
+float out[kElems];
+
+static inline float cond_value(int i) {
+  return static_cast<float>((i % 5) - 2);
+}
+
+static inline float x_value(int i) {
+  return static_cast<float>(10 + i);
+}
+
+static inline float y_value(int i) {
+  return static_cast<float>(-20 - i);
+}
+
+static inline float expected_value(int i) {
+  return cond_value(i) > 0.0f ? x_value(i) : y_value(i);
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    cond[i] = cond_value(i);
+    x[i] = x_value(i);
+    y[i] = y_value(i);
+    out[i] = -99.0f;
+  }
+
+  where_f32(out, cond, x, y, kElems);
+
+  for (int i = 0; i < kElems; ++i) {
+    if (out[i] != expected_value(i)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_ARGMAX_F32_HARNESS_SOURCE = r"""extern "C" void argmax_f32(int *idx_ptr, float *x_ptr, int rows, int cols);
+
+namespace {
+
+constexpr int kRows = 4;
+constexpr int kCols = 5;
+constexpr int kElems = kRows * kCols;
+
+float x[kElems];
+int idx[kRows];
+
+static inline int expected_index(int row) {
+  constexpr int kExpected[kRows] = {3, 1, 4, 2};
+  return kExpected[row];
+}
+
+static inline float value_at(int row, int col) {
+  return static_cast<float>((row * 3) - (col * 2) + (col == expected_index(row) ? 50 : 0));
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int r = 0; r < kRows; ++r) {
+    idx[r] = -1;
+    for (int c = 0; c < kCols; ++c) {
+      x[r * kCols + c] = value_at(r, c);
+    }
+  }
+
+  argmax_f32(idx, x, kRows, kCols);
+
+  for (int r = 0; r < kRows; ++r) {
+    if (idx[r] != expected_index(r)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
+PTO_UNIQUE_I32_HARNESS_SOURCE = r"""extern "C" void unique_i32(int *out_values_ptr, int *out_count_ptr, int *in_values_ptr, int n);
+
+namespace {
+
+constexpr int kElems = 12;
+constexpr int kUnique = 6;
+
+int in_values[kElems];
+int out_values[kElems];
+int out_count[1];
+
+static inline int input_value(int i) {
+  constexpr int kValues[kElems] = {4, -1, 7, 4, 0, -1, 9, 7, 5, 0, 5, 9};
+  return kValues[i];
+}
+
+static inline int expected_value(int i) {
+  constexpr int kExpected[kUnique] = {4, -1, 7, 0, 9, 5};
+  return kExpected[i];
+}
+
+static inline __attribute__((noreturn)) void linx_pto_exit(unsigned int code) {
+  if (code == 0) {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 5, ->t\n"
+        "addi t#1, 1365, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  } else {
+    __asm__ volatile(
+        "BSTART.STD\n"
+        "lui 65545, ->u\n"
+        "lui 19, ->t\n"
+        "addi t#1, 819, ->t\n"
+        "c.swi t#1, [u#1, 0]\n"
+        "BSTOP\n"
+        ::: "memory");
+  }
+  while (1) {
+    __asm__ volatile("" ::: "memory");
+  }
+}
+
+} // namespace
+
+int main() {
+  for (int i = 0; i < kElems; ++i) {
+    in_values[i] = input_value(i);
+    out_values[i] = -999;
+  }
+  out_count[0] = -1;
+
+  unique_i32(out_values, out_count, in_values, kElems);
+
+  if (out_count[0] != kUnique) {
+    return 1;
+  }
+  for (int i = 0; i < kUnique; ++i) {
+    if (out_values[i] != expected_value(i)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+extern "C" __attribute__((noreturn, section(".text._start"))) void _start(void) {
+  linx_pto_exit(static_cast<unsigned int>(main()));
+}
+"""
 SUPER_SMOKE_TESTCASES = {"TAdd", "MatMul"}
 PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
     "tload_store_i32": ("pto-tload-store-harness.cpp", PTO_TLOAD_STORE_HARNESS_SOURCE),
@@ -418,6 +1070,15 @@ PTO_HARNESS_SOURCES: dict[str, tuple[str, str]] = {
         "pto-unsqueeze-f32-harness.cpp",
         PTO_UNSQUEEZE_F32_HARNESS_SOURCE,
     ),
+    "concat_f32": ("pto-concat-f32-harness.cpp", PTO_CONCAT_F32_HARNESS_SOURCE),
+    "split_f32": ("pto-split-f32-harness.cpp", PTO_SPLIT_F32_HARNESS_SOURCE),
+    "stack_f32": ("pto-stack-f32-harness.cpp", PTO_STACK_F32_HARNESS_SOURCE),
+    "slice_f32": ("pto-slice-f32-harness.cpp", PTO_SLICE_F32_HARNESS_SOURCE),
+    "gather_f32": ("pto-gather-f32-harness.cpp", PTO_GATHER_F32_HARNESS_SOURCE),
+    "scatter_f32": ("pto-scatter-f32-harness.cpp", PTO_SCATTER_F32_HARNESS_SOURCE),
+    "where_f32": ("pto-where-f32-harness.cpp", PTO_WHERE_F32_HARNESS_SOURCE),
+    "argmax_f32": ("pto-argmax-f32-harness.cpp", PTO_ARGMAX_F32_HARNESS_SOURCE),
+    "unique_i32": ("pto-unique-i32-harness.cpp", PTO_UNIQUE_I32_HARNESS_SOURCE),
 }
 PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
     "elementwise/relu_fp32.cpp": {
@@ -454,6 +1115,69 @@ PTO_STANDALONE_HARNESSES: dict[str, dict[str, Any]] = {
         "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
         "expected": "PTO unsqueeze_f32 standalone smoke ELF passes QEMU then gfsim",
         "description": "PTO catalog float32 unsqueeze direct-boot smoke harness",
+    },
+    "layout/concat_fp32.cpp": {
+        "standalone_harness": "concat_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO concat_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 concat direct-boot smoke harness",
+    },
+    "layout/split_fp32.cpp": {
+        "standalone_harness": "split_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO split_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 split direct-boot smoke harness",
+    },
+    "layout/stack_fp32.cpp": {
+        "standalone_harness": "stack_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO stack_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 stack direct-boot smoke harness",
+    },
+    "indexing/argmax_fp32.cpp": {
+        "standalone_harness": "argmax_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO argmax_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 argmax model-lane maturity harness",
+    },
+    "indexing/gather_fp32.cpp": {
+        "standalone_harness": "gather_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO gather_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 gather direct-boot smoke harness",
+    },
+    "indexing/scatter_fp32.cpp": {
+        "standalone_harness": "scatter_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO scatter_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 scatter direct-boot smoke harness",
+    },
+    "indexing/slice_fp32.cpp": {
+        "standalone_harness": "slice_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO slice_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 slice direct-boot smoke harness",
+    },
+    "indexing/unique_i32.cpp": {
+        "standalone_harness": "unique_i32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO unique_i32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog int32 unique model-lane maturity harness",
+    },
+    "indexing/where_fp32.cpp": {
+        "standalone_harness": "where_f32",
+        "harness_profile": "qemu_smoke",
+        "compile_defines": ["-DPTO_QEMU_SMOKE=1"],
+        "expected": "PTO where_f32 standalone smoke ELF passes QEMU then gfsim",
+        "description": "PTO catalog float32 where direct-boot smoke harness",
     },
     "memory/tload_store.cpp": {
         "standalone_harness": "tload_store_i32",
