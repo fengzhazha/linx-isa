@@ -217,6 +217,7 @@
     },
     "supernpu_source_selection": {
       "generic_testcase_rule": "When a SuperNPUBench compile.all row uses a generic TESTCASE such as matmul, resolve concrete source files from TYPE before TESTCASE and preserve actual path casing in source manifests.",
+      "compile_all_manifest_rule": "SuperNPUBench compile.all rows consumed by the AI flow must be concrete make commands with expanded values; shell-loop variables such as ${num_col} or ${debug} are benchmark/source-contract failures.",
       "example": "kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4 resolves src/HiF4_HiF4.cpp, not src/matmul.cpp or a case-mismatched path."
     },
     "supernpu_compiler_contract": [

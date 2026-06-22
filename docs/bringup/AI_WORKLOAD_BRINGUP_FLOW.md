@@ -77,7 +77,9 @@ The runner stops on the first red hard-break stage unless
   `cases/<case>/compiler/supernpu-output/`, links these as direct-boot Linx
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
-  directory for QEMU/model triage. When `TESTCASE` is generic, such as
+  directory for QEMU/model triage. Each `compile.all` case row must be a
+  concrete `make` command; do not leave shell-loop variables such as
+  `${num_col}` or `${debug}` in rows consumed by the runner. When `TESTCASE` is generic, such as
   `kernel/gemm/matmul TESTCASE=matmul`, the source contract resolves concrete
   sources from `TYPE` first (`A16W4.cpp`, `HiF4_HiF4.cpp`, etc.) and preserves
   actual path casing in source manifests. Current direct-boot green tileop cases are
@@ -171,7 +173,9 @@ The first failing boundary assigns the fix lane:
   inspect the compile log before assigning compiler ownership: stale data-object
   assembly paths that still target `linx64v5`, or source manifests that still
   require missing benchmark-only headers such as `benchmark.h`, are
-  benchmark/source-contract failures.
+  benchmark/source-contract failures. SuperNPUBench `compile.all` rows that
+  contain unexpanded shell variables are also benchmark/source-contract failures,
+  because the AI flow treats those rows as machine-readable case manifests.
 - `compiler`: clang, LLVM backend, MC, link, entry symbol, relocation, or retired-token static failure.
 - `emulator`: legal compiler output fails under QEMU.
 - `model`: QEMU-passing ELF fails to build, load, decode, execute, or match digest evidence in `gfsim`.
