@@ -145,11 +145,16 @@ class AiWorkloadFlowTests(unittest.TestCase):
             "pto-kernel-argmax_fp32": "argmax_f32",
             "pto-kernel-concat_fp32": "concat_f32",
             "pto-kernel-gather_fp32": "gather_f32",
+            "pto-kernel-hash_table_insert_fp32": "hash_table_insert_f32",
+            "pto-kernel-hash_table_lookup_fp32": "hash_table_lookup_f32",
+            "pto-kernel-permute_nhwc_nchw_fp32": "permute_nhwc_nchw_f32",
             "pto-kernel-scatter_fp32": "scatter_f32",
             "pto-kernel-slice_fp32": "slice_f32",
             "pto-kernel-split_fp32": "split_f32",
             "pto-kernel-stack_fp32": "stack_f32",
+            "pto-kernel-transpose_large_fp32": "transpose_large_f32",
             "pto-kernel-unique_i32": "unique_i32",
+            "pto-kernel-unsorted_segment_sum_fp32": "unsorted_segment_sum_f32",
             "pto-kernel-where_fp32": "where_f32",
         }
 

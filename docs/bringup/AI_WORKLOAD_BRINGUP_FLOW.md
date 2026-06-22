@@ -108,17 +108,21 @@ The runner stops on the first red hard-break stage unless
   standalone ELF harness is required before they can enter QEMU/model stages
   individually. Current promoted catalog smokes are `pto-kernel-tload_store`,
   `pto-kernel-gemm`, `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`,
-  `pto-kernel-gemm_performance`, `pto-kernel-mamulb`,
-  `pto-kernel-tmatmul_acc`, and `pto-kernel-relu_fp32` in Tier 1, plus the
-  Tier-2 layout-copy cases
+  `pto-kernel-gemm_performance`, `pto-kernel-gemm_reuse_a_fp16`,
+  `pto-kernel-gemm_reuse_b_fp16`, `pto-kernel-gemm_reuse_ab_fp16`,
+  `pto-kernel-mamulb`, `pto-kernel-tmatmul_acc`, `pto-kernel-relu_fp32`, and
+  `pto-kernel-add_custom` in Tier 1, plus the Tier-2 layout cases
   `pto-kernel-flatten_fp32`, `pto-kernel-reshape_fp32`,
   `pto-kernel-squeeze_fp32`, `pto-kernel-unsqueeze_fp32`,
   `pto-kernel-concat_fp32`, `pto-kernel-split_fp32`,
-  `pto-kernel-stack_fp32`, and the Tier-2 indexing cases
+  `pto-kernel-stack_fp32`, `pto-kernel-permute_nhwc_nchw_fp32`, and
+  `pto-kernel-transpose_large_fp32`, plus the Tier-2 indexing cases
   `pto-kernel-slice_fp32`, `pto-kernel-gather_fp32`,
   `pto-kernel-scatter_fp32`, `pto-kernel-where_fp32`,
-  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`, and
-  `pto-kernel-add_custom`: the
+  `pto-kernel-argmax_fp32`, `pto-kernel-unique_i32`,
+  `pto-kernel-hash_table_insert_fp32`,
+  `pto-kernel-hash_table_lookup_fp32`, and
+  `pto-kernel-unsorted_segment_sum_fp32`: the
   runner generates per-case harnesses, compiles the matching source with
   `-DPTO_QEMU_SMOKE=1`, emits direct-boot Linx ELFs plus objdump/raw-bin side
   artifacts, then promotes each passing ELF through QEMU and
@@ -126,7 +130,9 @@ The runner stops on the first red hard-break stage unless
   parity/model maturity suites until each catalog kernel has its own full-shape
   harness and oracle. `pto-kernel-add_custom` uses a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded by
-  the oracle; do not treat that helper as a general compiler-rt replacement.
+  the oracle; `pto-kernel-unsorted_segment_sum_fp32` uses the same scoped helper
+  for positive integer-valued smoke additions. Do not treat either helper as a
+  general compiler-rt replacement.
   `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`, and
   `pto-kernel-gemm_performance` use float bit-pattern copy-oracle harnesses for
   their `PTO_QEMU_SMOKE` branches; `gemm_performance` keeps `repeat_tiles=3`
@@ -135,13 +141,12 @@ The runner stops on the first red hard-break stage unless
   parity/model suites. `pto-kernel-gemm_reuse_a_fp16`,
   `pto-kernel-gemm_reuse_b_fp16`, and `pto-kernel-gemm_reuse_ab_fp16` now have
   direct-boot FP16 storage harnesses with harness-local positive-integer
-  `__mulsf3`/`__addsf3` shims. These cases pass source, compiler, and QEMU at
-  the default `PTO_QEMU_SMOKE=1` 16x16x16 shape, then fail in `gfsim` with
-  model-owned fix packets; do not list them as promoted final-green until the
-  model reaches the finisher. The PTO sources accept `PTO_QEMU_SMOKE_DIM` for
-  controlled future probes, but the runner keeps the default 16x16x16 shape
-  because smaller override probes must first prove the same QEMU oracle
-  behavior.
+  `__mulsf3`/`__addsf3` shims. These cases pass source, compiler, QEMU, and
+  `gfsim -f <elf>` at the default `PTO_QEMU_SMOKE=1` 16x16x16 shape when the AI
+  flow uses `--model-timeout 600`. The PTO sources accept
+  `PTO_QEMU_SMOKE_DIM` for controlled future probes, but the runner keeps the
+  default 16x16x16 shape because smaller override probes must first prove the
+  same QEMU oracle behavior.
 
 ## Owner Classification
 
