@@ -218,6 +218,8 @@
     "supernpu_source_selection": {
       "generic_testcase_rule": "When a SuperNPUBench compile.all row uses a generic TESTCASE such as matmul, resolve concrete source files from TYPE before TESTCASE and preserve actual path casing in source manifests.",
       "compile_all_manifest_rule": "SuperNPUBench compile.all rows consumed by the AI flow must be concrete make commands with expanded values; shell-loop variables such as ${num_col} or ${debug} are benchmark/source-contract failures.",
+      "control_data_object_rule": "SuperNPUBench kernel/control data-object cases must build generated .o files under the redirected OBJ_ROOT and use explicit generated-object targets so Make does not rebuild .s files with a host/default assembler.",
+      "hashtable_lookup_simt_direct_smoke": "The promoted model-green control smoke is hashtable_lookup_simt with kNum=16, LINX_HT_CAPACITY=2048, LINX_HT_DIRECT=1, LINX_HT_SCAN=1, and FOR_GFSIM. MurmurHash3/probe variants that pass QEMU but fail only in gfsim are model-owned maturity packets.",
       "example": "kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4 resolves src/HiF4_HiF4.cpp, not src/matmul.cpp or a case-mismatched path."
     },
     "supernpu_compiler_contract": [

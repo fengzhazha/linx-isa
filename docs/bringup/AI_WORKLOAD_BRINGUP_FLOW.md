@@ -88,8 +88,17 @@ The runner stops on the first red hard-break stage unless
   `TExpandScalar`, `TReshape`, `TTrans`, `TPad`, `TRowMax`, `TRowMaxExpand`,
   `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
   `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
-  `TAnd`, `TOr`, and `TCmp`; keep future promotions similarly bounded and
-  prove each exact case through QEMU and `gfsim -f <elf>`. `MatMacc` is currently a
+  `TAnd`, `TOr`, `TCmp`, and `kernel/control hashtable_lookup_simt`; keep
+  future promotions similarly bounded and prove each exact case through QEMU
+  and `gfsim -f <elf>`. `hashtable_lookup_simt` is currently a bounded
+  `kNum=16` embedded-data direct smoke using `LINX_HT_DIRECT=1` and
+  `LINX_HT_SCAN=1` over the generated 2048-entry table. The real
+  MurmurHash3 initial-slot plus linear
+  probe path has QEMU-pass/model-fail evidence (`gfsim` finisher fail or
+  internal result-verify failure) and remains a model-owned maturity packet.
+  Keep SuperNPUBench control data-object rows with explicit no-op generated
+  object targets so redirected `OBJ_ROOT` runs do not rebuild `.s` files with a
+  host/default assembler. `MatMacc` is currently a
   bounded `4x4` int64 row-major multiply-accumulate smoke; col-major MatMacc
   has QEMU-pass/model-fail evidence and remains a model-lane maturity packet.
   `test_MatMul` is currently a bounded `4x4` int64 row-major MATMUL smoke;
@@ -181,7 +190,9 @@ The first failing boundary assigns the fix lane:
 - `model`: QEMU-passing ELF fails to build, load, decode, execute, or match digest evidence in `gfsim`.
   For scalar or vector select divergence around `csel`/`psel`, the model must
   match the LLVM/QEMU contract: `SrcP != 0` selects `SrcR`; `SrcP == 0` selects
-  `SrcL`.
+  `SrcL`. For `kernel/control hashtable_lookup_simt`, QEMU-passing MurmurHash3
+  probe loops that fail only in `gfsim` are model-owned until the C++ model
+  matches QEMU on the scalar hash/probe path.
 - `docs-skills`: the run exposes a reusable contract, command, or triage rule not covered by docs/skills.
 
 Each failed case gets a JSON packet under `fix-packets/` with owner, evidence,
