@@ -77,7 +77,10 @@ The runner stops on the first red hard-break stage unless
   `cases/<case>/compiler/supernpu-output/`, links these as direct-boot Linx
   ELFs with `_start` first at `0x10000`, and copies the canonical ELF,
   objdump outputs, raw bin, and linker script into the compiler artifact
-  directory for QEMU/model triage. Current direct-boot green tileop cases are
+  directory for QEMU/model triage. When `TESTCASE` is generic, such as
+  `kernel/gemm/matmul TESTCASE=matmul`, the source contract resolves concrete
+  sources from `TYPE` first (`A16W4.cpp`, `HiF4_HiF4.cpp`, etc.) and preserves
+  actual path casing in source manifests. Current direct-boot green tileop cases are
   `MatMul`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`,
   `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TReshape`, `TTrans`, `TPad`, `TRowMax`, `TRowMaxExpand`,
@@ -102,7 +105,13 @@ The runner stops on the first red hard-break stage unless
   evidence. `TExp` is currently a bounded `4x4` int64 rounded-exp
   direct-boot smoke using a comparison ladder; float/half exponential and
   compiler-generated constant-table paths remain deferred until the model lane
-  has matching evidence.
+  has matching evidence. SuperNPUBench `kernel/gemm/matmul` `TYPE=A16W4` and
+  `TYPE=HIF4_HIF4` currently reach source-contract pass and model-build-smoke pass,
+  then fail the compiler-contract as benchmark-owned maturity packets because
+  their MX path still depends on vector-only `template_asm.h` `Tr` constraints
+  and `blkv_get_*` launch helpers. Do not reclassify these as compiler failures
+  unless a Linx direct-boot MX API contract exists and the same source still
+  fails in LLVM/MC/link.
 - `pto_kernel`: cataloged PTO kernel sources. Most entries currently
   participate in source and compile/static stages only; an ABI-specific
   standalone ELF harness is required before they can enter QEMU/model stages
@@ -155,7 +164,8 @@ The first failing boundary assigns the fix lane:
 - `benchmark`: source, manifest, API, or workload normalization failure.
   SuperNPUBench compiler-stage logs are still benchmark-owned when they show a
   missing Linx tile API implementation such as `*_Impl`, unsupported Linx tile
-  runtime contracts such as vector-kernel syntax or boxed layouts, or
+  runtime contracts such as vector-kernel syntax, `Tr` asm constraints,
+  `blkv_get_*`, or boxed layouts, or
   direct-boot source paths that still depend on host libc/soft-float symbols.
 - `compiler`: clang, LLVM backend, MC, link, entry symbol, relocation, or retired-token static failure.
 - `emulator`: legal compiler output fails under QEMU.

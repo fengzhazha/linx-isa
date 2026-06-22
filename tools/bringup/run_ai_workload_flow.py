@@ -2559,35 +2559,66 @@ def _norm_key(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", text.lower())
 
 
+def supernpu_source_keys(make_vars: dict[str, str]) -> list[str]:
+    keys: list[str] = []
+    for name in ("TYPE", "TESTCASE"):
+        value = make_vars.get(name, "").strip()
+        if value and value not in keys:
+            keys.append(value)
+    return keys
+
+
+def existing_path_with_actual_case(candidate: Path) -> Path | None:
+    if not candidate.exists():
+        return None
+    parent = candidate.parent
+    if not parent.exists():
+        return candidate
+    for child in parent.iterdir():
+        if child.name == candidate.name:
+            return child
+    norm_name = _norm_key(candidate.name)
+    matches = [child for child in parent.iterdir() if _norm_key(child.name) == norm_name]
+    if len(matches) == 1:
+        return matches[0]
+    return candidate
+
+
 def supernpu_source_paths(suite_dir: Path, make_vars: dict[str, str]) -> list[Path]:
-    testcase = make_vars["TESTCASE"]
-    candidates = [
-        suite_dir / "src" / f"{testcase}.cpp",
-        suite_dir / testcase / f"{testcase}.cpp",
-        suite_dir / f"{testcase}.cpp",
-    ]
+    source_keys = supernpu_source_keys(make_vars)
+    candidates = []
+    for key in source_keys:
+        candidates.extend(
+            [
+                suite_dir / "src" / f"{key}.cpp",
+                suite_dir / key / f"{key}.cpp",
+                suite_dir / f"{key}.cpp",
+            ]
+        )
     for candidate in candidates:
-        if candidate.exists():
-            return [candidate]
+        existing = existing_path_with_actual_case(candidate)
+        if existing is not None:
+            return [existing]
 
     cpp_files = sorted(suite_dir.rglob("*.cpp"))
-    testcase_key = _norm_key(testcase)
-    matching = [
-        path
-        for path in cpp_files
-        if _norm_key(path.stem) == testcase_key
-        or _norm_key(path.stem) in testcase_key
-        or testcase_key in _norm_key(path.stem)
-    ]
-    if matching:
-        return [matching[0]]
+    for source_key in source_keys:
+        norm_source_key = _norm_key(source_key)
+        matching = [
+            path
+            for path in cpp_files
+            if _norm_key(path.stem) == norm_source_key
+            or _norm_key(path.stem) in norm_source_key
+            or norm_source_key in _norm_key(path.stem)
+        ]
+        if matching:
+            return [matching[0]]
 
     src_dir = suite_dir / "src"
     src_cpp_files = sorted(src_dir.rglob("*.cpp")) if src_dir.exists() else []
     if len(src_cpp_files) == 1:
         return [src_cpp_files[0]]
 
-    return [candidates[0]]
+    return [suite_dir / "src" / f"{make_vars['TESTCASE']}.cpp"]
 
 
 def snapshot_elf_mtimes(elf_dir: Path) -> dict[Path, float]:

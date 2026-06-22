@@ -215,6 +215,10 @@
       "contains_match": "--case <text> selects cases whose id, suite, or kind contains <text>.",
       "exact_match": "--case =<text> selects only cases whose id, suite, or kind equals <text>; quote the argument in zsh shells."
     },
+    "supernpu_source_selection": {
+      "generic_testcase_rule": "When a SuperNPUBench compile.all row uses a generic TESTCASE such as matmul, resolve concrete source files from TYPE before TESTCASE and preserve actual path casing in source manifests.",
+      "example": "kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4 resolves src/HiF4_HiF4.cpp, not src/matmul.cpp or a case-mismatched path."
+    },
     "supernpu_compiler_contract": [
       {
         "owner": "benchmark",
@@ -229,6 +233,8 @@
         "markers": [
           "unknown type name '__vbuf__'",
           "use of undeclared identifier 'blkv_get_'",
+          "invalid output constraint '=Tr'",
+          "invalid input constraint 'Tr'",
           "Linx smoke TCOPYIN supports only unboxed tiles",
           "Linx scalar MATMUL supports only unboxed layouts",
           "Linx scalar MATMUL does not support ACC tile operands",

@@ -60,6 +60,29 @@ class AiWorkloadFlowTests(unittest.TestCase):
         )
         self.assertEqual([case.id for case in selected], ["supernpu-tileop_api-TSub"])
 
+    def test_supernpu_matmul_source_uses_type_when_testcase_is_generic(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            suite = Path(td)
+            src_dir = suite / "src"
+            src_dir.mkdir()
+            hif4 = src_dir / "HiF4_HiF4.cpp"
+            a16w4 = src_dir / "A16W4.cpp"
+            hif4.write_text("hif4\n", encoding="utf-8")
+            a16w4.write_text("a16w4\n", encoding="utf-8")
+
+            self.assertEqual(
+                run_ai_workload_flow.supernpu_source_paths(
+                    suite, {"TESTCASE": "matmul", "TYPE": "HIF4_HIF4"}
+                ),
+                [hif4],
+            )
+            self.assertEqual(
+                run_ai_workload_flow.supernpu_source_paths(
+                    suite, {"TESTCASE": "matmul", "TYPE": "A16W4"}
+                ),
+                [a16w4],
+            )
+
     def test_skill_evolve_note_preserves_no_update_prefix(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             payload = run_ai_workload_flow.write_skill_doc_evolution(
