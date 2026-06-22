@@ -3311,6 +3311,8 @@ def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
         "-mlxbc",
         "-enable-all-vector-as-tilereg",
         "bits/alltypes.h",
+        "unknown target triple 'linx64v5'",
+        "fatal error: 'benchmark.h' file not found",
         "unknown type name '__half'",
         "use of undeclared identifier '__fp32'",
         "use of undeclared identifier '__tf32'",
@@ -3321,6 +3323,13 @@ def classify_supernpu_compile_failure(log_path: Path) -> tuple[str, str]:
     if any(marker in text for marker in source_markers):
         return "benchmark", "SuperNPUBench source/toolchain manifest mismatch"
     return "compiler", "SuperNPUBench compile failed"
+
+
+def classify_supernpu_missing_elf(log_path: Path, elf: Path) -> tuple[str, str]:
+    owner, evidence = classify_supernpu_compile_failure(log_path)
+    if owner == "benchmark":
+        return owner, evidence
+    return "compiler", f"expected ELF was not produced: {elf}"
 
 
 def classify_avs_compile_failure(log_path: Path) -> tuple[str, str]:
@@ -3653,7 +3662,7 @@ def compiler_contract(
                         artifacts["elf_source"] = str(elf)
                 if not dry_run and not elf.exists():
                     status = "fail"
-                    evidence = f"expected ELF was not produced: {elf}"
+                    owner, evidence = classify_supernpu_missing_elf(log_path, elf)
                 else:
                     copied = case_artifacts / f"{case.id}.elf"
                     copied.parent.mkdir(parents=True, exist_ok=True)

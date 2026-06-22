@@ -251,6 +251,15 @@
           "undefined symbol: memcpy",
           "undefined symbol: __divsf3"
         ]
+      },
+      {
+        "owner": "benchmark",
+        "evidence": "SuperNPUBench source/toolchain manifest mismatch",
+        "markers": [
+          "unknown target triple 'linx64v5'",
+          "fatal error: 'benchmark.h' file not found"
+        ],
+        "note": "Apply this rule even when make exits successfully but the expected ELF is missing."
       }
     ]
   },

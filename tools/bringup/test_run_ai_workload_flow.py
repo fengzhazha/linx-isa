@@ -45,6 +45,49 @@ class AiWorkloadFlowTests(unittest.TestCase):
         self.assertEqual(owner, "benchmark")
         self.assertIn("direct-boot runtime", evidence)
 
+    def test_supernpu_stale_data_object_toolchain_is_benchmark_owned(self) -> None:
+        owner, evidence = self.classify(
+            "Building ../../../output/kernel/sort/topk/data_obj/input_131072.o\n"
+            "clang -cc1as: error: unknown target triple 'linx64v5'\n"
+            "Done building data object files\n"
+        )
+        self.assertEqual(owner, "benchmark")
+        self.assertIn("source/toolchain", evidence)
+
+    def test_supernpu_missing_benchmark_header_is_benchmark_owned(self) -> None:
+        owner, evidence = self.classify("fatal error: 'benchmark.h' file not found\n")
+        self.assertEqual(owner, "benchmark")
+        self.assertIn("source/toolchain", evidence)
+
+    def test_supernpu_missing_elf_uses_benchmark_classification_when_log_matches(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            log_path = Path(td) / "compile.log"
+            elf_path = Path(td) / "missing.elf"
+            log_path.write_text(
+                "clang -cc1as: error: unknown target triple 'linx64v5'\n",
+                encoding="utf-8",
+            )
+
+            owner, evidence = run_ai_workload_flow.classify_supernpu_missing_elf(
+                log_path, elf_path
+            )
+
+        self.assertEqual(owner, "benchmark")
+        self.assertIn("source/toolchain", evidence)
+
+    def test_supernpu_missing_elf_without_known_marker_stays_compiler_owned(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            log_path = Path(td) / "compile.log"
+            elf_path = Path(td) / "missing.elf"
+            log_path.write_text("make: nothing to be done\n", encoding="utf-8")
+
+            owner, evidence = run_ai_workload_flow.classify_supernpu_missing_elf(
+                log_path, elf_path
+            )
+
+        self.assertEqual(owner, "compiler")
+        self.assertIn("expected ELF was not produced", evidence)
+
     def test_unknown_supernpu_compile_failure_remains_compiler_owned(self) -> None:
         owner, evidence = self.classify("clang++: error: backend crashed unexpectedly\n")
         self.assertEqual(owner, "compiler")

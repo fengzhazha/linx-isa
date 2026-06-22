@@ -167,6 +167,11 @@ The first failing boundary assigns the fix lane:
   runtime contracts such as vector-kernel syntax, `Tr` asm constraints,
   `blkv_get_*`, or boxed layouts, or
   direct-boot source paths that still depend on host libc/soft-float symbols.
+  If a SuperNPUBench `make` invocation exits successfully but no ELF appears,
+  inspect the compile log before assigning compiler ownership: stale data-object
+  assembly paths that still target `linx64v5`, or source manifests that still
+  require missing benchmark-only headers such as `benchmark.h`, are
+  benchmark/source-contract failures.
 - `compiler`: clang, LLVM backend, MC, link, entry symbol, relocation, or retired-token static failure.
 - `emulator`: legal compiler output fails under QEMU.
 - `model`: QEMU-passing ELF fails to build, load, decode, execute, or match digest evidence in `gfsim`.
