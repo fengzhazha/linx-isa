@@ -3729,7 +3729,10 @@ def write_fix_packets(out_dir: Path, states: list[CaseState]) -> list[dict[str, 
     packet_dir = out_dir / "fix-packets"
     rows: list[dict[str, Any]] = []
     for state in states:
+        packet_path = packet_dir / f"{state.case.id}.json"
         if not state.failure_stage:
+            if packet_path.exists():
+                packet_path.unlink()
             rows.append(
                 stage_row(
                     state,
@@ -3772,7 +3775,6 @@ def write_fix_packets(out_dir: Path, states: list[CaseState]) -> list[dict[str, 
             "artifacts": state.artifacts,
             "stage_rows": state.stages,
         }
-        packet_path = packet_dir / f"{case.id}.json"
         write_json(packet_path, packet)
         rows.append(
             stage_row(
