@@ -83,7 +83,8 @@ The runner stops on the first red hard-break stage unless
   `kernel/gemm/matmul TESTCASE=matmul`, the source contract resolves concrete
   sources from `TYPE` first (`A16W4.cpp`, `HiF4_HiF4.cpp`, etc.) and preserves
   actual path casing in source manifests. Current direct-boot green tileop cases are
-  `MatMul`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`, `TAbs`, `TCI`,
+  `MatMul`, `MatMul_e4m3`, `MatMacc`, `test_MatMul`, `test_MatMacc`, `TAdd`,
+  `TAbs`, `TCI`,
   `TCopyIn`, `TCopyOut`, `TCopy`, `TCvt`, `TExpandCol`, `TExpandRow`,
   `TExpandScalar`, `TReshape`, `TTrans`, `TPad`, `TRowMax`, `TRowMaxExpand`,
   `TRowSum`, `TRowSumExpand`, `TSub`, `TSubs`, `TAdd_mask`, `TAdds`, `TDiv`,
@@ -106,11 +107,14 @@ The runner stops on the first red hard-break stage unless
   until the Linx direct-boot model lane supports that runtime contract.
   `test_MatMacc` is currently a bounded `4x4` int64 row-major MATMUL+MATMACC
   smoke; its original TileLeft/TileRight/TileAcc plus TCVT float path remains
-  deferred on the same model-lane runtime contract. `MatMul_e4m3` remains a
-  benchmark-owned maturity packet: keep the original FP8 e4m3 conversion,
-  TileLeft/TileRight inputs, TileAcc output, and vector-kernel conversion
-  contract intact until the Linx direct-boot lane has real boxed/ACC/FP8 support.
-  Do not replace it with the existing int64 `MatMul` smoke. `TSqrt` is currently a
+  deferred on the same model-lane runtime contract. `MatMul_e4m3` keeps the
+  original FP8 e4m3 conversion, TileLeft/TileRight inputs, TileAcc output, and
+  vector-kernel conversion contract for non-Linx builds, but its `__linx`
+  direct-boot path is a source-local `4x4` int64 MATMUL smoke with the same
+  freestanding `_start`/finisher pattern as neighboring tileop cases. Keep that
+  smoke distinct from the existing `MatMul` source so both `tileop_api` and
+  `other/tileop_api` manifests remain individually promotable while boxed,
+  ACC, and FP8 runtime support matures. `TSqrt` is currently a
   bounded `4x4` int64 perfect-square direct-boot smoke; broader integer and
   floating-point sqrt remain deferred until the model lane has matching
   evidence. `TExp` is currently a bounded `4x4` int64 rounded-exp
