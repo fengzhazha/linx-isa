@@ -4606,12 +4606,19 @@ def stage_failed(rows: list[dict[str, Any]] | dict[str, Any]) -> bool:
     return any(row.get("status") not in PASS_STATUSES for row in rows)
 
 
-def case_summary(state: CaseState) -> dict[str, Any]:
-    final_status = "fail" if state.failure_stage else "pass"
-    if not state.failure_stage:
-        model_row = state.stages.get("linxcoremodel-execution")
-        if model_row and model_row["status"] in {"skipped", "not_applicable", "not_run"}:
-            final_status = model_row["status"]
+def case_final_status(state: CaseState, emitted_stage_ids: set[str]) -> str:
+    if state.failure_stage:
+        return "fail"
+    if "linxcoremodel-execution" not in emitted_stage_ids:
+        return "pending"
+    model_row = state.stages.get("linxcoremodel-execution")
+    if not model_row:
+        return "pending"
+    return model_row.get("status", "pending")
+
+
+def case_summary(state: CaseState, emitted_stage_ids: set[str]) -> dict[str, Any]:
+    final_status = case_final_status(state, emitted_stage_ids)
     return {
         "id": state.case.id,
         "kind": state.case.kind,
@@ -4686,6 +4693,8 @@ def write_report(
     states: list[CaseState],
     skill_evolution: dict[str, Any] | None,
 ) -> None:
+    emitted_stage_ids = {stage["id"] for stage in stages}
+    case_summaries = [case_summary(state, emitted_stage_ids) for state in states]
     payload = {
         "schema_version": 1,
         "generated_at_utc": utc_now(),
@@ -4693,17 +4702,25 @@ def write_report(
         "profile": profile,
         "tiers": sorted(tiers),
         "dry_run": dry_run,
-        "ok": all(not state.failure_stage for state in states),
+        "ok": all(summary["final_status"] in PASS_STATUSES for summary in case_summaries),
         "stages": stages,
-        "cases": [case_summary(state) for state in states],
+        "cases": case_summaries,
         "skill_evolution": skill_evolution,
     }
     write_json(out_dir / "report.json", payload)
 
 
-def write_summary(out_dir: Path, states: list[CaseState], skill_evolution: dict[str, Any] | None) -> None:
+def write_summary(
+    out_dir: Path,
+    states: list[CaseState],
+    skill_evolution: dict[str, Any] | None,
+    stages: list[dict[str, Any]],
+) -> None:
+    emitted_stage_ids = {stage["id"] for stage in stages}
+    summaries = [case_summary(state, emitted_stage_ids) for state in states]
     total = len(states)
     failures = [s for s in states if s.failure_stage]
+    pending = [summary for summary in summaries if summary["final_status"] == "pending"]
     final_green = [
         s
         for s in states
@@ -4717,12 +4734,12 @@ def write_summary(out_dir: Path, states: list[CaseState], skill_evolution: dict[
         f"- Cases selected: `{total}`",
         f"- Final model green: `{len(final_green)}`",
         f"- Failed cases: `{len(failures)}`",
+        f"- Pending cases: `{len(pending)}`",
         "",
         "| Case | Kind | Tier | Final | First Owner | Evidence |",
         "|---|---:|---:|---|---|---|",
     ]
-    for state in states:
-        summary = case_summary(state)
+    for state, summary in zip(states, summaries, strict=True):
         evidence = (summary.get("failure_evidence") or "").replace("|", "\\|")
         lines.append(
             f"| `{state.case.id}` | `{state.case.kind}` | `{state.case.tier}` | "
@@ -4876,7 +4893,7 @@ def main(argv: list[str]) -> int:
             states=states,
             skill_evolution=skill_evolution,
         )
-        write_summary(out_dir, states, skill_evolution)
+        write_summary(out_dir, states, skill_evolution, stage_reports)
         if stage_failed(rows):
             failed = True
             if stage.get("hard_break", True) and not args.continue_on_fail:
@@ -4916,7 +4933,7 @@ def main(argv: list[str]) -> int:
         states=states,
         skill_evolution=skill_evolution,
     )
-    write_summary(out_dir, states, skill_evolution)
+    write_summary(out_dir, states, skill_evolution, stage_reports)
 
     print(f"manifest: {out_dir / 'manifest.json'}")
     print(f"report: {out_dir / 'report.json'}")

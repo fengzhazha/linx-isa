@@ -77,10 +77,11 @@ The runner stops on the first red hard-break stage unless
   `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to prove the
   matmul/GEMM prefix through QEMU and `gfsim` before later float-helper-heavy
   stages are mature. Keep `avs-pto-parity` as the full smoke-sized maturity
-  row; current model-owned evidence reaches `sigmoid`, and an attempted
-  `PTO_PARITY_STAGE_SIGMOID` prefix can expose a separate `add_custom` BFU
-  crash after QEMU pass, so neither should be relabeled as benchmark/compiler
-  until model evidence changes.
+  row; current model-owned evidence reaches `flash_attention_softmax` after
+  producing the `flash_attention` digest before timeout. Earlier `tanh` crash
+  and `softmax` local-pipe stall evidence were model BFU local-pipe lifetime
+  issues, so do not relabel QEMU-passing parity failures as benchmark/compiler
+  without newer static legality evidence.
   Tier-0 tile smoke uses the AVS compile-smoke source override during QEMU
   execution so it exercises the PTO/QEMU/model handoff before the full tile
   runtime source is green. Keep this case-level smoke separate from
