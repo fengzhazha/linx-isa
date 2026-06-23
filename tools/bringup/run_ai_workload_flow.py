@@ -1925,6 +1925,19 @@ static inline float f32_from_bits(unsigned int value) {
 }
 
 static inline unsigned int f32_bits_from_u32(unsigned int value) {
+  static constexpr unsigned int kSmallValueBits[] = {
+      0x00000000U, 0x3f800000U, 0x40000000U, 0x40400000U,
+      0x40800000U, 0x40a00000U, 0x40c00000U, 0x40e00000U,
+      0x41000000U, 0x41100000U, 0x41200000U, 0x41300000U,
+      0x41400000U, 0x41500000U, 0x41600000U, 0x41700000U,
+      0x41800000U, 0x41880000U, 0x41900000U, 0x41980000U,
+      0x41a00000U, 0x41a80000U, 0x41b00000U, 0x41b80000U,
+      0x41c00000U, 0x41c80000U, 0x41d00000U, 0x41d80000U,
+      0x41e00000U, 0x41e80000U, 0x41f00000U, 0x41f80000U,
+  };
+  if (value < (sizeof(kSmallValueBits) / sizeof(kSmallValueBits[0]))) {
+    return kSmallValueBits[value];
+  }
   if (value == 0) {
     return 0;
   }

@@ -150,9 +150,14 @@ The runner stops on the first red hard-break stage unless
   parity/model maturity suites until each catalog kernel has its own full-shape
   harness and oracle. `pto-kernel-add_custom` uses a harness-local freestanding
   `__addsf3` helper scoped to the positive integer-valued smoke inputs seeded by
-  the oracle; `pto-kernel-unsorted_segment_sum_fp32` uses the same scoped helper
-  for positive integer-valued smoke additions. Do not treat either helper as a
-  general compiler-rt replacement.
+  the oracle, and its oracle-side `f32_bits_from_u32` must fast-path the current
+  small smoke range with an exact bit table so `gfsim` does not spend the run in
+  harness-only bit-scan loops. Keep that table local to `add_custom`; adding the
+  same table to the GEMM copy harness changes its generated `.rodata` access
+  pattern and must not be done without rerunning `pto-kernel-gemm_basic` and
+  `pto-kernel-gemm_demo`. `pto-kernel-unsorted_segment_sum_fp32` uses the same
+  scoped helper for positive integer-valued smoke additions. Do not treat either
+  helper as a general compiler-rt replacement.
   `pto-kernel-gemm_basic`, `pto-kernel-gemm_demo`, and
   `pto-kernel-gemm_performance` use float bit-pattern copy-oracle harnesses for
   their `PTO_QEMU_SMOKE` branches; `gemm_performance` keeps `repeat_tiles=3`
