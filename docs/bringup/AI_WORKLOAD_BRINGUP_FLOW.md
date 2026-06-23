@@ -90,12 +90,12 @@ The runner stops on the first red hard-break stage unless
   `TDivs`, `TExp`, `TRem`, `TRecip`, `TSqrt`, `TMul`, `TMuls`, `TMax`, `TMaxs`,
   `TAnd`, `TOr`, `TCmp`, and `kernel/control hashtable_lookup_simt`; keep
   future promotions similarly bounded and prove each exact case through QEMU
-  and `gfsim -f <elf>`. `hashtable_lookup_simt` is currently a bounded
-  `kNum=16` embedded-data direct smoke using `LINX_HT_DIRECT=1` and
-  `LINX_HT_SCAN=1` over the generated 2048-entry table. The real
-  MurmurHash3 initial-slot plus linear
-  probe path has QEMU-pass/model-fail evidence (`gfsim` finisher fail or
-  internal result-verify failure) and remains a model-owned maturity packet.
+  and `gfsim -f <elf>`. `hashtable_lookup_simt` currently has two bounded
+  `kNum=16` embedded-data direct smokes over the generated 2048-entry table:
+  `LINX_HT_SCAN=1` for the linear-scan fallback and `LINX_HT_DIRECT=1` without
+  scan for the real MurmurHash3 initial-slot plus linear-probe path. Keep both
+  promoted through QEMU and `gfsim`; the hash/probe case is the regression for
+  model W-form logical-right-shift semantics.
   Keep SuperNPUBench control data-object rows with explicit no-op generated
   object targets so redirected `OBJ_ROOT` runs do not rebuild `.s` files with a
   host/default assembler. `MatMacc` is currently a
@@ -191,8 +191,9 @@ The first failing boundary assigns the fix lane:
   For scalar or vector select divergence around `csel`/`psel`, the model must
   match the LLVM/QEMU contract: `SrcP != 0` selects `SrcR`; `SrcP == 0` selects
   `SrcL`. For `kernel/control hashtable_lookup_simt`, QEMU-passing MurmurHash3
-  probe loops that fail only in `gfsim` are model-owned until the C++ model
-  matches QEMU on the scalar hash/probe path.
+  probe loops that fail only in `gfsim` should first check W-form scalar
+  arithmetic, especially `SRLW`/`SRLIW`: use `SrcL[31:0]`, a 5-bit shift
+  amount, and sign-extend the 32-bit result.
 - `docs-skills`: the run exposes a reusable contract, command, or triage rule not covered by docs/skills.
 
 Each failed case gets a JSON packet under `fix-packets/` with owner, evidence,
