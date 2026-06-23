@@ -76,12 +76,18 @@ The runner stops on the first red hard-break stage unless
   deterministic bit-pattern F32/FP16 seeds plus
   `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to prove the
   matmul/GEMM prefix through QEMU and `gfsim` before later float-helper-heavy
-  stages are mature. Keep `avs-pto-parity` as the full smoke-sized maturity
-  row; current model-owned evidence reaches `flash_attention_softmax` after
-  producing the `flash_attention` digest before timeout. Earlier `tanh` crash
-  and `softmax` local-pipe stall evidence were model BFU local-pipe lifetime
-  issues, so do not relabel QEMU-passing parity failures as benchmark/compiler
-  without newer static legality evidence.
+  stages are mature. The promoted post-GEMM prefix is
+  `avs-pto-parity-prefix-flash-attention`, which stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves the current model-green boundary
+  reaches the `flash_attention` digest. Keep `avs-pto-parity` as the full
+  smoke-sized maturity row; current model-owned evidence reaches
+  `flash_attention_softmax` after producing the `flash_attention` digest before
+  timeout. The AVS source exposes stop-after-stage IDs for later PTO parity
+  stages so agents can isolate the first red model boundary without changing the
+  full-row target. Earlier `tanh` crash, `softmax` local-pipe stall, and
+  `softmax_inplace` RAS assertion evidence were model BFU/RAS issues, so do not
+  relabel QEMU-passing parity failures as benchmark/compiler without newer
+  static legality evidence.
   Tier-0 tile smoke uses the AVS compile-smoke source override during QEMU
   execution so it exercises the PTO/QEMU/model handoff before the full tile
   runtime source is green. Keep this case-level smoke separate from

@@ -38,6 +38,39 @@ using pto::fp16_t;
 #define PTO_PARITY_STAGE_ADD_CUSTOM 8
 #define PTO_PARITY_STAGE_RELU 9
 #define PTO_PARITY_STAGE_SIGMOID 10
+#define PTO_PARITY_STAGE_SILU 11
+#define PTO_PARITY_STAGE_TANH 12
+#define PTO_PARITY_STAGE_SOFTMAX 13
+#define PTO_PARITY_STAGE_SWIGLU 14
+#define PTO_PARITY_STAGE_FLASH_ATTENTION 15
+#define PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX 16
+#define PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED 17
+#define PTO_PARITY_STAGE_FA_PERFORMANCE 18
+#define PTO_PARITY_STAGE_MLA_ATTENTION 19
+#define PTO_PARITY_STAGE_FLASH_ATTENTION_CUBE 20
+#define PTO_PARITY_STAGE_FLASH_ATTENTION_VEC 21
+#define PTO_PARITY_STAGE_GQA 22
+#define PTO_PARITY_STAGE_SPARSE_ATTENTION_LOCAL 23
+#define PTO_PARITY_STAGE_RMSNORM 24
+#define PTO_PARITY_STAGE_BATCHNORM 25
+#define PTO_PARITY_STAGE_LAYERNORM 26
+#define PTO_PARITY_STAGE_GELU 27
+#define PTO_PARITY_STAGE_ARGMAX 28
+#define PTO_PARITY_STAGE_GATHER 29
+#define PTO_PARITY_STAGE_WHERE 30
+#define PTO_PARITY_STAGE_SLICE 31
+#define PTO_PARITY_STAGE_CONCAT 32
+#define PTO_PARITY_STAGE_FLATTEN 33
+#define PTO_PARITY_STAGE_RESHAPE 34
+#define PTO_PARITY_STAGE_SCATTER 35
+#define PTO_PARITY_STAGE_SQUEEZE 36
+#define PTO_PARITY_STAGE_UNSQUEEZE 37
+#define PTO_PARITY_STAGE_STACK 38
+#define PTO_PARITY_STAGE_SPLIT 39
+#define PTO_PARITY_STAGE_PERMUTE_NHWC_NCHW 40
+#define PTO_PARITY_STAGE_TRANSPOSE 41
+#define PTO_PARITY_STAGE_UNSORTED_SEGMENT_SUM 42
+#define PTO_PARITY_STAGE_UNIQUE 43
 
 #if __has_include("pto_parity_shape_config.generated.hpp")
 #include "pto_parity_shape_config.generated.hpp"
@@ -696,6 +729,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("silu",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kUnaryN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SILU))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("tanh");
@@ -703,6 +738,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("tanh",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kUnaryN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_TANH))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("softmax");
@@ -711,6 +748,8 @@ static void run_all_kernels_emit_digest() {
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kSoftmaxRows * kSoftmaxCols) *
                               sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SOFTMAX))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("swiglu");
@@ -718,20 +757,28 @@ static void run_all_kernels_emit_digest() {
   emit_digest("swiglu",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kUnaryN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SWIGLU))
+    return;
 
   emit_stage("pre_flash_attention");
   emit_stage("flash_attention");
   pto_flash_attention(flashO, flashQ, flashK, flashV, nullptr);
   emit_digest("flash_attention", fnv1a_bytes(flashO, sizeof(flashO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLASH_ATTENTION))
+    return;
 
   emit_stage("flash_attention_softmax");
   pto_flash_attention_softmax(flashOf, flashQf, flashKf, flashVf, nullptr);
   emit_digest("flash_attention_softmax", fnv1a_bytes(flashOf, sizeof(flashOf)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX))
+    return;
 
   emit_stage("flash_attention_masked");
   pto_flash_attention_masked(flashMaskO, flashMaskQ, flashMaskK, flashMaskV,
                              nullptr);
   emit_digest("flash_attention_masked", fnv1a_bytes(flashMaskO, sizeof(flashMaskO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED))
+    return;
 
   zero_f32(flashOf, kFlashF32O);
   emit_stage("fa_performance");
@@ -740,16 +787,22 @@ static void run_all_kernels_emit_digest() {
       0, 0, 0, PTO_QEMU_SMOKE ? 1 : 2, 0u, presets::kNoTiling, 0.0f, 0u};
   pto_fa_performance(flashOf, flashQf, flashKf, flashVf, &flash_perf_cfg);
   emit_digest("fa_performance", fnv1a_bytes(flashOf, sizeof(flashOf)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FA_PERFORMANCE))
+    return;
 
   emit_stage("mla_attention");
   pto_mla_attention(mlaO, mlaQ, mlaK, mlaV, mlaWq, mlaWk, mlaWv, mlaWo, nullptr);
   emit_digest("mla_attention", fnv1a_bytes(mlaO, sizeof(mlaO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_MLA_ATTENTION))
+    return;
 
   emit_stage("flash_attention_cube");
   pto_flash_attention_cube(flashCubeO, flashCubeQ, flashCubeK, flashCubeV,
                            &flash_cube_cfg);
   emit_digest("flash_attention_cube",
               fnv1a_bytes(flashCubeO, sizeof(flashCubeO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLASH_ATTENTION_CUBE))
+    return;
 
   zero_f32(flashOf, kFlashF32O);
   emit_stage("flash_attention_vec");
@@ -760,20 +813,28 @@ static void run_all_kernels_emit_digest() {
   emit_digest("flash_attention_vec",
               fnv1a_bytes(flashOf, sizeof(flashOf)) ^
                   fnv1a_bytes(flashVecO, sizeof(flashVecO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLASH_ATTENTION_VEC))
+    return;
 
   emit_stage("gqa");
   pto_gqa(gqaO, gqaQ, gqaK, gqaV, &gqa_cfg);
   emit_digest("gqa", fnv1a_bytes(gqaO, sizeof(gqaO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GQA))
+    return;
 
   emit_stage("sparse_attention_local");
   pto_sparse_attention_local(sparseO, sparseQ, sparseK, sparseV,
                              &sparse_local_cfg);
   emit_digest("sparse_attention_local",
               fnv1a_bytes(sparseO, sizeof(sparseO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SPARSE_ATTENTION_LOCAL))
+    return;
 
   emit_stage("rmsnorm");
   pto_rmsnorm(rmsO, rmsX, rmsGamma, &rms_cfg);
   emit_digest("rmsnorm", fnv1a_bytes(rmsO, sizeof(rmsO)));
+  if (finish_after_stage(PTO_PARITY_STAGE_RMSNORM))
+    return;
 
   zero_f32(normOut, kNormElems);
   emit_stage("batchnorm");
@@ -782,6 +843,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("batchnorm",
               fnv1a_bytes(normOut,
                           static_cast<usize>(kNormElems) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_BATCHNORM))
+    return;
 
   zero_f32(normOut, kNormElems);
   emit_stage("layernorm");
@@ -789,6 +852,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("layernorm",
               fnv1a_bytes(normOut,
                           static_cast<usize>(kNormElems) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_LAYERNORM))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("gelu");
@@ -796,6 +861,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("gelu",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kGeluN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GELU))
+    return;
 
   zero_i32(argmaxOut, kSmallVec);
   emit_stage("argmax");
@@ -803,6 +870,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("argmax",
               fnv1a_bytes(argmaxOut,
                           static_cast<usize>(kArgmaxRows) * sizeof(int)));
+  if (finish_after_stage(PTO_PARITY_STAGE_ARGMAX))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("gather");
@@ -810,6 +879,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("gather",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(gather_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GATHER))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("where");
@@ -817,6 +888,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("where",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(where_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_WHERE))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("slice");
@@ -824,6 +897,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("slice",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kSliceLen) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SLICE))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("concat");
@@ -832,6 +907,8 @@ static void run_all_kernels_emit_digest() {
               fnv1a_bytes(smallOut,
                           static_cast<usize>(concat_cfg.n_a + concat_cfg.n_b) *
                               sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_CONCAT))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("flatten");
@@ -839,6 +916,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("flatten",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(unary_layout_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_FLATTEN))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("reshape");
@@ -846,6 +925,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("reshape",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(unary_layout_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_RESHAPE))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("scatter");
@@ -853,6 +934,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("scatter",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(scatter_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SCATTER))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("squeeze");
@@ -860,6 +943,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("squeeze",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(unary_layout_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SQUEEZE))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("unsqueeze");
@@ -867,6 +952,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("unsqueeze",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(unary_layout_cfg.n) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_UNSQUEEZE))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("stack");
@@ -874,6 +961,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("stack",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kStackN * 2) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_STACK))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   zero_f32(smallOutB, kSmallVec);
@@ -884,6 +973,8 @@ static void run_all_kernels_emit_digest() {
                           static_cast<usize>(split_cfg.n_a) * sizeof(float)) ^
                   fnv1a_bytes(smallOutB,
                               static_cast<usize>(split_cfg.n_b) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SPLIT))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("permute_nhwc_nchw");
@@ -893,6 +984,8 @@ static void run_all_kernels_emit_digest() {
                           static_cast<usize>(kPermuteN * kPermuteH * kPermuteW *
                                              kPermuteC) *
                               sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_PERMUTE_NHWC_NCHW))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("transpose");
@@ -901,6 +994,8 @@ static void run_all_kernels_emit_digest() {
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kTransposeRows * kTransposeCols) *
                               sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_TRANSPOSE))
+    return;
 
   zero_f32(segOut, kSegments);
   emit_stage("unsorted_segment_sum");
@@ -909,6 +1004,8 @@ static void run_all_kernels_emit_digest() {
               fnv1a_bytes(segOut,
                           static_cast<usize>(segment_cfg.num_segments) *
                               sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_UNSORTED_SEGMENT_SUM))
+    return;
 
   zero_i32(uniqueOut, kUniqueN);
   uniqueCount[0] = 0;
@@ -918,6 +1015,8 @@ static void run_all_kernels_emit_digest() {
               fnv1a_bytes(uniqueOut,
                           static_cast<usize>(unique_cfg.n) * sizeof(int)) ^
                   fnv1a_bytes(uniqueCount, sizeof(uniqueCount)));
+  if (finish_after_stage(PTO_PARITY_STAGE_UNIQUE))
+    return;
   emit_stage("done");
 }
 
