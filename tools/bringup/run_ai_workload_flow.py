@@ -2526,6 +2526,16 @@ def supernpu_tier(suite_rel: str, make_vars: dict[str, str]) -> int:
     testcase = make_vars.get("TESTCASE", "")
     if suite_rel == "tileop_api" and testcase in SUPER_SMOKE_TESTCASES:
         return 0
+    if suite_rel == "kernel/control":
+        extra_defines = make_vars.get("EXTRA_DEFINES", "")
+        if (
+            testcase == "hashtable_lookup_simt"
+            and "-DkNum=16" in extra_defines
+            and "-DLINX_HT_DIRECT=1" in extra_defines
+            and "-DFOR_GFSIM" in extra_defines
+        ):
+            return 1
+        return 2
     if suite_rel.startswith("other/deepseek"):
         return 3
     if suite_rel.startswith("kernel/gemm") or suite_rel.startswith("accelerator/"):

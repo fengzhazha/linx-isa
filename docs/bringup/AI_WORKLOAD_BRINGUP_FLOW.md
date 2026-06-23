@@ -96,7 +96,10 @@ The runner stops on the first red hard-break stage unless
   `LINX_HT_SCAN=1` for the linear-scan fallback and `LINX_HT_DIRECT=1` without
   scan for the real MurmurHash3 initial-slot plus linear-probe path. Keep both
   promoted through QEMU and `gfsim`; the hash/probe case is the regression for
-  model W-form logical-right-shift semantics.
+  model W-form logical-right-shift semantics. Keep only these `kNum=16`
+  `FOR_GFSIM` control rows in Tier 1. The `kNum=6144` SIMT rows and the SIMD
+  `NUM_COL=256/512/1024` rows remain Tier 2 until their large/debug source
+  contracts are adapted for Linx direct boot.
   Keep SuperNPUBench control data-object rows with explicit no-op generated
   object targets so redirected `OBJ_ROOT` runs do not rebuild `.s` files with a
   host/default assembler. `MatMacc` is currently a
