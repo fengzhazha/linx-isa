@@ -280,12 +280,14 @@
       "finisher_value",
       "finisher_status",
       "assertion",
+      "uart_count",
+      "uart_tail",
       "last_brob_bpc",
       "last_retired_blocks",
       "last_brob_head",
       "last_brob_bpc_disasm",
       "last_brob_bpc_window"
     ],
-    "rule": "When gfsim fails or times out, report.json and fix packets should include the parsed terminal marker or latest BROB head progress if the log provides it. If the latest BROB BPC is known and llvm-objdump is available, also emit a focused disassembly window around that BPC."
+    "rule": "When gfsim fails or times out, report.json and fix packets should include the parsed terminal marker, UART breadcrumb tail, or latest BROB head progress if the log provides it. If the latest BROB BPC is known and llvm-objdump is available, also emit a focused disassembly window around that BPC."
   }
 }

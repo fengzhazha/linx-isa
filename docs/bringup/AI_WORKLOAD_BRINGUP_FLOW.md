@@ -49,10 +49,11 @@ and generated model-smoke ELF compilation, while `--model-timeout` gates
 4. `model-build-smoke`: rebuild or locate `model/LinxCoreModel/bin/gfsim`, then run a known tiny Linx smoke ELF. By default the runner generates `cases/_model/linx-model-smoke.{cpp,ld,elf}`; `--model-smoke-elf` can override it.
 5. `linxcoremodel-execution`: run only QEMU-passing ELFs through `gfsim -f <elf>`.
    On model failures, the runner parses the `gfsim` log for finisher writes,
-   assertion text, and the latest periodic BROB head progress so the failure
-   packet names the repeated BPC or terminal marker directly. When the last
-   BROB BPC is available, the runner also emits a focused objdump window around
-   that address so model-lane packets link runtime progress to compiler output.
+   assertion text, UART breadcrumbs, and the latest periodic BROB head progress
+   so the failure packet names the repeated BPC, terminal marker, or last
+   source-level progress marker directly. When the last BROB BPC is available,
+   the runner also emits a focused objdump window around that address so
+   model-lane packets link runtime progress to compiler output.
 6. `differential-triage`: compare QEMU/model digest evidence when both sides emit it.
 7. `fix-packets`: emit bounded agent packets for the first failing owner.
 8. `skill-doc-evolution`: write an explicit `skill-evolve` update/no-update closeout.
@@ -229,8 +230,8 @@ Every run emits:
 - `cases/<case>/...`: source hashes, compile logs, ELF/object/asm, objdump,
   optional raw bin, QEMU log, model log, and fix packet links when relevant.
   Model execution rows also carry parsed diagnostics when available:
-  `finisher_value`, `finisher_status`, `assertion`, `last_brob_bpc`,
-  `last_retired_blocks`, `last_brob_head`, `last_brob_bpc_disasm`, and
-  `last_brob_bpc_window`.
+  `finisher_value`, `finisher_status`, `assertion`, `uart_count`, `uart_tail`,
+  `last_brob_bpc`, `last_retired_blocks`, `last_brob_head`,
+  `last_brob_bpc_disasm`, and `last_brob_bpc_window`.
 - `cases/_model/`: CMake logs plus generated model-smoke source, linker script,
   ELF, compile log, and `gfsim` smoke transcript.

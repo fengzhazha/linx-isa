@@ -25,6 +25,7 @@ GFSIM_BROB_RE = re.compile(
     r"Retired blocks\s+(?P<blocks>\d+)\.\s+BROB head info:\s+"
     r"(?P<head>.*?\bBPC\s+0x(?P<bpc>[0-9A-Fa-f]+).*?)(?:\n|$)"
 )
+GFSIM_UART_RE = re.compile(r"^linx_uart:\s*(?P<line>.*)$", re.MULTILINE)
 GFSIM_FINISHER_RE = re.compile(
     r"linx_test_finisher write addr=0x10009000 val=0x(?P<value>[0-9A-Fa-f]+)\s+(?P<status>pass|fail)"
 )
@@ -3046,14 +3047,26 @@ def parse_digests(path: Path) -> dict[str, str]:
     return {m.group(1): "0x" + m.group(2).upper() for m in DIGEST_RE.finditer(text)}
 
 
+def append_uart_context(evidence: str, artifacts: dict[str, str]) -> str:
+    uart_tail = artifacts.get("uart_tail")
+    if not uart_tail:
+        return evidence
+    return f"{evidence}; uart tail: {uart_tail}"
+
+
 def summarize_gfsim_log(status: str, log_path: Path) -> tuple[str, dict[str, str]]:
-    if status == "pass":
-        return "gfsim passed", {}
     if not log_path.exists():
         return "gfsim failed; log missing", {}
 
     text = log_path.read_text(encoding="utf-8", errors="replace")
     artifacts: dict[str, str] = {}
+    uart_lines = [match.group("line").strip() for match in GFSIM_UART_RE.finditer(text)]
+    if uart_lines:
+        artifacts["uart_count"] = str(len(uart_lines))
+        artifacts["uart_tail"] = " | ".join(uart_lines[-3:])
+
+    if status == "pass":
+        return append_uart_context("gfsim passed", artifacts), artifacts
 
     finisher = list(GFSIM_FINISHER_RE.finditer(text))
     if finisher:
@@ -3062,13 +3075,13 @@ def summarize_gfsim_log(status: str, log_path: Path) -> tuple[str, dict[str, str
         finisher_status = match.group("status")
         artifacts["finisher_value"] = value
         artifacts["finisher_status"] = finisher_status
-        return f"gfsim finisher {finisher_status} ({value})", artifacts
+        return append_uart_context(f"gfsim finisher {finisher_status} ({value})", artifacts), artifacts
 
     assertion = GFSIM_ASSERT_RE.search(text)
     if assertion:
         reason = assertion.group("assertion").strip()
         artifacts["assertion"] = reason
-        return f"gfsim {status}: {reason}", artifacts
+        return append_uart_context(f"gfsim {status}: {reason}", artifacts), artifacts
 
     brob = list(GFSIM_BROB_RE.finditer(text))
     if brob:
@@ -3078,11 +3091,11 @@ def summarize_gfsim_log(status: str, log_path: Path) -> tuple[str, dict[str, str
         artifacts["last_retired_blocks"] = match.group("blocks")
         artifacts["last_brob_head"] = match.group("head").strip()
         status_text = "timed out" if status == "timeout" else "failed"
-        return f"gfsim {status_text}; last BROB head BPC {bpc}", artifacts
+        return append_uart_context(f"gfsim {status_text}; last BROB head BPC {bpc}", artifacts), artifacts
 
     if status == "timeout":
-        return "gfsim timed out; no terminal model marker found", artifacts
-    return "gfsim failed; no terminal model marker found", artifacts
+        return append_uart_context("gfsim timed out; no terminal model marker found", artifacts), artifacts
+    return append_uart_context("gfsim failed; no terminal model marker found", artifacts), artifacts
 
 
 def mark_failure(state: CaseState, stage_id: str, owner: str, evidence: str) -> None:
