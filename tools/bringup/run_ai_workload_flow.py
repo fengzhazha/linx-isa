@@ -3410,6 +3410,98 @@ def run_obj_tool(
     }
 
 
+def emit_elf_objdump_artifacts(
+    *,
+    paths: dict[str, str],
+    root: Path,
+    elf: Path,
+    out_dir: Path,
+    dry_run: bool,
+) -> dict[str, str]:
+    objdump = Path(paths["llvm_objdump"])
+    if not (dry_run or executable(objdump)):
+        return {}
+    dump = run_obj_tool(
+        paths["llvm_objdump"],
+        ["-d", str(elf)],
+        cwd=root,
+        out_path=out_dir / "objdump.disasm.txt",
+        timeout=120,
+        dry_run=dry_run,
+    )
+    sym = run_obj_tool(
+        paths["llvm_objdump"],
+        ["-t", str(elf)],
+        cwd=root,
+        out_path=out_dir / "objdump.symbols.txt",
+        timeout=120,
+        dry_run=dry_run,
+    )
+    sec = run_obj_tool(
+        paths["llvm_objdump"],
+        ["-h", str(elf)],
+        cwd=root,
+        out_path=out_dir / "objdump.sections.txt",
+        timeout=120,
+        dry_run=dry_run,
+    )
+    rel = run_obj_tool(
+        paths["llvm_objdump"],
+        ["-r", str(elf)],
+        cwd=root,
+        out_path=out_dir / "objdump.relocs.txt",
+        timeout=120,
+        dry_run=dry_run,
+    )
+    return {
+        "disasm": dump["output"],
+        "symbols": sym["output"],
+        "sections": sec["output"],
+        "relocations": rel["output"],
+    }
+
+
+def emit_bpc_disassembly_window(
+    *,
+    paths: dict[str, str],
+    root: Path,
+    elf: Path,
+    bpc: str | None,
+    out_dir: Path,
+    dry_run: bool,
+) -> dict[str, str]:
+    if not bpc:
+        return {}
+    try:
+        bpc_addr = int(bpc, 16)
+    except ValueError:
+        return {}
+    objdump = Path(paths["llvm_objdump"])
+    if not (dry_run or executable(objdump)):
+        return {}
+    start = max(0, bpc_addr - 0x80)
+    stop = bpc_addr + 0x80
+    safe_bpc = f"0x{bpc_addr:x}"
+    window = run_obj_tool(
+        paths["llvm_objdump"],
+        [
+            "-d",
+            "--no-show-raw-insn",
+            f"--start-address=0x{start:x}",
+            f"--stop-address=0x{stop:x}",
+            str(elf),
+        ],
+        cwd=root,
+        out_path=out_dir / f"last-bpc-{safe_bpc}.disasm.txt",
+        timeout=120,
+        dry_run=dry_run,
+    )
+    return {
+        "last_brob_bpc_disasm": window["output"],
+        "last_brob_bpc_window": f"0x{start:x}..0x{stop:x}",
+    }
+
+
 def static_check_text(text: str, *, require_entry: bool) -> tuple[bool, list[str]]:
     findings: list[str] = []
     if FORBIDDEN_ASM_RE.search(text):
@@ -3447,6 +3539,8 @@ def compiler_contract(
         artifacts: dict[str, str] = {}
         if case.kind == "avs_pto":
             out_dir = case_artifacts / "avs"
+            elf = out_dir / "linx-qemu-tests.elf"
+            elf_mtime_before = elf.stat().st_mtime if elf.exists() else None
             cmd = avs_command(root, case, paths, out_dir, timeout=timeout, compile_only=True)
             result = run_command(
                 cmd,
@@ -3461,18 +3555,44 @@ def compiler_contract(
             if result["status"] == "pass" and obj.exists():
                 state.artifacts["object"] = str(obj)
             owner = "compiler"
+            status = result["status"]
             evidence = (
                 "AVS direct-boot suite compiled"
                 if result["status"] == "pass"
                 else "AVS compile failed"
             )
+            fresh_elf = dry_run or (
+                elf.exists()
+                and (elf_mtime_before is None or elf.stat().st_mtime > elf_mtime_before)
+            )
+            if result["status"] == "pass" and fresh_elf:
+                artifacts["elf"] = str(elf)
+                state.artifacts["elf"] = str(elf)
+                sidecars = emit_elf_objdump_artifacts(
+                    paths=paths,
+                    root=root,
+                    elf=elf,
+                    out_dir=case_artifacts,
+                    dry_run=dry_run,
+                )
+                artifacts.update(sidecars)
+                if not dry_run and sidecars:
+                    static_text = "\n".join(
+                        Path(p).read_text(encoding="utf-8", errors="replace")
+                        for p in [sidecars.get("disasm"), sidecars.get("symbols")]
+                        if p and Path(p).exists()
+                    )
+                    ok, findings = static_check_text(static_text, require_entry=True)
+                    if not ok:
+                        status = "fail"
+                        evidence = "static legality check failed: " + "; ".join(findings)
             if result["status"] not in PASS_STATUSES:
                 owner, evidence = classify_avs_compile_failure(log_path)
             rows.append(
                 stage_row(
                     state,
                     "compiler-contract",
-                    result["status"],
+                    status,
                     owner=owner,
                     evidence=evidence,
                     command=result["command"],
@@ -3848,6 +3968,16 @@ def qemu_execution(
             )
             elf = out_dir / "linx-qemu-tests.elf"
             artifacts.update({"log": str(log_path), "elf": str(elf)})
+            if dry_run or elf.exists():
+                sidecars = emit_elf_objdump_artifacts(
+                    paths=paths,
+                    root=root,
+                    elf=elf,
+                    out_dir=state.case_dir / "compiler",
+                    dry_run=dry_run,
+                )
+                artifacts.update(sidecars)
+                state.artifacts.update(sidecars)
             if result["status"] == "pass" or dry_run:
                 state.artifacts["elf"] = str(elf)
                 if result["status"] == "pass":
@@ -4169,6 +4299,7 @@ def model_build_smoke(
 
 
 def linxcoremodel_execution(
+    root: Path,
     states: list[CaseState],
     paths: dict[str, str],
     dry_run: bool,
@@ -4242,6 +4373,16 @@ def linxcoremodel_execution(
         evidence, diagnostics = summarize_gfsim_log(result["status"], log_path)
         artifacts = {"log": str(log_path), "elf": str(elf)}
         artifacts.update(diagnostics)
+        artifacts.update(
+            emit_bpc_disassembly_window(
+                paths=paths,
+                root=root,
+                elf=elf,
+                bpc=diagnostics.get("last_brob_bpc"),
+                out_dir=state.case_dir / "model",
+                dry_run=dry_run,
+            )
+        )
         rows.append(
             stage_row(
                 state,
@@ -4658,6 +4799,7 @@ def main(argv: list[str]) -> int:
             model_stage_status = rows.get("status") in PASS_STATUSES
         elif stage_id == "linxcoremodel-execution":
             rows = linxcoremodel_execution(
+                root,
                 states,
                 paths,
                 args.dry_run,

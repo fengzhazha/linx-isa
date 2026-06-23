@@ -50,7 +50,9 @@ and generated model-smoke ELF compilation, while `--model-timeout` gates
 5. `linxcoremodel-execution`: run only QEMU-passing ELFs through `gfsim -f <elf>`.
    On model failures, the runner parses the `gfsim` log for finisher writes,
    assertion text, and the latest periodic BROB head progress so the failure
-   packet names the repeated BPC or terminal marker directly.
+   packet names the repeated BPC or terminal marker directly. When the last
+   BROB BPC is available, the runner also emits a focused objdump window around
+   that address so model-lane packets link runtime progress to compiler output.
 6. `differential-triage`: compare QEMU/model digest evidence when both sides emit it.
 7. `fix-packets`: emit bounded agent packets for the first failing owner.
 8. `skill-doc-evolution`: write an explicit `skill-evolve` update/no-update closeout.
@@ -62,6 +64,8 @@ The runner stops on the first red hard-break stage unless
 
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
   `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
+  Once the executable AVS ELF exists, rows preserve objdump disassembly, symbol,
+  section, and relocation sidecars for triage.
   Tier-0 PTO parity is the bounded `avs-pto-parity-smoke` case, which passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through the AVS extra-cflag hook and runs
   only the `tload_store` digest path. The full smoke-sized parity sequence remains
@@ -226,6 +230,7 @@ Every run emits:
   optional raw bin, QEMU log, model log, and fix packet links when relevant.
   Model execution rows also carry parsed diagnostics when available:
   `finisher_value`, `finisher_status`, `assertion`, `last_brob_bpc`,
-  `last_retired_blocks`, and `last_brob_head`.
+  `last_retired_blocks`, `last_brob_head`, `last_brob_bpc_disasm`, and
+  `last_brob_bpc_window`.
 - `cases/_model/`: CMake logs plus generated model-smoke source, linker script,
   ELF, compile log, and `gfsim` smoke transcript.
