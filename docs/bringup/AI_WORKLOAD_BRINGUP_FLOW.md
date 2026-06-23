@@ -23,7 +23,7 @@ workloads/generated/<run-id>/ai-bringup/
 ## Profiles
 
 - `smoke`: Tier 0. Bounded AVS PTO parity/tile smoke plus minimal SuperNPUBench tileop cases.
-- `pr`: Tiers 0-1. Adds standalone PTO catalog smoke harnesses, PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and basic kernel cases.
+- `pr`: Tiers 0-1. Adds standalone PTO catalog smoke harnesses, PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and promoted SuperNPUBench tileop API/control smoke cases.
 - `nightly`: Tiers 0-3. Adds matrix, memory, reduction, accelerator, and DeepSeek/model-oriented cases.
 - `full`: Tiers 0-4. Full AI workload matrix.
 
@@ -123,7 +123,10 @@ The runner stops on the first red hard-break stage unless
   evidence. `TExp` is currently a bounded `4x4` int64 rounded-exp
   direct-boot smoke using a comparison ladder; float/half exponential and
   compiler-generated constant-table paths remain deferred until the model lane
-  has matching evidence. SuperNPUBench `kernel/gemm/matmul` `TYPE=A16W4` and
+  has matching evidence. Keep `other/tileop_test` and non-control `kernel/*`
+  suites in Tier 2 until their larger shape/source contracts are individually
+  promoted; keep `kernel/fusion*` rows in Tier 3 because they are model-oriented
+  long-shape workloads. SuperNPUBench `kernel/gemm/matmul` `TYPE=A16W4` and
   `TYPE=HIF4_HIF4` currently reach source-contract pass and model-build-smoke pass,
   then fail the compiler-contract as benchmark-owned maturity packets because
   their MX path still depends on vector-only `template_asm.h` `Tr` constraints

@@ -30,7 +30,7 @@
       ]
     },
     "pr": {
-      "description": "Fast promotion lane for Tier 0 and Tier 1 AI workload bring-up.",
+      "description": "Fast promotion lane for Tier 0 and Tier 1 AI workload bring-up, including promoted SuperNPUBench tileop API/control smoke cases.",
       "tiers": [
         0,
         1
@@ -76,7 +76,7 @@
     {
       "id": 1,
       "name": "kernel-pr",
-      "description": "Standalone PTO catalog smoke harnesses, PTO kernel catalog compile/static checks, full smoke-sized AVS PTO parity maturity coverage, and basic SuperNPUBench tile/kernel families."
+      "description": "Standalone PTO catalog smoke harnesses, PTO kernel catalog compile/static checks, full smoke-sized AVS PTO parity maturity coverage, and promoted SuperNPUBench tileop API/control smoke cases."
     },
     {
       "id": 2,
@@ -221,6 +221,7 @@
       "control_data_object_rule": "SuperNPUBench kernel/control data-object cases must build generated .o files under the redirected OBJ_ROOT and use explicit generated-object targets so Make does not rebuild .s files with a host/default assembler.",
       "hashtable_lookup_simt_direct_smoke": "The promoted model-green Tier-1 control smokes are hashtable_lookup_simt with kNum=16, LINX_HT_CAPACITY=2048, LINX_HT_DIRECT=1, and FOR_GFSIM. Keep the LINX_HT_SCAN=1 linear-scan fallback and the no-scan MurmurHash3/probe path; the hash/probe case is the regression for model SRLW/SRLIW low32, 5-bit shift, sign-extended result semantics. Keep kNum=6144 SIMT rows and SIMD NUM_COL=256/512/1024 rows in Tier 2 until their large/debug source contracts are adapted for Linx direct boot.",
       "matmul_e4m3_linx_smoke": "SuperNPUBench MatMul_e4m3 keeps its original FP8 e4m3 conversion, TileLeft/TileRight inputs, TileAcc output, and vector-kernel conversion contract for non-Linx builds, but the Linx direct-boot path is a source-local 4x4 int64 MATMUL smoke until boxed, ACC, and FP8 runtime support exists. Keep this smoke in both tileop_api and other/tileop_api manifests instead of collapsing the case into MatMul.",
+      "tier1_supernpu_boundary": "Tier 1 SuperNPUBench contains tileop_api, other/tileop_api, and the two kNum=16 kernel/control smokes. Keep other/tileop_test and non-control kernel suites in Tier 2 until their larger shape/source contracts are individually promoted; keep kernel/fusion* rows in Tier 3.",
       "example": "kernel/gemm/matmul TESTCASE=matmul TYPE=HIF4_HIF4 resolves src/HiF4_HiF4.cpp, not src/matmul.cpp or a case-mismatched path."
     },
     "supernpu_compiler_contract": [

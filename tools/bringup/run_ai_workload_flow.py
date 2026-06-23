@@ -2526,6 +2526,10 @@ def supernpu_tier(suite_rel: str, make_vars: dict[str, str]) -> int:
     testcase = make_vars.get("TESTCASE", "")
     if suite_rel == "tileop_api" and testcase in SUPER_SMOKE_TESTCASES:
         return 0
+    if suite_rel in {"tileop_api", "other/tileop_api"}:
+        return 1
+    if suite_rel == "other/tileop_test":
+        return 2
     if suite_rel == "kernel/control":
         extra_defines = make_vars.get("EXTRA_DEFINES", "")
         if (
@@ -2538,12 +2542,14 @@ def supernpu_tier(suite_rel: str, make_vars: dict[str, str]) -> int:
         return 2
     if suite_rel.startswith("other/deepseek"):
         return 3
+    if suite_rel.startswith("kernel/fusion"):
+        return 3
     if suite_rel.startswith("kernel/gemm") or suite_rel.startswith("accelerator/"):
         return 2
     if suite_rel.startswith("kernel/memory") or suite_rel.startswith("kernel/reduction"):
         return 2
-    if suite_rel.startswith("kernel/") or "tileop" in suite_rel:
-        return 1
+    if suite_rel.startswith("kernel/"):
+        return 2
     if "py_api" in suite_rel:
         return 3
     return 4
