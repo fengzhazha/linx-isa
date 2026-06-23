@@ -72,6 +72,15 @@ The runner stops on the first red hard-break stage unless
   only the `tload_store` digest path. The full smoke-sized parity sequence remains
   `avs-pto-parity` in Tier 1 so long-running model behavior still emits a
   model-owned maturity packet instead of hiding behind the smoke lane.
+  Tier 1 also includes `avs-pto-parity-prefix-gemm-performance`, which uses
+  deterministic bit-pattern F32/FP16 seeds plus
+  `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to prove the
+  matmul/GEMM prefix through QEMU and `gfsim` before later float-helper-heavy
+  stages are mature. Keep `avs-pto-parity` as the full smoke-sized maturity
+  row; current model-owned evidence reaches `sigmoid`, and an attempted
+  `PTO_PARITY_STAGE_SIGMOID` prefix can expose a separate `add_custom` BFU
+  crash after QEMU pass, so neither should be relabeled as benchmark/compiler
+  until model evidence changes.
   Tier-0 tile smoke uses the AVS compile-smoke source override during QEMU
   execution so it exercises the PTO/QEMU/model handoff before the full tile
   runtime source is green. Keep this case-level smoke separate from
@@ -186,7 +195,11 @@ The runner stops on the first red hard-break stage unless
   flow uses `--model-timeout 600`. The PTO sources accept
   `PTO_QEMU_SMOKE_DIM` for controlled future probes, but the runner keeps the
   default 16x16x16 shape because smaller override probes must first prove the
-  same QEMU oracle behavior.
+  same QEMU oracle behavior. AVS parity accepts
+  `PTO_PARITY_FAST_F32_SEED`, `PTO_PARITY_FAST_FP16_SEED`, and
+  `PTO_PARITY_STOP_AFTER_STAGE` only as case-level AI bring-up controls; do not
+  make them default AVS behavior without rerunning the QEMU and model parity
+  lanes.
 
 ## Owner Classification
 

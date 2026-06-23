@@ -18,6 +18,26 @@ using pto::fp16_t;
 #ifndef PTO_PARITY_TLOAD_STORE_ONLY
 #define PTO_PARITY_TLOAD_STORE_ONLY 0
 #endif
+#ifndef PTO_PARITY_FAST_FP16_SEED
+#define PTO_PARITY_FAST_FP16_SEED 0
+#endif
+#ifndef PTO_PARITY_FAST_F32_SEED
+#define PTO_PARITY_FAST_F32_SEED 0
+#endif
+#ifndef PTO_PARITY_STOP_AFTER_STAGE
+#define PTO_PARITY_STOP_AFTER_STAGE 0
+#endif
+
+#define PTO_PARITY_STAGE_TLOAD_STORE 1
+#define PTO_PARITY_STAGE_MAMULB 2
+#define PTO_PARITY_STAGE_TMATMUL_ACC 3
+#define PTO_PARITY_STAGE_GEMM 4
+#define PTO_PARITY_STAGE_GEMM_BASIC 5
+#define PTO_PARITY_STAGE_GEMM_SCALED 6
+#define PTO_PARITY_STAGE_GEMM_PERFORMANCE 7
+#define PTO_PARITY_STAGE_ADD_CUSTOM 8
+#define PTO_PARITY_STAGE_RELU 9
+#define PTO_PARITY_STAGE_SIGMOID 10
 
 #if __has_include("pto_parity_shape_config.generated.hpp")
 #include "pto_parity_shape_config.generated.hpp"
@@ -138,6 +158,16 @@ static inline uint32_t lcg32(uint32_t &state) {
   return state;
 }
 
+#if PTO_PARITY_FAST_F32_SEED
+static inline float f32_from_bits(uint32_t bits) {
+  union {
+    uint32_t u;
+    float f;
+  } cvt = {bits};
+  return cvt.f;
+}
+#endif
+
 static void seed_i32(int *buf, usize n, uint32_t seed) {
   uint32_t s = seed;
   for (usize i = 0; i < n; ++i) {
@@ -150,8 +180,15 @@ static void seed_f32(float *buf, usize n, uint32_t seed) {
   uint32_t s = seed;
   for (usize i = 0; i < n; ++i) {
     uint32_t v = lcg32(s);
+#if PTO_PARITY_FAST_F32_SEED
+    const uint32_t sign = v & 0x80000000u;
+    const uint32_t exp = 125u + ((v >> 20) & 0x3u);
+    const uint32_t mant = v & 0x007fffffu;
+    buf[i] = f32_from_bits(sign | (exp << 23) | mant);
+#else
     uint32_t m = (v & 0xffffu);
     buf[i] = static_cast<float>(static_cast<int32_t>(m) - 32768) / 8192.0f;
+#endif
   }
 }
 
@@ -169,9 +206,16 @@ static void seed_fp16(fp16_t *buf, usize n, uint32_t seed) {
   uint32_t s = seed;
   for (usize i = 0; i < n; ++i) {
     uint32_t v = lcg32(s);
+#if PTO_PARITY_FAST_FP16_SEED
+    const uint16_t sign = static_cast<uint16_t>((v >> 16) & 0x8000u);
+    const uint16_t exp = static_cast<uint16_t>(13u + ((v >> 10) & 0x3u));
+    const uint16_t mant = static_cast<uint16_t>(v & 0x03ffu);
+    buf[i] = fp16_t{static_cast<uint16_t>(sign | (exp << 10) | mant)};
+#else
     uint32_t m = (v & 0xffffu);
     float f = static_cast<float>(static_cast<int32_t>(m) - 32768) / 8192.0f;
     buf[i] = float_to_fp16(f);
+#endif
   }
 }
 
@@ -209,6 +253,18 @@ static void emit_stage(const char *name) {
 }
 #endif
 
+static bool finish_after_stage(int stage) {
+#if PTO_PARITY_STOP_AFTER_STAGE
+  if (PTO_PARITY_STOP_AFTER_STAGE == stage) {
+    emit_stage("done");
+    return true;
+  }
+#else
+  (void)stage;
+#endif
+  return false;
+}
+
 static void run_tload_store_smoke_emit_digest() {
   const pto_memory_config mem_i32_cfg{
       pto_dtype::i32, static_cast<int>(PTO_QEMU_SMOKE ? 32u * 32u : 1024u * 1024u),
@@ -226,6 +282,8 @@ static void run_tload_store_smoke_emit_digest() {
   emit_stage("tload_store");
   pto_tload_store(iY, iX, &mem_i32_cfg);
   emit_digest("tload_store", fnv1a_bytes(iY, sizeof(iY)));
+  if (finish_after_stage(PTO_PARITY_STAGE_TLOAD_STORE))
+    return;
   emit_stage("done");
 }
 
@@ -562,41 +620,57 @@ static void run_all_kernels_emit_digest() {
   emit_stage("tload_store");
   pto_tload_store(iY, iX, &mem_i32_cfg);
   emit_digest("tload_store", fnv1a_bytes(iY, sizeof(iY)));
+  if (finish_after_stage(PTO_PARITY_STAGE_TLOAD_STORE))
+    return;
 
   emit_stage("mamulb");
   pto_mamulb(iC, iA, iB, &matmul_i32_cfg);
   emit_digest("mamulb", fnv1a_bytes(iC, sizeof(iC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_MAMULB))
+    return;
 
   zero_i32(iC, kMatElems);
   emit_stage("tmatmul_acc");
   pto_tmatmul_acc(iC, iA, iB, &matmul_i32_cfg);
   emit_digest("tmatmul_acc", fnv1a_bytes(iC, sizeof(iC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_TMATMUL_ACC))
+    return;
 
   zero_i32(iC, kMatElems);
   emit_stage("gemm");
   pto_gemm(iC, iA, iB, &matmul_i32_cfg);
   emit_digest("gemm", fnv1a_bytes(iC, sizeof(iC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GEMM))
+    return;
 
   zero_f32(fC, kMatElems);
   emit_stage("gemm_basic");
   pto_gemm_basic(fC, fA, fB, &matmul_f32_cfg);
   emit_digest("gemm_basic", fnv1a_bytes(fC, sizeof(fC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GEMM_BASIC))
+    return;
 
   zero_f32(fC, kMatElems);
   emit_stage("gemm_scaled");
   pto_gemm_scaled(fC, fA, fB, &matmul_f32_cfg);
   emit_digest("gemm_scaled", fnv1a_bytes(fC, sizeof(fC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GEMM_SCALED))
+    return;
 
   zero_f32(fC, kMatElems);
   emit_stage("gemm_performance");
   pto_gemm_performance(fC, fA, fB, &matmul_perf_cfg);
   emit_digest("gemm_performance", fnv1a_bytes(fC, sizeof(fC)));
+  if (finish_after_stage(PTO_PARITY_STAGE_GEMM_PERFORMANCE))
+    return;
 
   emit_stage("pre_add_zero");
   zero_f32(fZ, kVecElems);
   emit_stage("add_custom");
   pto_add_custom(fZ, fX, fY, &add_cfg);
   emit_digest("add_custom", fnv1a_bytes(fZ, sizeof(fZ)));
+  if (finish_after_stage(PTO_PARITY_STAGE_ADD_CUSTOM))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("relu");
@@ -604,6 +678,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("relu",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kUnaryN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_RELU))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("sigmoid");
@@ -611,6 +687,8 @@ static void run_all_kernels_emit_digest() {
   emit_digest("sigmoid",
               fnv1a_bytes(smallOut,
                           static_cast<usize>(kUnaryN) * sizeof(float)));
+  if (finish_after_stage(PTO_PARITY_STAGE_SIGMOID))
+    return;
 
   zero_f32(smallOut, kSmallVec);
   emit_stage("silu");
