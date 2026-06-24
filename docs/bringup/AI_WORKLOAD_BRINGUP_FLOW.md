@@ -99,10 +99,17 @@ The runner stops on the first red hard-break stage unless
   promoted through the `fa_performance` digest and plain `gfsim -f <elf>`.
   `avs-pto-parity-prefix-mla-attention` reuses that 1x attention micro-profile,
   stops after `PTO_PARITY_STAGE_MLA_ATTENTION`, and is promoted through the
-  `mla_attention` digest and plain `gfsim -f <elf>`. The AVS source exposes
-  stop-after-stage IDs for later PTO parity stages so agents can isolate the
-  first red model boundary without changing the full-row target. Earlier 16x
-  softmax-prefix probes timed out in
+  `mla_attention` digest and plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-flash-attention-cube` adds the
+  `PTO_PARITY_FLASH_CUBE_*` and `PTO_FLASH_CUBE_*` 1x controls and is promoted
+  through the `flash_attention_cube` digest. The subsequent
+  `avs-pto-parity-prefix-flash-attention-vec` adds matching
+  `PTO_FLASH_VEC_*` 1x controls and is promoted through the
+  `flash_attention_vec` digest. The next unpromoted attention boundary is GQA;
+  its kernel still uses a fixed PTO_QEMU_SMOKE shape rather than the shared 1x
+  attention profile. The AVS source exposes stop-after-stage IDs for later PTO
+  parity stages so agents can isolate the first red model boundary without
+  changing the full-row target. Earlier 16x softmax-prefix probes timed out in
   `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
   similar QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Earlier `tanh` crash, `softmax`
