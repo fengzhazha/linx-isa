@@ -96,10 +96,13 @@ The runner stops on the first red hard-break stage unless
   through the `flash_attention_masked` digest and plain `gfsim -f <elf>`.
   `avs-pto-parity-prefix-fa-performance` reuses the same 1x attention
   micro-profile, stops after `PTO_PARITY_STAGE_FA_PERFORMANCE`, and is now
-  promoted through the `fa_performance` digest and plain `gfsim -f <elf>`. The
-  AVS source exposes stop-after-stage IDs for later PTO parity stages so agents
-  can isolate the first red model boundary without changing the full-row
-  target. Earlier 16x softmax-prefix probes timed out in
+  promoted through the `fa_performance` digest and plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-mla-attention` reuses that 1x attention micro-profile,
+  stops after `PTO_PARITY_STAGE_MLA_ATTENTION`, and is promoted through the
+  `mla_attention` digest and plain `gfsim -f <elf>`. The AVS source exposes
+  stop-after-stage IDs for later PTO parity stages so agents can isolate the
+  first red model boundary without changing the full-row target. Earlier 16x
+  softmax-prefix probes timed out in
   `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
   similar QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Earlier `tanh` crash, `softmax`
