@@ -89,12 +89,17 @@ The runner stops on the first red hard-break stage unless
   model-smoke, and plain `gfsim -f <elf>` through the
   `flash_attention_softmax` digest. Keep `avs-pto-parity` as the full
   smoke-sized maturity row; do not treat the micro-profiled softmax prefix as a
-  substitute for full-row closure. The AVS source exposes stop-after-stage IDs
-  for later PTO parity stages so agents can isolate the first red model boundary
-  without changing the full-row target. Earlier 16x softmax-prefix probes timed
-  out in `flash_attention_demo_f32` soft-float helper code after QEMU pass;
-  classify similar QEMU-passing full-shape timeouts as model-owned unless static
-  legality evidence proves otherwise. Earlier `tanh` crash, `softmax`
+  substitute for full-row closure. The promoted masked-attention prefix is
+  `avs-pto-parity-prefix-flash-attention-masked`, which stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and adds
+  `PTO_ATTENTION_MASKED_SMOKE_*` micro-shape flags; current evidence proves it
+  through the `flash_attention_masked` digest and plain `gfsim -f <elf>`. The
+  AVS source exposes stop-after-stage IDs for later PTO parity stages so agents
+  can isolate the first red model boundary without changing the full-row
+  target. Earlier 16x softmax-prefix probes timed out in
+  `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
+  similar QEMU-passing full-shape timeouts as model-owned unless static legality
+  evidence proves otherwise. Earlier `tanh` crash, `softmax`
   local-pipe stall, and
   `softmax_inplace` RAS assertion evidence were model BFU/RAS issues, so do not
   relabel QEMU-passing parity failures as benchmark/compiler without newer

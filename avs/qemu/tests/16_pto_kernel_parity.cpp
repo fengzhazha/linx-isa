@@ -444,10 +444,16 @@ static void run_all_kernels_emit_digest() {
   constexpr usize kFlashF32K = PTO_QEMU_SMOKE ? 16u * 16u : 16u * 256u;
   constexpr usize kFlashF32V = PTO_QEMU_SMOKE ? 16u * 16u : 256u * 16u;
   constexpr usize kFlashF32O = PTO_QEMU_SMOKE ? 16u * 16u : 256u * 16u;
-  constexpr usize kFlashMaskQ = PTO_QEMU_SMOKE ? 18u * 16u : 130u * 16u;
-  constexpr usize kFlashMaskK = PTO_QEMU_SMOKE ? 16u * 18u : 16u * 130u;
-  constexpr usize kFlashMaskV = PTO_QEMU_SMOKE ? 18u * 16u : 130u * 16u;
-  constexpr usize kFlashMaskO = PTO_QEMU_SMOKE ? 18u * 16u : 130u * 16u;
+  constexpr usize kFlashMaskSeq =
+      PTO_QEMU_SMOKE ? static_cast<usize>(PTO_ATTENTION_MASKED_SMOKE_SEQ) : 130u;
+  constexpr usize kFlashMaskQD =
+      PTO_QEMU_SMOKE ? static_cast<usize>(PTO_ATTENTION_MASKED_SMOKE_QD) : 16u;
+  constexpr usize kFlashMaskVD =
+      PTO_QEMU_SMOKE ? static_cast<usize>(PTO_ATTENTION_MASKED_SMOKE_VD) : 16u;
+  constexpr usize kFlashMaskQ = kFlashMaskSeq * kFlashMaskQD;
+  constexpr usize kFlashMaskK = kFlashMaskQD * kFlashMaskSeq;
+  constexpr usize kFlashMaskV = kFlashMaskSeq * kFlashMaskVD;
+  constexpr usize kFlashMaskO = kFlashMaskSeq * kFlashMaskVD;
   constexpr usize kMlaQ = PTO_QEMU_SMOKE ? 16u * 16u : 256u * 16u;
   constexpr usize kMlaW = 16u * 4u;
   constexpr usize kMlaWo = 4u * 16u;
