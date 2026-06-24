@@ -2806,9 +2806,16 @@ def discover_cases(root: Path) -> list[Case]:
                 "avs_extra_cflags": [
                     "-DPTO_PARITY_FAST_F32_SEED=1",
                     "-DPTO_PARITY_FAST_FP16_SEED=1",
+                    "-DPTO_ATTENTION_SMOKE_SEQ=1",
+                    "-DPTO_ATTENTION_LARGE_SMOKE_SEQ=1",
+                    "-DPTO_ATTENTION_SMOKE_QD=1",
+                    "-DPTO_ATTENTION_SMOKE_VD=1",
+                    "-DPTO_ATTENTION_SMALL_SMOKE_QD=1",
+                    "-DPTO_FLASH_TILE_M=1",
+                    "-DPTO_FLASH_TILE_K=1",
                     "-DPTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX",
                 ],
-                "description": "PTO parity direct-boot prefix boundary through flash_attention_softmax before masked attention model maturity",
+                "description": "PTO parity direct-boot 1x attention micro-profile through flash_attention_softmax before masked attention model maturity",
             },
         )
     )
@@ -4273,6 +4280,8 @@ def model_build_smoke(
                 "-B",
                 str(model_root / "build"),
                 "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+                "-DOPT_LEVEL=O3",
+                "-DDISABLE_DEBUG_SYMBOLS=ON",
             ],
             cwd=root,
             env=env,
@@ -4295,7 +4304,11 @@ def model_build_smoke(
         rows.append(
             {
                 "status": "not_run",
-                "command": f"cmake -S {model_root} -B {model_root / 'build'} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 && cmake --build {model_root / 'build'} --target gfsim",
+                "command": (
+                    f"cmake -S {model_root} -B {model_root / 'build'} "
+                    "-DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DOPT_LEVEL=O3 "
+                    f"-DDISABLE_DEBUG_SYMBOLS=ON && cmake --build {model_root / 'build'} --target gfsim"
+                ),
                 "log": str(stage_dir / "cmake-build-gfsim.log"),
             }
         )
