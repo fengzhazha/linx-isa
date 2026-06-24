@@ -2856,6 +2856,41 @@ def discover_cases(root: Path) -> list[Case]:
     )
     cases.append(
         Case(
+            id="avs-pto-parity-prefix-fa-performance",
+            kind="avs_pto",
+            suite="pto_parity",
+            tier=1,
+            source_paths=[qemu_tests / "16_pto_kernel_parity.cpp"],
+            manifest_path=root / "avs" / "qemu" / "run_tests.py",
+            workdir=root,
+            compile_command=None,
+            qemu_command=None,
+            model_eligible=True,
+            produces_elf=True,
+            expected="PTO parity prefix through fa_performance under QEMU, then gfsim exit 0",
+            metadata={
+                "avs_suite": "pto_parity",
+                "avs_extra_cflags": [
+                    "-DPTO_PARITY_FAST_F32_SEED=1",
+                    "-DPTO_PARITY_FAST_FP16_SEED=1",
+                    "-DPTO_ATTENTION_SMOKE_SEQ=1",
+                    "-DPTO_ATTENTION_LARGE_SMOKE_SEQ=1",
+                    "-DPTO_ATTENTION_SMOKE_QD=1",
+                    "-DPTO_ATTENTION_SMOKE_VD=1",
+                    "-DPTO_ATTENTION_SMALL_SMOKE_QD=1",
+                    "-DPTO_FLASH_TILE_M=1",
+                    "-DPTO_FLASH_TILE_K=1",
+                    "-DPTO_ATTENTION_MASKED_SMOKE_SEQ=1",
+                    "-DPTO_ATTENTION_MASKED_SMOKE_QD=1",
+                    "-DPTO_ATTENTION_MASKED_SMOKE_VD=1",
+                    "-DPTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_FA_PERFORMANCE",
+                ],
+                "description": "PTO parity direct-boot 1x attention micro-profile through fa_performance before MLA attention model maturity",
+            },
+        )
+    )
+    cases.append(
+        Case(
             id="avs-pto-parity",
             kind="avs_pto",
             suite="pto_parity",

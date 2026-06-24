@@ -93,7 +93,10 @@ The runner stops on the first red hard-break stage unless
   `avs-pto-parity-prefix-flash-attention-masked`, which stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and adds
   `PTO_ATTENTION_MASKED_SMOKE_*` micro-shape flags; current evidence proves it
-  through the `flash_attention_masked` digest and plain `gfsim -f <elf>`. The
+  through the `flash_attention_masked` digest and plain `gfsim -f <elf>`.
+  `avs-pto-parity-prefix-fa-performance` reuses the same 1x attention
+  micro-profile, stops after `PTO_PARITY_STAGE_FA_PERFORMANCE`, and is now
+  promoted through the `fa_performance` digest and plain `gfsim -f <elf>`. The
   AVS source exposes stop-after-stage IDs for later PTO parity stages so agents
   can isolate the first red model boundary without changing the full-row
   target. Earlier 16x softmax-prefix probes timed out in
