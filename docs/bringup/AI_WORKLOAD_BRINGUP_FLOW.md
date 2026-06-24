@@ -105,11 +105,13 @@ The runner stops on the first red hard-break stage unless
   through the `flash_attention_cube` digest. The subsequent
   `avs-pto-parity-prefix-flash-attention-vec` adds matching
   `PTO_FLASH_VEC_*` 1x controls and is promoted through the
-  `flash_attention_vec` digest. The next unpromoted attention boundary is GQA;
-  its kernel still uses a fixed PTO_QEMU_SMOKE shape rather than the shared 1x
-  attention profile. The AVS source exposes stop-after-stage IDs for later PTO
-  parity stages so agents can isolate the first red model boundary without
-  changing the full-row target. Earlier 16x softmax-prefix probes timed out in
+  `flash_attention_vec` digest. The GQA prefix
+  `avs-pto-parity-prefix-gqa` adds matching `PTO_PARITY_GQA_*` and
+  `PTO_GQA_SMOKE_*` 1x controls and is promoted through the `gqa` digest
+  `0x99D39E00C4C9CE38` under plain `gfsim -f <elf>`. The AVS source exposes
+  stop-after-stage IDs for later PTO parity stages so agents can isolate the
+  first red model boundary without changing the full-row target. Earlier 16x
+  softmax-prefix probes timed out in
   `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
   similar QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Earlier `tanh` crash, `softmax`
