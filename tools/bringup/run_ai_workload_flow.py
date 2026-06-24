@@ -2789,6 +2789,31 @@ def discover_cases(root: Path) -> list[Case]:
     )
     cases.append(
         Case(
+            id="avs-pto-parity-prefix-flash-attention-softmax",
+            kind="avs_pto",
+            suite="pto_parity",
+            tier=1,
+            source_paths=[qemu_tests / "16_pto_kernel_parity.cpp"],
+            manifest_path=root / "avs" / "qemu" / "run_tests.py",
+            workdir=root,
+            compile_command=None,
+            qemu_command=None,
+            model_eligible=True,
+            produces_elf=True,
+            expected="PTO parity prefix through flash_attention_softmax under QEMU, then gfsim exit 0",
+            metadata={
+                "avs_suite": "pto_parity",
+                "avs_extra_cflags": [
+                    "-DPTO_PARITY_FAST_F32_SEED=1",
+                    "-DPTO_PARITY_FAST_FP16_SEED=1",
+                    "-DPTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX",
+                ],
+                "description": "PTO parity direct-boot prefix boundary through flash_attention_softmax before masked attention model maturity",
+            },
+        )
+    )
+    cases.append(
+        Case(
             id="avs-pto-parity",
             kind="avs_pto",
             suite="pto_parity",

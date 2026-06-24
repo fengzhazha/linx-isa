@@ -79,12 +79,17 @@ The runner stops on the first red hard-break stage unless
   stages are mature. The promoted post-GEMM prefix is
   `avs-pto-parity-prefix-flash-attention`, which stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION` and proves the current model-green boundary
-  reaches the `flash_attention` digest. Keep `avs-pto-parity` as the full
-  smoke-sized maturity row; current model-owned evidence reaches
-  `flash_attention_softmax` after producing the `flash_attention` digest before
-  timeout. The AVS source exposes stop-after-stage IDs for later PTO parity
-  stages so agents can isolate the first red model boundary without changing the
-  full-row target. Earlier `tanh` crash, `softmax` local-pipe stall, and
+  reaches the `flash_attention` digest. The next hard-break probe is
+  `avs-pto-parity-prefix-flash-attention-softmax`, which stops after
+  `PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX`; current evidence keeps it
+  model-red after QEMU pass and model-smoke pass because `gfsim` timed out after
+  retiring 3.66M blocks in `flash_attention_demo_f32` soft-float helper code
+  without emitting the `flash_attention_softmax` digest. Keep `avs-pto-parity`
+  as the full smoke-sized maturity row; do not treat the red softmax prefix as a
+  substitute for full-row closure. The AVS source exposes stop-after-stage IDs
+  for later PTO parity stages so agents can isolate the first red model boundary
+  without changing the full-row target. Earlier `tanh` crash, `softmax`
+  local-pipe stall, and
   `softmax_inplace` RAS assertion evidence were model BFU/RAS issues, so do not
   relabel QEMU-passing parity failures as benchmark/compiler without newer
   static legality evidence.
