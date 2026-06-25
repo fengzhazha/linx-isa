@@ -2,8 +2,8 @@
 
 - Generated (UTC): `2026-06-25T08:32:21Z`
 - Skills submodule: `skills/linx-skills`
-- Skills SHA: `75b40426e431a8e688bcba7b45f0703baa09dda3`
-- Updated skills: `none`
+- Skills SHA: `c42152d9883c3743ecc28744fe9a616c16dda47b`
+- Updated skills: `linx-model`, `linx-superproject`
 
 ## Reason
 
@@ -31,9 +31,13 @@ The reusable boundary is now explicit:
 - Unit validation: `python3 -m unittest tools.bringup.test_run_ai_workload_flow`.
 - Flow schema validation: `python3 -m json.tool docs/bringup/ai_workload_bringup_flow.json`.
 - Layout validation: `bash tools/ci/check_repo_layout.sh`.
+- Skill validation: `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-model`.
+- Skill validation: `python3 /Users/zhoubot/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/zhoubot/linx-isa/skills/linx-skills/linx-superproject`.
+- Skill scope guard: `python3 skills/linx-skills/scripts/check_skill_change_scope.py --repo-root skills/linx-skills --base origin/main`.
+- Skill install: `bash /Users/zhoubot/linx-isa/skills/linx-skills/scripts/install_canonical_skills.sh`.
 
 ## Closeout
 
-- skill-evolve: no-update. The reusable knowledge was recorded in the runner
-  case matrix and bring-up docs; no installed skill command or submodule skill
-  text changed in this pass.
+- skill-evolve: updated `linx-model` and `linx-superproject` with the
+  `avs-pto-parity` Tier-1 QEMU parity / `avs-pto-parity-full-model` Tier-4
+  LinxCoreModel closure split.
