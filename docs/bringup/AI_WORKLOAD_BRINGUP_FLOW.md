@@ -112,9 +112,18 @@ The runner stops on the first red hard-break stage unless
   `avs-pto-parity-prefix-sparse-attention-local` adds matching
   `PTO_PARITY_SPARSE_*` and `PTO_SPARSE_LOCAL_SMOKE_*` 1x controls and is
   promoted through the `sparse_attention_local` digest
-  `0x9A43A000C528D955`. The AVS source exposes stop-after-stage IDs for later
-  PTO parity stages so agents can isolate the first red model boundary without
-  changing the full-row target. Earlier 16x softmax-prefix probes timed out in
+  `0x9A43A000C528D955`. The RMSNorm prefix
+  `avs-pto-parity-prefix-rmsnorm` adds matching `PTO_PARITY_RMS_*` and
+  `PTO_RMSNORM_SMOKE_*` 1x controls, stops after
+  `PTO_PARITY_STAGE_RMSNORM`, and currently preserves a QEMU-passing
+  model-owned timeout packet instead of a model-green digest. Current evidence
+  (`ai-pr-parity-prefix-rmsnorm-1x-01`) reaches QEMU PASS, then times out in
+  plain `gfsim -f <elf>` with latest BROB head
+  `B219 STID0 BPC 0x11dfe [STD COND]`, a `last-bpc-0x11dfe.disasm.txt`
+  window in the UART print loop, and many UART bytes but no final digest. The
+  AVS source exposes stop-after-stage IDs for later PTO parity stages so agents
+  can isolate the first red model boundary without changing the full-row target.
+  Earlier 16x softmax-prefix probes timed out in
   `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
   similar QEMU-passing full-shape timeouts as model-owned unless static legality
   evidence proves otherwise. Earlier `tanh` crash, `softmax`
