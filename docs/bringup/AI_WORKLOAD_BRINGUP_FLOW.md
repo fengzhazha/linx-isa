@@ -23,9 +23,9 @@ workloads/generated/<run-id>/ai-bringup/
 ## Profiles
 
 - `smoke`: Tier 0. Bounded AVS PTO parity/tile smoke plus minimal SuperNPUBench tileop cases.
-- `pr`: Tiers 0-1. Adds standalone PTO catalog smoke harnesses, PTO kernel compile/static checks, the full smoke-sized AVS PTO parity maturity suite, and promoted SuperNPUBench tileop API/control smoke cases.
+- `pr`: Tiers 0-1. Adds standalone PTO catalog smoke harnesses, PTO kernel compile/static checks, AVS PTO parity model-prefix coverage, the full AVS PTO QEMU parity row, and promoted SuperNPUBench tileop API/control smoke cases.
 - `nightly`: Tiers 0-3. Adds matrix, memory, reduction, accelerator, and DeepSeek/model-oriented cases.
-- `full`: Tiers 0-4. Full AI workload matrix.
+- `full`: Tiers 0-4. Full AI workload matrix, including the full AVS PTO parity LinxCoreModel closure target.
 
 Use `--tier`, `--kind`, `--case`, and `--limit` to narrow local debugging.
 By default `--case` is a substring filter across case id, suite, and kind.
@@ -66,14 +66,17 @@ The runner stops on the first red hard-break stage unless
 ## Case Types
 
 - `avs_pto`: executable AVS direct-boot PTO/tile suites. These produce
-  `linx-qemu-tests.elf` through `avs/qemu/run_tests.py` and are model-eligible.
+  `linx-qemu-tests.elf` through `avs/qemu/run_tests.py`; only rows marked
+  model-eligible are promoted into `gfsim`.
   Once the executable AVS ELF exists, rows preserve objdump disassembly, symbol,
   section, and relocation sidecars for triage.
   Tier-0 PTO parity is the bounded `avs-pto-parity-smoke` case, which passes
   `-DPTO_PARITY_TLOAD_STORE_ONLY=1` through the AVS extra-cflag hook and runs
-  only the `tload_store` digest path. The full smoke-sized parity sequence remains
-  `avs-pto-parity` in Tier 1 so long-running model behavior still emits a
-  model-owned maturity packet instead of hiding behind the smoke lane.
+  only the `tload_store` digest path. The full smoke-sized parity sequence
+  remains `avs-pto-parity` in Tier 1 as a QEMU parity maturity target, but it is
+  intentionally not model-eligible in the PR lane. The mirrored Tier-4
+  `avs-pto-parity-full-model` row owns final full-row LinxCoreModel closure and
+  must stay red until the full sequence passes plain `gfsim -f <elf>`.
   Tier 1 also includes `avs-pto-parity-prefix-gemm-performance`, which uses
   deterministic bit-pattern F32/FP16 seeds plus
   `PTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_GEMM_PERFORMANCE` to prove the
@@ -115,18 +118,15 @@ The runner stops on the first red hard-break stage unless
   `0x9A43A000C528D955`. The RMSNorm prefix
   `avs-pto-parity-prefix-rmsnorm` adds matching `PTO_PARITY_RMS_*` and
   `PTO_RMSNORM_SMOKE_*` 1x controls, stops after
-  `PTO_PARITY_STAGE_RMSNORM`, and currently preserves a QEMU-passing
-  model-owned timeout packet instead of a model-green digest. Current evidence
-  (`ai-pr-parity-prefix-rmsnorm-1x-01`) reaches QEMU PASS, then times out in
-  plain `gfsim -f <elf>` with latest BROB head
-  `B219 STID0 BPC 0x11dfe [STD COND]`, a `last-bpc-0x11dfe.disasm.txt`
-  window in the UART print loop, and many UART bytes but no final digest. The
-  AVS source exposes stop-after-stage IDs for later PTO parity stages so agents
-  can isolate the first red model boundary without changing the full-row target.
-  Earlier 16x softmax-prefix probes timed out in
-  `flash_attention_demo_f32` soft-float helper code after QEMU pass; classify
-  similar QEMU-passing full-shape timeouts as model-owned unless static legality
-  evidence proves otherwise. Earlier `tanh` crash, `softmax`
+  `PTO_PARITY_STAGE_RMSNORM`, and is promoted through the `rmsnorm` digest
+  `0x9AA9A100C57F8E3A` plus pass finisher under plain `gfsim -f <elf>`.
+  The AVS source exposes stop-after-stage IDs for later PTO parity stages so
+  agents can isolate the first red model boundary without changing the full-row
+  target. Current full-row evidence reaches `flash_attention_softmax` and times
+  out in `flash_attention_demo_f32` soft-float helper code at BROB BPC
+  `0x17eaa` after QEMU pass; classify similar QEMU-passing full-shape timeouts
+  as model-owned unless static legality evidence proves otherwise. Earlier
+  `tanh` crash, `softmax`
   local-pipe stall, and
   `softmax_inplace` RAS assertion evidence were model BFU/RAS issues, so do not
   relabel QEMU-passing parity failures as benchmark/compiler without newer

@@ -3192,6 +3192,31 @@ def discover_cases(root: Path) -> list[Case]:
             workdir=root,
             compile_command=None,
             qemu_command=None,
+            model_eligible=False,
+            produces_elf=True,
+            expected="All smoke-sized PTO_DIGEST parity stages under QEMU; final full-model closure is tracked by avs-pto-parity-full-model",
+            metadata={
+                "avs_suite": "pto_parity",
+                "avs_extra_cflags": [
+                    "-DPTO_PARITY_FAST_F32_SEED=1",
+                    "-DPTO_PARITY_FAST_FP16_SEED=1",
+                ],
+                "description": "PTO parity direct-boot QEMU maturity suite across all smoke-sized stages",
+                "model_deferred_reason": "Full-row model execution currently reaches flash_attention_softmax and times out in scalar flash_attention_demo_f32 soft-float normalization; keep PR on QEMU parity plus micro-profile model prefixes.",
+            },
+        )
+    )
+    cases.append(
+        Case(
+            id="avs-pto-parity-full-model",
+            kind="avs_pto",
+            suite="pto_parity",
+            tier=4,
+            source_paths=[qemu_tests / "16_pto_kernel_parity.cpp"],
+            manifest_path=root / "avs" / "qemu" / "run_tests.py",
+            workdir=root,
+            compile_command=None,
+            qemu_command=None,
             model_eligible=True,
             produces_elf=True,
             expected="All smoke-sized PTO_DIGEST parity stages under QEMU, then gfsim exit 0",
@@ -3201,7 +3226,7 @@ def discover_cases(root: Path) -> list[Case]:
                     "-DPTO_PARITY_FAST_F32_SEED=1",
                     "-DPTO_PARITY_FAST_FP16_SEED=1",
                 ],
-                "description": "PTO parity direct-boot maturity suite across all smoke-sized stages",
+                "description": "Tier-4 full AVS PTO parity LinxCoreModel closure target",
             },
         )
     )
@@ -4629,6 +4654,29 @@ def model_build_smoke(
 ) -> dict[str, Any]:
     model_root = Path(paths["model_root"])
     gfsim = Path(paths["gfsim"])
+    if not any(state.case.model_eligible and state.case.produces_elf for state in states):
+        row = {
+            "stage": "model-build-smoke",
+            "status": "not_applicable",
+            "owner": "model",
+            "evidence": "no selected model-eligible executable cases",
+            "gfsim": str(gfsim),
+            "smoke_elf": None,
+            "commands": [],
+        }
+        artifacts = {"gfsim": str(gfsim)}
+        for state in states:
+            state.stages["model-build-smoke"] = {
+                "stage": "model-build-smoke",
+                "status": "not_applicable",
+                "owner": "model",
+                "evidence": row["evidence"],
+                "command": None,
+                "commands": [],
+                "artifacts": artifacts,
+            }
+        return row
+
     stage_dir = states[0].case_dir.parent / "_model" if states else root / "workloads" / "generated" / "_model"
     stage_dir.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()

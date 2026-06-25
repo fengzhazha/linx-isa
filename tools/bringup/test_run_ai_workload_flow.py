@@ -146,6 +146,50 @@ class AiWorkloadFlowTests(unittest.TestCase):
         self.assertEqual(case.metadata["standalone_harness"], "tload_store_i32")
         self.assertIn("-DPTO_QEMU_SMOKE=1", case.metadata["compile_defines"])
 
+    def test_avs_full_parity_splits_qemu_and_model_closure(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        qemu_case = next(case for case in cases if case.id == "avs-pto-parity")
+        model_case = next(case for case in cases if case.id == "avs-pto-parity-full-model")
+
+        self.assertEqual(qemu_case.tier, 1)
+        self.assertFalse(qemu_case.model_eligible)
+        self.assertEqual(model_case.tier, 4)
+        self.assertTrue(model_case.model_eligible)
+        self.assertEqual(
+            qemu_case.metadata["avs_extra_cflags"],
+            model_case.metadata["avs_extra_cflags"],
+        )
+
+    def test_model_smoke_is_not_applicable_without_model_cases(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        qemu_case = next(case for case in cases if case.id == "avs-pto-parity")
+        with tempfile.TemporaryDirectory() as td:
+            state = run_ai_workload_flow.CaseState(
+                case=qemu_case,
+                case_dir=Path(td) / "cases" / qemu_case.id,
+            )
+            row = run_ai_workload_flow.model_build_smoke(
+                run_ai_workload_flow.repo_root(),
+                [state],
+                {
+                    "model_root": "/tmp/no-model-root",
+                    "gfsim": "/tmp/no-gfsim",
+                    "clangxx": "/tmp/no-clangxx",
+                },
+                dry_run=False,
+                build_timeout=1,
+                smoke_timeout=1,
+                skip_build=False,
+                smoke_elf_override=None,
+            )
+
+        self.assertEqual(row["status"], "not_applicable")
+        self.assertEqual(row["commands"], [])
+        self.assertEqual(
+            state.stages["model-build-smoke"]["evidence"],
+            "no selected model-eligible executable cases",
+        )
+
     def test_pto_gemm_catalog_case_has_standalone_harness(self) -> None:
         cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
         case = next(case for case in cases if case.id == "pto-kernel-gemm")
