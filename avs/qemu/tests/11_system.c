@@ -10,7 +10,7 @@
  * Notes:
  * - Handlers are written in assembly to avoid stack/prologue side effects,
  *   because QEMU vectors to EVBASE by setting PC (not by a normal call/return).
- * - Continuation PCs are passed via ETEMP/ETEMP0 (ACR1) and scratch SSR 0x0035
+ * - Continuation PCs are passed via ETEMP (ACR1) and scratch SSRs
  *   using addresses of `noreturn` C stage functions (function-entry markers
  *   are valid block start targets in the Linx Block ISA bring-up rules).
  */
@@ -41,6 +41,7 @@ enum {
     SSR_STEP_LAST_TRAPNO = 0x0040,
     SSR_STEP_LAST_TRAPARG0 = 0x0041,
     SSR_STEP_LAST_ECSTATE = 0x0042,
+    SSR_PRIV_SYSCALL_CONT = 0x0043,
 };
 
 /* Managing-ACR SSR IDs (ACR0 fits in 12-bit; ACR1 requires HL). */
@@ -238,14 +239,14 @@ extern void linx_acr1_bad_target_user(void);
 
 /* ACR1 syscall handler:
  * - mark seen (SSR_SYSCALL_SEEN=1)
- * - read continuation PC from ETEMP0_ACR1
+ * - read continuation PC from AVS-owned scratch state
  * - write EBARG_TPC_ACR1 to continuation and return via ACRE
  */
 __asm__(
     ".globl linx_acr1_syscall_handler\n"
     "linx_acr1_syscall_handler:\n"
     "  C.BSTART\n"
-    "  hl.ssrget 0x1f06, ->a0\n" /* ETEMP0_ACR1: continuation PC */
+    "  ssrget 0x0043, ->a0\n"    /* syscall continuation PC */
     "  addi zero, 1, ->a1\n"
     "  ssrset a1, 0x0031\n"     /* syscall seen */
     "  hl.ssrset a0, 0x1f41\n"  /* EBARG_BPC_CUR_ACR1 = cont */
@@ -1350,7 +1351,7 @@ void run_system_tests(void)
     /* Clear flags + publish continuation PCs for ACR1 handlers. */
     ssrset_uimm(SSR_SYSCALL_SEEN, 0);
     ssrset_uimm(SSR_IRQ_SEEN, 0);
-    hl_ssrset_uimm24(SSR_ETEMP0_ACR1, (uint64_t)(uintptr_t)&linx_priv_after_syscall);
+    ssrset_uimm(SSR_PRIV_SYSCALL_CONT, (uint64_t)(uintptr_t)&linx_priv_after_syscall);
     hl_ssrset_uimm24(SSR_ETEMP_ACR1, (uint64_t)(uintptr_t)&linx_priv_after_irq);
     ssrset_uimm(SSR_CONT_EXIT, (uint64_t)(uintptr_t)&linx_priv_after_exit);
 
