@@ -79,6 +79,7 @@ MARKER="$OUT_DIR/.linx_linux_rootfs_clean_head"
 
 reset_clean_tree() {
   git -C "$LINUX_ROOT" worktree remove --force "$WORKTREE_DIR" >/dev/null 2>&1 || true
+  git -C "$LINUX_ROOT" worktree prune >/dev/null 2>&1 || true
   rm -rf "$WORKTREE_DIR" "$OBJ_DIR" "$OUT_DIR"
 }
 
