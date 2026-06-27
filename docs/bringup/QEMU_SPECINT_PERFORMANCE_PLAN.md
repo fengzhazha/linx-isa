@@ -121,17 +121,51 @@ read fix did not yet move the hot CFI helper itself.
 | `cpu_memory_rw_debug` | 1329 |
 | `linx_mmu_translate` | 1157 |
 
+## Implemented BSTART Cache-Hit Fix
+
+QEMU commit `f80300d12c8` trusts positive BSTART cache hits on the hot CFI
+path by default and moves that hit check before the call-fallthrough text
+probe. `LINX_BSTART_CACHE_REVALIDATE=1` preserves the old revalidate-on-hit
+behavior for self-modifying-code or mapping-churn debugging. Existing MMU
+programming, TLB invalidation, CSTATE/ACR switches, and trap/ACRE transitions
+reset the cache.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `qemu-system-linx64 --version` reports
+  `v10.2.0-944-gf80300d12c8`.
+- `python3 avs/qemu/run_tests.py --all --timeout 20` passes.
+- `./avs/qemu/check_system_strict.sh` passes.
+- `boot_userspace_proof.py` and `full_boot.py` reach Linux userspace.
+- `run_specint_fast_gate.py --profile pr` passes on `999.specrand_ir`
+  test and train input in `28.458s`.
+
+Post-cache 531 sample:
+
+- `workloads/generated/specint-qemu-profile-20260627-test-cpu-stress-bstart-cache/profile/qemu-531-test-bstart-cache.sample.txt`
+
+The 531 stress run was intentionally interrupted after sampling. Compared with
+the `7e1981adf5f` sample, visible helper/MMU/debug-memory frames dropped:
+
+| Frame | Before cache hit trust | After cache hit trust |
+| --- | ---: | ---: |
+| `helper_linx_check_bstart_target` | 626 | 355 |
+| `cpu_memory_rw_debug` | 1329 | 682 |
+| `linx_mmu_translate` | 1157 | 524 |
+| `address_space_translate_internal` | 552 | 296 |
+| `linx_is_bstart_at_addr` | 733 | 340 |
+| `__findenv_locked` | 0 | 0 |
+| `linx_dbg_check_mem` | 0 | 0 |
+
 ## Next Speedups
 
-1. Make indirect target validation use the existing `bstart_cache` as a real
-   positive cache. The current helper revalidates cache hits, which preserves
-   stale-text safety but defeats most of the hot-loop benefit. A practical
-   compromise is to invalidate the cache on TLB flush, text store, or explicit
-   QEMU TB invalidation, then trust hits.
-2. Port `helper_linx_check_bstart_target` away from `cpu_memory_rw_debug`.
+1. Port `helper_linx_check_bstart_target` away from `cpu_memory_rw_debug`.
    The trap/block recovery path now has target-MMU-aware text reads, but the
    hot CFI helper still goes through debug memory access. Move that helper to a
    shared target text-read API or a page-local decode cache.
+2. Add a page-local BSTART decode cache with explicit TB/text invalidation.
+   Positive target caching reduces repeated hits, but cold or colliding targets
+   still decode through debug memory and the Linx MMU walk.
 3. Split correctness and instrumentation QEMU builds. The default benchmark
    binary should compile without always-on helper instrumentation; a separate
    diagnostics build can keep dense trace hooks and debug checks.

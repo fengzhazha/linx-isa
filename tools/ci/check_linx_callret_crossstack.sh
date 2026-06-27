@@ -29,7 +29,10 @@ pick_first_exists() {
 SWITCH_O="$(pick_first_exists \
   "$LINUX_ROOT/build-linx-fixed/arch/linx/kernel/switch_to.o" \
   "$LINUX_ROOT/build-linx/arch/linx/kernel/switch_to.o" \
-  "$LINUX_ROOT/arch/linx/kernel/switch_to.o" || true)"
+  "$LINUX_ROOT/arch/linx/kernel/switch_to.o" \
+  "$LINUX_ROOT/build-linx-fixed/arch/linx/kernel/entry.o" \
+  "$LINUX_ROOT/build-linx/arch/linx/kernel/entry.o" \
+  "$LINUX_ROOT/arch/linx/kernel/entry.o" || true)"
 ENTRY_O="$(pick_first_exists \
   "$LINUX_ROOT/build-linx-fixed/arch/linx/kernel/entry.o" \
   "$LINUX_ROOT/build-linx/arch/linx/kernel/entry.o" \
@@ -336,9 +339,9 @@ PY
   fi
 done
 
-if ! rg -q 'C\.BSTART(\.STD)?[[:space:]]+IND' "$tmpdir/switch_to.dis"; then
-  if ! rg -q 'C\.BSTART(\.STD)?[[:space:]]+RET' "$tmpdir/switch_to.dis"; then
-    echo "error: switch_to return path is missing C.BSTART IND/RET marker" >&2
+if ! rg -q '((C\.)?BSTART(\.STD)?)[[:space:]]+IND' "$tmpdir/switch_to.dis"; then
+  if ! rg -q '((C\.)?BSTART(\.STD)?)[[:space:]]+RET' "$tmpdir/switch_to.dis"; then
+    echo "error: switch_to return path is missing BSTART IND/RET marker" >&2
     exit 1
   fi
 fi
