@@ -157,24 +157,59 @@ the `7e1981adf5f` sample, visible helper/MMU/debug-memory frames dropped:
 | `__findenv_locked` | 0 | 0 |
 | `linx_dbg_check_mem` | 0 | 0 |
 
+## Implemented Helper Target-Read Fix
+
+The next QEMU patch moves `helper_linx_check_bstart_target`,
+`linx_is_bstart_at_addr`, and call-fallthrough validation away from
+`cpu_memory_rw_debug`. The helper now uses a nonfaulting instruction-fetch
+probe to copy RAM-backed guest text and preserves the previous demand-paging
+behavior by deferring validation when executable text cannot be read.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `qemu-system-linx64 --version` reports
+  `v10.2.0-945-g8f819f1df18`.
+- `python3 avs/qemu/run_tests.py --all --timeout 20` passes.
+- `./avs/qemu/check_system_strict.sh` passes.
+- `boot_userspace_proof.py` and `full_boot.py` reach Linux userspace.
+- `run_specint_fast_gate.py --profile pr` passes on `999.specrand_ir`
+  test and train input.
+- `SPECINT_TEST_CPU_STRESS_TIMEOUT=900 run_specint_fast_gate.py --profile
+  nightly --suite test-cpu-stress` passes `531.deepsjeng_r` test input in
+  `468.038s`; the benchmark exits 0, emits `LINX_SPEC_PASS`, and the
+  `test.out` FNV-1a hash matches `0x391c9299`.
+
+Post-target-read 531 sample:
+
+- `workloads/generated/specint-nightly-test-cpu-stress-20260627-target-read/profile/qemu-531-test-target-read.sample.txt`
+
+Compared with the immediately preceding current-QEMU 531 sample, the helper
+path no longer samples `cpu_memory_rw_debug`, and the Linx MMU walk nearly
+disappears from the sampled CFI validation stack:
+
+| Frame | Before target-read helper | After target-read helper |
+| --- | ---: | ---: |
+| `helper_linx_check_bstart_target` | 363 | 244 |
+| `cpu_memory_rw_debug` | 704 | 0 |
+| `linx_mmu_translate` | 585 | 5 |
+| `address_space_translate_internal` | 360 | 3 |
+| `linx_is_bstart_at_addr` | 350 | 198 |
+| `probe_access_flags` | 0 | 140 |
+
 ## Next Speedups
 
-1. Port `helper_linx_check_bstart_target` away from `cpu_memory_rw_debug`.
-   The trap/block recovery path now has target-MMU-aware text reads, but the
-   hot CFI helper still goes through debug memory access. Move that helper to a
-   shared target text-read API or a page-local decode cache.
-2. Add a page-local BSTART decode cache with explicit TB/text invalidation.
+1. Add a page-local BSTART decode cache with explicit TB/text invalidation.
    Positive target caching reduces repeated hits, but cold or colliding targets
-   still decode through debug memory and the Linx MMU walk.
-3. Split correctness and instrumentation QEMU builds. The default benchmark
+   still decode through the helper probe and BSTART byte classification.
+2. Split correctness and instrumentation QEMU builds. The default benchmark
    binary should compile without always-on helper instrumentation; a separate
    diagnostics build can keep dense trace hooks and debug checks.
-4. Keep 505 memory stress and `531` CPU stress out of cheap PR smoke. They
+3. Keep 505 memory stress and `531` CPU stress out of cheap PR smoke. They
    should remain isolated as `test-vm-stress`, `train-vm-stress`,
    `test-cpu-stress`, and `train-cpu-stress` so ordinary regressions do not
    spend their budget on the largest allocation/MMU/control-flow workloads
    first.
-5. Keep heartbeat and guest logging off for profiler runs. Use
+4. Keep heartbeat and guest logging off for profiler runs. Use
    `--guest-heartbeat-sec 0` and a low or zero host heartbeat unless the guest
    is suspected of hanging.
 

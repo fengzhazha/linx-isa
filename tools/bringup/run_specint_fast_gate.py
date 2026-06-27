@@ -76,7 +76,7 @@ SUITES: dict[str, Suite] = {
         benches=("531.deepsjeng_r",),
         transports="initramfs",
         timeout_env="SPECINT_TEST_CPU_STRESS_TIMEOUT",
-        timeout_default=300,
+        timeout_default=900,
         description="isolated test-input CPU/control-flow stress check",
     ),
     "test-vm-stress": Suite(
