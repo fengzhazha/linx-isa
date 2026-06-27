@@ -113,7 +113,7 @@
         {
           "id": "tsvc-qemu-batched",
           "timeout_seconds": 3600,
-          "command": "python3 workloads/tsvc/run_tsvc_batched.py --out-dir \"${TSVC_QEMU_OUT_DIR:-$PWD/workloads/generated/tsvc-pr-qemu}\" --batch-size \"${TSVC_BATCH_SIZE:-20}\" --strict-fail-under \"${TSVC_STRICT_FAIL_UNDER:-148}\" --vector-mode auto --clang \"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" --lld \"${LLD:-$PWD/compiler/llvm/build-linxisa-clang/bin/ld.lld}\" --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --source-policy linx-v03-parity --qemu-timeout \"${TSVC_QEMU_TIMEOUT:-240}\""
+          "command": "python3 workloads/tsvc/run_tsvc_batched.py --out-dir \"${TSVC_QEMU_OUT_DIR:-$PWD/workloads/generated/tsvc-pr-qemu}\" --batch-size \"${TSVC_BATCH_SIZE:-20}\" --strict-fail-under \"${TSVC_STRICT_FAIL_UNDER:-148}\" --vector-mode auto --clang \"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" --lld \"${LLD:-$PWD/compiler/llvm/build-linxisa-clang/bin/ld.lld}\" --qemu \"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\" --source-policy linx-v03-parity --qemu-timeout \"${TSVC_QEMU_TIMEOUT:-240}\""
         }
       ]
     },
@@ -135,12 +135,12 @@
         {
           "id": "tiny-userspace-proof",
           "timeout_seconds": 180,
-          "command": "TIMEOUT=\"${TINY_USERSPACE_TIMEOUT:-30}\" QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/initramfs/boot_userspace_proof.py"
+          "command": "TIMEOUT=\"${TINY_USERSPACE_TIMEOUT:-30}\" QEMU=\"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\" SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/initramfs/boot_userspace_proof.py"
         },
         {
           "id": "busybox-rootfs",
           "timeout_seconds": 900,
-          "command": "TIMEOUT=\"${BUSYBOX_ROOTFS_TIMEOUT:-120}\" ROOTFS_IMG=\"$(bash tools/bringup/run_linux_busybox_rootfs_build_clean.sh --linux-root \"$PWD/kernel/linux\" --out-dir \"${LINUX_BUSYBOX_ROOTFS_CLEAN_OUT_DIR:-/tmp/linx-linux-rootfs-clean-out}\" --llvm-build \"$PWD/compiler/llvm/build-linxisa-clang\")\" QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" QEMU_EXTRA_ARGS='-bios none' SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/busybox_rootfs/boot.py"
+          "command": "TIMEOUT=\"${BUSYBOX_ROOTFS_TIMEOUT:-120}\" ROOTFS_IMG=\"$(bash tools/bringup/run_linux_busybox_rootfs_build_clean.sh --linux-root \"$PWD/kernel/linux\" --out-dir \"${LINUX_BUSYBOX_ROOTFS_CLEAN_OUT_DIR:-/tmp/linx-linux-rootfs-clean-out}\" --llvm-build \"$PWD/compiler/llvm/build-linxisa-clang\")\" QEMU=\"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\" QEMU_EXTRA_ARGS='-bios none' SKIP_BUILD=1 python3 kernel/linux/tools/linxisa/busybox_rootfs/boot.py"
         }
       ]
     },
@@ -162,12 +162,12 @@
         {
           "id": "musl-runtime-both",
           "timeout_seconds": 600,
-          "command": "python3 avs/qemu/run_musl_smoke.py --mode phase-b --link both --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --timeout \"${MUSL_TIMEOUT:-90}\""
+          "command": "python3 avs/qemu/run_musl_smoke.py --mode phase-b --link both --qemu \"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\" --timeout \"${MUSL_TIMEOUT:-90}\""
         },
         {
           "id": "glibc-runtime",
           "timeout_seconds": 600,
-          "command": "python3 avs/qemu/run_glibc_smoke.py --qemu \"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" --timeout \"${GLIBC_TIMEOUT:-30}\""
+          "command": "python3 avs/qemu/run_glibc_smoke.py --qemu \"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\" --timeout \"${GLIBC_TIMEOUT:-30}\""
         }
       ]
     },
