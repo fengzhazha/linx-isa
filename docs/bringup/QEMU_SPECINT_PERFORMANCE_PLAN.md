@@ -86,11 +86,11 @@ enters address-space translation and Linx MMU walking.
 
 ## Implemented Target-Read Fix
 
-QEMU commit `7e1981adf5f` replaces the Linx trap/CFI instruction-byte probes
-with target-MMU-aware text reads. This removes `cpu_memory_rw_debug` from the
-block-boundary recovery path, preserves Linx legacy-MMU fault details for
-diagnostics, and keeps user fault/IRQ resume state anchored to a real BSTART
-header.
+QEMU commit `7e1981adf5f` replaces the Linx trap and block-recovery
+instruction-byte probes with target-MMU-aware text reads. This removes
+`cpu_memory_rw_debug` from that recovery path, preserves Linx legacy-MMU fault
+details for diagnostics, and keeps user fault/IRQ resume state anchored to a
+real BSTART header.
 
 Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
 
@@ -102,6 +102,25 @@ Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
 - `run_specint_fast_gate.py --profile smoke` passes on `999.specrand_ir`
   test input.
 
+Post-fix 531 sample:
+
+- `workloads/generated/specint-qemu-profile-20260627-test-cpu-stress-qemu7e/profile/qemu-531-test-qemu7e.sample.txt`
+
+This sample was intentionally interrupted after profiling. It shows the
+disabled diagnostic overhead is still gone, but `helper_linx_check_bstart_target`
+continues to call `cpu_memory_rw_debug` from `helper.c`; the target-aware text
+read fix did not yet move the hot CFI helper itself.
+
+| Frame | Post-fix sample count |
+| --- | ---: |
+| `__findenv_locked` | 0 |
+| `linx_dbg_check_mem` | 0 |
+| `helper_linx_dbg_check_load` | 0 |
+| `helper_linx_dbg_check_store` | 0 |
+| `helper_linx_check_bstart_target` | 626 |
+| `cpu_memory_rw_debug` | 1329 |
+| `linx_mmu_translate` | 1157 |
+
 ## Next Speedups
 
 1. Make indirect target validation use the existing `bstart_cache` as a real
@@ -109,10 +128,10 @@ Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
    stale-text safety but defeats most of the hot-loop benefit. A practical
    compromise is to invalidate the cache on TLB flush, text store, or explicit
    QEMU TB invalidation, then trust hits.
-2. Add a page-local decode cache above the target-aware text read path. The
-   current fix avoids debug-memory access but still decodes repeated BSTART
-   checks from guest text. Cache decoded BSTART/non-BSTART results by page and
-   invalidate them with TB/text invalidation.
+2. Port `helper_linx_check_bstart_target` away from `cpu_memory_rw_debug`.
+   The trap/block recovery path now has target-MMU-aware text reads, but the
+   hot CFI helper still goes through debug memory access. Move that helper to a
+   shared target text-read API or a page-local decode cache.
 3. Split correctness and instrumentation QEMU builds. The default benchmark
    binary should compile without always-on helper instrumentation; a separate
    diagnostics build can keep dense trace hooks and debug checks.
