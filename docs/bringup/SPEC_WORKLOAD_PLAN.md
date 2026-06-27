@@ -10,6 +10,7 @@ The canonical taxonomy is capability-based:
 
 - **Control Path**: wrapper, QEMU path, artifact handoff, reproducible launch.
 - **Userspace Entry**: trivial firmwareless Linux + initramfs userspace startup.
+- **Fast Gate**: cheap SPECint `test`/`train` suites for QEMU/Linux regressions.
 - **Bringup Subset**: first useful SPEC subset for runtime debugging.
 - **Hosted Runtime**: shared musl / dynamic-loader path for hosted benches.
 - **Subset Closure**: bringup subset passes qemu + specdiff on required transports.
@@ -19,6 +20,16 @@ The canonical taxonomy is capability-based:
 
 - `spec_policy.bringup_subset`
   Current set: `999.specrand_ir`, `505.mcf_r`, `531.deepsjeng_r`
+- `spec_policy.fast_gate`
+  Current suites:
+  - `test-smoke`: `999.specrand_ir` on `test`
+  - `train-smoke`: `999.specrand_ir` on `train`
+  - `test-cpu-stress`: `531.deepsjeng_r` on `test`, isolated in nightly
+    because it can run for minutes before guest progress
+  - `test-vm-stress`: `505.mcf_r` on `test`, isolated because it is the
+    known large-allocation/MMU stressor
+  - `train-cpu-stress`: `531.deepsjeng_r` on `train`, isolated in nightly
+    because profiling showed it can run for minutes before guest progress
 - `spec_policy.promotion_required`
   Current set: full required SPECint promotion set excluding policy exclusions
 - `spec_policy.excluded_benchmarks`
@@ -34,12 +45,31 @@ Goal:
 
 Done means:
 - `tools/spec2017/run_stage_qemu_matrix.py` forwards `QEMU=...` or `--qemu ...`
-  to `run_int_rate_qemu.py`.
+  plus per-run timeout, kernel append, and heartbeat controls to
+  `run_int_rate_qemu.py`.
 - Per-transport run directories are created under the chosen out dir.
 
 Primary evidence:
 - matrix summary JSON/MD
 - transport logs
+
+### SPEC-M01F Fast Test/Train Gate
+
+Goal:
+- A fast, repeatable SPECint gate runs `test` and `train` inputs before any
+  refrate-scale or broad promotion work.
+
+Done means:
+- `tools/bringup/run_specint_fast_gate.py --profile pr` runs the fast suites
+  through the active QEMU binary and emits `specint_fast_gate_summary.json`.
+- The PR gate keeps `505.mcf_r` and `531.deepsjeng_r` out of the fast smoke
+  path so cheap `test`/`train` regressions are visible first.
+- Nightly uses `--profile nightly` to add CPU stress, VM stress, and promotion
+  breadth.
+
+Primary evidence:
+- `workloads/generated/specint-fast-gate/specint_fast_gate_summary.json`
+- per-suite `qemu_matrix_summary.json`
 
 ### SPEC-M02 Firmwareless Linux Userspace Entry
 
@@ -88,14 +118,17 @@ Primary evidence:
 ### SPEC-M05 Bringup Subset Closure
 
 Goal:
-- The bringup subset passes qemu + specdiff on required transports.
+- The bringup subset passes qemu + specdiff on required fast-gate transports.
 
 Done means:
-- `spec_policy.bringup_subset` is green on `9p` and `initramfs`.
-- aggregate matrix summary reports `ok=true`.
+- `spec_policy.fast_gate` is green on the promoted initramfs transport.
+- optional transport expansion can add `9p,initramfs` via the fast gate
+  `--transports` override without redefining the baseline.
+- aggregate fast-gate summary reports `ok=true`.
 
 Primary evidence:
-- matrix summary JSON/MD
+- fast-gate summary JSON/MD
+- per-suite matrix summary JSON/MD
 - per-transport summaries
 - specdiff logs
 
@@ -131,6 +164,9 @@ Done means:
 As of 2026-05-21:
 
 - `SPEC-M01` is resolved.
+- `SPEC-M01F` is the canonical fast gate shape for current QEMU/Linux SPECint
+  work: run minimal `test-smoke` and `train-smoke` before any refrate-scale,
+  `531` CPU-stress, `505` VM-stress, or broad promotion run.
 - `SPEC-M02` is the first unresolved runtime milestone.
 - `SPEC-M03` and `SPEC-M05` are blocked downstream of `SPEC-M02`.
 - `SPEC-M04` remains separately open for the shared-runtime path.

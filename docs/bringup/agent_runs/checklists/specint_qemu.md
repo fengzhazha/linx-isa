@@ -2,6 +2,12 @@
 
 ## Live Blockers (2026-05-21)
 
+- [ ] BLOCK-SPEC-FG-001 Fast SPECint gate must run `test`/`train` before promotion.
+  Command: `python3 tools/bringup/run_specint_fast_gate.py --profile pr --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu "${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}" --sysroot "${WORKLOAD_SYSROOT:-$PWD/out/libc/musl/install/phase-b}" --out-dir workloads/generated/specint-fast-gate --append-extra "${SPEC_APPEND_EXTRA:-norandmaps}" --guest-heartbeat-sec "${SPEC_GUEST_HEARTBEAT_SEC:-60}"`
+  Done means: `test-smoke` and `train-smoke` emit `qemu_matrix_summary.json` artifacts and the aggregate `specint_fast_gate_summary.json`.
+  Rationale: this keeps cheap SPECint regressions visible and prevents `505.mcf_r` or `531.deepsjeng_r` stress workloads from hiding faster `test`/`train` signal.
+  Policy: smoke suites are the cheap `999.specrand_ir` sentinels; `531.deepsjeng_r` belongs to nightly `test-cpu-stress`/`train-cpu-stress`, and `505.mcf_r` belongs to nightly VM stress.
+
 - [x] BLOCK-SPEC-A-001 Keep the canonical Stage-A matrix command runnable from the superproject.
   Command: `QEMU=/tmp/linx-qemu-clean-build/qemu-system-linx64 python3 tools/spec2017/run_stage_qemu_matrix.py --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --stage a --input-set test --strict --out-dir workloads/generated/spec_stage_a_wrapper_verify_env`
   Resolution: `tools/spec2017/run_stage_qemu_matrix.py` now accepts `--qemu` and defaults from `QEMU` in the environment, then forwards that path to `run_int_rate_qemu.py`.
@@ -57,8 +63,8 @@
   Status: ❌ OPEN (2026-05-21) - `phase-c` is not the current closure baseline; `phase-b` was repaired first and the shared-runtime path still needs canonical rebuild/revalidation.
 
 - [ ] ID: SPEC-M05 Bringup subset closure.
-  Canonical command: `python3 tools/spec2017/run_stage_qemu_matrix.py --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --stage a --input-set test --transports 9p,initramfs --strict --out-dir workloads/generated/spec_stage_a`
-  Done means: the bringup subset passes qemu + specdiff on required transports and aggregate summary reports `ok=true`.
+  Canonical command: `python3 tools/bringup/run_specint_fast_gate.py --profile pr --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu "${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}" --sysroot "${WORKLOAD_SYSROOT:-$PWD/out/libc/musl/install/phase-b}" --out-dir workloads/generated/specint-fast-gate --append-extra "${SPEC_APPEND_EXTRA:-norandmaps}" --guest-heartbeat-sec "${SPEC_GUEST_HEARTBEAT_SEC:-60}"`
+  Done means: the fast `test`/`train` suites pass qemu + specdiff/hash checks and aggregate summary reports `ok=true`.
   Status: ❌ BLOCKED BY SPEC-M02 / SPEC-M03 (2026-05-21) - transport summaries still show `ok=false` for every bringup-subset bench.
 
 - [ ] ID: SPEC-M06 Promotion-set closure and xcheck readiness.

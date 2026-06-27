@@ -990,29 +990,29 @@ run_gate \
 if [[ "${RUN_SPEC_PR_GATES:-0}" == "1" ]]; then
   run_gate \
     "Regression" \
-    "SPEC stage A QEMU matrix" \
-    "python3 $ROOT/tools/spec2017/run_stage_qemu_matrix.py --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --stage a --input-set ${SPEC_INPUT_SET:-test} --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --strict --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/spec_stage_a" \
-    "workload_spec_stage_a_pass" \
-    "workload_spec_stage_a_fail" \
-    "workload_spec_stage_a"
+    "SPECint fast test/train gate" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\"" \
+    "workload_specint_fast_pass" \
+    "workload_specint_fast_fail" \
+    "workload_specint_fast"
 else
   record_skipped_gate \
     "Regression" \
-    "SPEC stage A QEMU matrix" \
-    "python3 $ROOT/tools/spec2017/run_stage_qemu_matrix.py --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --stage a --input-set ${SPEC_INPUT_SET:-test} --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --strict --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/spec_stage_a" \
+    "SPECint fast test/train gate" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\"" \
     "RUN_SPEC_PR_GATES=0" \
-    "workload_spec_stage_a" \
+    "workload_specint_fast" \
     "no"
 fi
 
 if [[ "$LINX_GATE_TIER" == "nightly" ]]; then
   run_gate \
     "Regression" \
-    "SPEC stage B QEMU matrix" \
-    "python3 $ROOT/tools/spec2017/run_stage_qemu_matrix.py --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --stage b --input-set ${SPEC_INPUT_SET:-test} --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --strict --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/spec_stage_b" \
-    "workload_spec_stage_b_pass" \
-    "workload_spec_stage_b_fail" \
-    "workload_spec_stage_b"
+    "SPECint nightly test/train gate" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile nightly --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-nightly-test-train --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\" --continue-on-fail" \
+    "workload_specint_nightly_pass" \
+    "workload_specint_nightly_fail" \
+    "workload_specint_nightly"
 fi
 
 if [[ "$RUN_LINXCORE_NIGHTLY_GATES" == "1" ]]; then

@@ -19,9 +19,11 @@ Evidence:
   records the current Linux hard break: `vmlinux` builds, the tiny initramfs
   userspace proof reaches QEMU-observed userspace PCs, and the clean BusyBox
   rootfs image still times out before shell command tokens.
-- `docs/bringup/agent_runs/checklists/specint_qemu.md` records SPEC Stage-A as
-  blocked behind firmwareless Linux userspace entry, not merely SPEC harness
-  plumbing.
+- `docs/bringup/agent_runs/checklists/specint_qemu.md` records SPECint as a
+  fast `test`/`train` gate first, with `505.mcf_r` isolated as VM stress rather
+  than mixed into every cheap regression check.
+- `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
+  SPECint profile and the prioritized speedups for the Linx target.
 
 Inference:
 
@@ -47,7 +49,8 @@ Inference:
 | `tsvc-qemu-hardbreak` | integration | hard break | Run compile-only TSVC floor, then batched QEMU TSVC before Linux rootfs or SPEC. |
 | `linux-userspace-entry` | linux | hard break | Rebuild `vmlinux`, prove trivial initramfs userspace, then BusyBox rootfs. |
 | `libc-hosted-runtime` | libc | hard break | Prove musl build/runtime and glibc runtime before hosted benchmarks. |
-| `full-benchmarks` | integration | hard break | Run CoreMark/Dhrystone and SPEC Stage-A only after upstream stages pass. |
+| `specint-fast-gate` | integration | hard break | Run fast SPECint `test`/`train` suites before broad promotion work. |
+| `full-benchmarks` | integration | hard break | Run CoreMark/Dhrystone and nightly SPECint test/train promotion only after upstream stages pass. |
 
 ## Commands
 
@@ -97,6 +100,16 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
   --report-out workloads/generated/flow-linux/report.json
 ```
 
+Run only the fast SPECint gate after Linux/libc prerequisites are green:
+
+```bash
+python3 tools/bringup/run_benchmark_linux_flow.py \
+  --profile linux \
+  --start-at specint-fast-gate \
+  --stop-after specint-fast-gate \
+  --report-out workloads/generated/flow-specint-fast/report.json
+```
+
 Run the promotion path only when the Linux path is green:
 
 ```bash
@@ -127,7 +140,8 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
 ## Why This Is More Efficient
 
 - It avoids expensive SPEC/rootfs/full benchmark runs when the cheaper QEMU or
-  TSVC direct lane is already red.
+  TSVC direct lane is already red, and it runs cheap SPECint `test`/`train`
+  suites before any refrate-scale or broad promotion workload.
 - It separates PR, Linux, and nightly profiles instead of using one monolithic
   strict run for every question.
 - It makes the handoff boundary explicit for QEMU, compiler, libc, Linux, and

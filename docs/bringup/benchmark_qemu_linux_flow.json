@@ -172,6 +172,23 @@
       ]
     },
     {
+      "id": "specint-fast-gate",
+      "profiles": [
+        "linux",
+        "nightly"
+      ],
+      "owner": "integration",
+      "hard_break": true,
+      "why": "Run the fast SPECint gate with test/train inputs before broader benchmark expansion, isolating slow VM-stress workloads from cheap regressions.",
+      "commands": [
+        {
+          "id": "specint-fast-test-train",
+          "timeout_seconds": 3600,
+          "command": "QEMU_BIN=\"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\"; python3 tools/bringup/run_specint_fast_gate.py --profile \"${SPECINT_FAST_PROFILE:-pr}\" --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu \"$QEMU_BIN\" --sysroot \"${WORKLOAD_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" --out-dir \"${SPECINT_FAST_OUT_DIR:-$PWD/workloads/generated/specint-fast-gate}\" --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\""
+        }
+      ]
+    },
+    {
       "id": "full-benchmarks",
       "profiles": [
         "nightly"
@@ -186,9 +203,9 @@
           "command": "LINX_CLANG=\"${CLANG:-$PWD/compiler/llvm/build-linxisa-clang/bin/clang}\" LINX_SYSROOT=\"${LINX_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" python3 workloads/run_benchmarks.py --cc tools/spec2017/linx_cc.sh --target linx64-unknown-linux-musl --sysroot \"${LINX_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" --json-out workloads/generated/benchmarks_result.json"
         },
         {
-          "id": "spec-stage-a",
-          "timeout_seconds": 7200,
-          "command": "QEMU=\"${QEMU:-$PWD/emulator/qemu/build/qemu-system-linx64}\" python3 tools/spec2017/run_stage_qemu_matrix.py --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --stage a --input-set test --transports 9p,initramfs --strict --out-dir workloads/generated/spec_stage_a"
+          "id": "specint-nightly-test-train",
+          "timeout_seconds": 14400,
+          "command": "QEMU_BIN=\"${QEMU:-$PWD/emulator/qemu/build-linx/qemu-system-linx64}\"; python3 tools/bringup/run_specint_fast_gate.py --profile nightly --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu \"$QEMU_BIN\" --sysroot \"${WORKLOAD_SYSROOT:-$PWD/out/libc/musl/install/phase-b}\" --out-dir \"${SPECINT_NIGHTLY_OUT_DIR:-$PWD/workloads/generated/specint-nightly-test-train}\" --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\" --continue-on-fail"
         }
       ]
     }
