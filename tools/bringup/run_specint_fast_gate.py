@@ -223,6 +223,22 @@ def _read_matrix_summary(path: Path) -> dict[str, Any]:
     return obj
 
 
+def _matrix_failure_classes(matrix: dict[str, Any]) -> dict[str, str]:
+    classes: dict[str, str] = {}
+    results = matrix.get("results", [])
+    if not isinstance(results, list):
+        return classes
+    for row in results:
+        if not isinstance(row, dict):
+            continue
+        row_classes = row.get("failure_classes", {})
+        if not isinstance(row_classes, dict):
+            continue
+        for bench, cls in row_classes.items():
+            classes[str(bench)] = str(cls)
+    return classes
+
+
 def _suite_command(
     *,
     suite: Suite,
@@ -295,11 +311,18 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         "",
         "## Suites",
         "",
-        "| Suite | Input | Benches | OK | Return | Elapsed | Summary |",
-        "|---|---|---|---:|---:|---:|---|",
+        "| Suite | Input | Benches | OK | Return | Elapsed | Failure Classes | Summary |",
+        "|---|---|---|---:|---:|---:|---|---|",
     ]
     for row in summary["suites"]:
         benches = ", ".join(row["benches"])
+        failure_classes = row.get("failure_classes", {})
+        if isinstance(failure_classes, dict) and failure_classes:
+            classes_text = ", ".join(
+                f"{bench}: {cls}" for bench, cls in sorted(failure_classes.items())
+            )
+        else:
+            classes_text = "-"
         lines.append(
             "| "
             f"`{row['name']}` | "
@@ -308,6 +331,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
             f"`{str(row['ok']).lower()}` | "
             f"`{row['returncode']}` | "
             f"`{row['elapsed_sec']}` | "
+            f"`{classes_text}` | "
             f"`{row['matrix_summary']}` |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -410,6 +434,7 @@ def main(argv: list[str]) -> int:
             rc = proc.returncode
             matrix = _read_matrix_summary(suite_out / "qemu_matrix_summary.json")
         row_ok = rc == 0 and bool(matrix.get("ok", False))
+        failure_classes = _matrix_failure_classes(matrix)
         rows.append(
             {
                 "name": suite.name,
@@ -427,6 +452,7 @@ def main(argv: list[str]) -> int:
                 "matrix_summary": str(suite_out / "qemu_matrix_summary.json"),
                 "matrix_loaded": bool(matrix.get("loaded", False)),
                 "matrix_ok": bool(matrix.get("ok", False)),
+                "failure_classes": failure_classes,
             }
         )
         overall_ok = overall_ok and row_ok

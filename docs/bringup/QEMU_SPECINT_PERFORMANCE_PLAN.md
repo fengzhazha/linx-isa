@@ -221,13 +221,30 @@ suite covering all current Linx SPECint rate benchmarks:
 - `557.xz_r`
 - `999.specrand_ir`
 
+Additional opt-in QEMU debug switches used during this pass:
+
+- `LINX_CALL_TRACE_RING=1` records recent call/return/ACRE events in a bounded
+  ring and dumps them after `LINX_FAULT_TRACE` reports a synchronous fault.
+  Use `LINX_CALL_TRACE_RING_SIZE=<1..128>` to tune the retained window.
+- `LINX_MEM_TRACE_ADDR=<addr>` instruments translated loads/stores and prints
+  only accesses overlapping the requested address range. Narrow with
+  `LINX_MEM_TRACE_SIZE`, `LINX_MEM_TRACE_ACCESS=load|store|all`,
+  `LINX_MEM_TRACE_LIMIT`, and `LINX_MEM_TRACE_PC_LO/HI`.
+- `LINX_SYSCALL_TRACE=1` logs Linx hosted syscall entry and ACRE return pairs
+  with syscall number, BPC/TPC, arguments, return value, and cstate. Narrow
+  with `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_LIMIT`, and
+  `LINX_SYSCALL_TRACE_PC_LO/HI`.
+
 Run command:
 
 ```bash
-SPECINT_TRAIN_ALL_TIMEOUT=900 \
+SPECINT_TRAIN_ALL_TIMEOUT=600 \
+LINX_SPEC_HEARTBEAT_SEC=30 \
+LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
+LINX_SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
-  --out-dir workloads/generated/specint-train-all-20260628-heartbeat \
+  --out-dir workloads/generated/specint-train-all-20260628-debug-v2 \
   --qemu emulator/qemu/build-linx/qemu-system-linx64 \
   --append-extra norandmaps \
   --guest-heartbeat-sec 0 \
@@ -239,25 +256,34 @@ python3 tools/bringup/run_specint_fast_gate.py \
 
 Artifacts:
 
-- `workloads/generated/specint-train-all-20260628-heartbeat/specint_fast_gate_summary.json`
-- `workloads/generated/specint-train-all-20260628-heartbeat/train-all/qemu_matrix_summary.json`
-- `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-debug-v2/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-debug-v2/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-debug-v2/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-505-train-debug-v2.sample.txt`
+- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-557-train-debug-v2.sample.txt`
+- `workloads/generated/specint-train-postdebug-classifier-20260628/qemu_matrix_summary.json`
 
-Result: `999.specrand_ir` passed. The other nine benchmarks are now classified
-by first failing symptom:
+Result: `999.specrand_ir` passed. The other nine train-input benchmarks are
+now classified by first failing symptom. Timeouts with changing BPC/count are
+live-slow results, not deadlocks:
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | fail | pre-exec `stat/open/read` succeeds; later `kmem_cache_alloc_noprof` Oops | Linux exec/mm allocation path |
+| `500.perlbench_r` | timeout at 600s | last count `68000000001`, changing kernel BPC | running too slowly in fixed wrapper; focused run reaches Perl BigInt user code |
 | `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | fd/syscall/libc file-I/O path |
-| `505.mcf_r` | timeout at 900s | last count `188000000001`, changing BPC | running too slowly, not deadlocked |
+| `505.mcf_r` | timeout at 600s | last count `101000000009`, changing user BPC | running too slowly, not deadlocked |
 | `520.omnetpp_r` | user trap | trap at `addr=0x27b010`, `a0=0x27b000` | C++ runtime/codegen/relocation path |
 | `523.xalancbmk_r` | user trap | trap at `addr=0x4f5010`, `a0=0x4f5000` | C++ runtime/codegen/relocation path |
 | `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648` | early kernel/initramfs path |
-| `531.deepsjeng_r` | timeout at 900s | last count `142000000000`, changing BPC | running too slowly, not deadlocked |
+| `531.deepsjeng_r` | timeout at 600s | last count `77000000014`, changing user BPC | running too slowly, not deadlocked |
 | `541.leela_r` | user trap | trap at `addr=0xffffffffffffffe8` | C++/object pointer or call/return path |
-| `557.xz_r` | timeout at 900s | last count `154000000042`, changing BPC | running too slowly, not deadlocked |
+| `557.xz_r` | timeout at 600s | last count `90000000005`, changing user BPC | running too slowly, not deadlocked |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir` | smoke sentinel closed |
+
+The SPEC loop now records bounded failure classes in both
+`stage_b_summary.json` and `qemu_matrix_summary.md`. A post-rebuild focused
+matrix over `999.specrand_ir` and `541.leela_r` proves the summary plumbing:
+`999.specrand_ir` passes, while `541.leela_r` is summarized as `user-trap`.
 
 Proposed next fixes:
 
@@ -266,14 +292,13 @@ Proposed next fixes:
    `same_site` before increasing timeouts.
 2. Profile `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` with heartbeat off
    or at a very coarse interval. These workloads are live but too slow; the
-   next QEMU speedups should focus on page-local BSTART decode caching, TB
-   chaining, and avoiding helper probes in hot branch-validation paths.
-3. Continue `500.perlbench_r` from the narrowed Linux exec/mm blocker. The
-   original `errno=2` symptom was a harness-side classification artifact:
-   guest pre-exec `stat/open/read` succeeds on the benchmark ELF. A Linx Linux
-   fixup parser update then moved the failure past the first usercopy Oops.
-   The current stop is a null cache pointer in `kmem_cache_alloc_noprof`
-   during `execve`.
+   next QEMU speedups should focus on page-local BSTART decode caching,
+   TB-friendly template/queue fast paths, and avoiding helper probes in hot
+   branch-validation paths.
+3. Continue `500.perlbench_r` from the narrowed user-code stop. The original
+   `errno=2`, usercopy Oops, null `filelock_cache`, and inherited-stdin
+   symptoms are now separated and fixed in the flow; the focused current stop
+   is Perl BigInt range handling after file I/O succeeds.
 4. Add a targeted syscall trace for `502.gcc_r` around
    `openat/read/lseek/fstat/close` on `200.c`; validate fd-table state and
    musl errno propagation before changing benchmark packaging.
@@ -291,7 +316,7 @@ Proposed next fixes:
 ## 2026-06-28 500 Fixup Triage
 
 Focused `500.perlbench_r` runs separated the original loader-looking symptom
-from the real kernel failures:
+from the real kernel/runtime failures:
 
 - `workloads/generated/specint-500-preexec-20260628/` proves the benchmark ELF
   exists in the initramfs and is readable before `execve`
@@ -312,34 +337,84 @@ from the real kernel failures:
   the current QEMU `LINX_FAULT_TRACE` stop. The heartbeat count is still
   advancing until the Oops, so this is a deterministic kernel fault rather
   than a deadlock.
+- `workloads/generated/specint-500-callring-20260628/` uses
+  `LINX_CALL_TRACE_RING=1` to identify the null slab-cache dereference as
+  `fcntl_setlk -> kmem_cache_alloc_noprof`, with `filelock_cache` still zero.
+- The Linx curated `CONFIG_LINX_INTC` init path bypasses generic initcalls, so
+  `filelock_init` was never reached. Calling `linx_filelock_init()` from the
+  curated path initializes the lock-manager slab cache and moves 500 past the
+  old kernel Oops.
+- `workloads/generated/specint-500-after-filelock-20260628/` then showed a
+  false relative-path `execve` failure. The initramfs already contained the
+  benchmark ELF, and extracting the cpio proved the path existed; the robust
+  runner fix is to exec `/spec-run/<benchmark>` in initramfs mode.
+- `workloads/generated/specint-500-syscall-openat-ret-20260628/` proves
+  `openat("perfect.pl")` returns fd `3` in the benchmark process. A following
+  `LINX_SYSCALL_TRACE_NR=25` run proves `fcntl(3, F_SETFD, ...)` returns `0`;
+  the old "Bad file descriptor" was caused by inheriting unusable fd `0`.
+- The local SPEC runner now opens the generated `.linx_empty_stdin` file for
+  no-stdin runs instead of inheriting initramfs fd `0`. With that fix,
+  `workloads/generated/specint-500-stdin-empty-20260628/` reaches Perl BigInt
+  user code and exits with `Range iterator outside integer range at
+  lib/Math/BigInt.pm line 2675`.
 
 Next 500-specific solution path:
 
-1. Add a kernel-side allocation caller breadcrumb or a QEMU fault-triggered
-   call-trace ring so the final caller of `kmem_cache_alloc_noprof(NULL, ...)`
-   is captured in the same failing run.
-2. Inspect exec/mm cache pointer initialization and relocation state around
-   `vm_area_cachep`, maple-tree node caches, anon-vma/rmap caches, and file
-   table caches. The observed trap is a null slab-cache dereference, not a
-   missing benchmark path.
+1. Commit the filelock-init and runner stdin/absolute-exec fixes as SPEC flow
+   prerequisites. The kernel Oops and false ENOENT/EBADF symptoms are now
+   understood and should not be re-triaged as QEMU deadlocks.
+2. Reproduce the `Math::BigInt` failure with syscall tracing disabled and a
+   smaller Perl snippet if possible. The error is in user arithmetic/range
+   handling after file I/O succeeds, so likely candidates are compiler integer
+   lowering, libc conversion/locale state, or a remaining user-mode ABI issue.
 3. Keep the v0.56 fixup parser as a prerequisite for all uaccess-heavy SPEC
    work; without it, normal faultable usercopy recovery is misclassified as an
    unhandled kernel page fault.
 
 ## Next Speedups
 
-1. Add a page-local BSTART decode cache with explicit TB/text invalidation.
+Current train-all diagnostic profile:
+
+- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-505-train-debug-v2.sample.txt`
+  sampled the live `505.mcf_r` train run for five seconds.
+- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-557-train-debug-v2.sample.txt`
+  sampled the live `557.xz_r` train run for five seconds.
+- These pre-rebuild diagnostic samples include `helper_linx_scalar_read_reg`,
+  `helper_linx_tq_push`, `helper_linx_heartbeat`, `helper_linx_tile_commit`,
+  `helper_linx_template_step`, `helper_linx_uq_push`,
+  `helper_linx_check_bstart_target`, and disabled trace initialization checks
+  (`linx_cosim_init`, `linx_call_trace_init`, `linx_minst_trace_init`,
+  `linx_commit_trace_init`).
+- Because this diagnostic run deliberately enabled heartbeat, treat
+  `helper_linx_heartbeat` as instrumentation cost, not workload semantics.
+
+Prioritized QEMU speedups:
+
+1. Fast-path disabled trace helpers out of hot loops. The call-trace ring path
+   now initializes once per event and returns immediately when both text trace
+   and ring trace are disabled. `linx_trace_capture_active()` now avoids the
+   generic active helpers on every writeback and reads cached
+   commit/minst/cosim state after one-time init.
+2. Add a page-local BSTART decode cache with explicit TB/text invalidation.
    Positive target caching reduces repeated hits, but cold or colliding targets
    still decode through the helper probe and BSTART byte classification.
-2. Split correctness and instrumentation QEMU builds. The default benchmark
+3. Reduce helper traffic in the template/queue hot path. The current profile is
+   dominated by `helper_linx_template_step`, `helper_linx_scalar_read_reg`,
+   `helper_linx_tq_push`, `helper_linx_uq_push`, and tile commit/reset helpers;
+   the next speed lane should inline simple scalar/queue cases into generated
+   TCG or add a fused fast helper for the common scalar template sequence.
+4. Keep heartbeat off, or at a very coarse interval, for profiler runs. Use it
+   to classify deadlock vs live progress first, then rerun profiling with
+   `LINX_QEMU_HEARTBEAT_INTERVAL=0` once the workload is known to be live.
+5. Split correctness and instrumentation QEMU builds. The default benchmark
    binary should compile without always-on helper instrumentation; a separate
    diagnostics build can keep dense trace hooks and debug checks.
-3. Keep 505 memory stress and `531` CPU stress out of cheap PR smoke. They
+6. Keep 505 memory stress and `531` CPU stress out of cheap PR smoke. They
    should remain isolated as `test-vm-stress`, `train-vm-stress`,
    `test-cpu-stress`, and `train-cpu-stress` so ordinary regressions do not
    spend their budget on the largest allocation/MMU/control-flow workloads
    first.
-4. Keep heartbeat and guest logging off for profiler runs. Use
+7. Keep heartbeat and guest logging off for profiler runs. Use
    `--guest-heartbeat-sec 0` and a low or zero host heartbeat unless the guest
    is suspected of hanging.
 

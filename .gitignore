@@ -69,7 +69,10 @@ workloads/ctuning/out_single/
 workloads/spec2017/
 workloads/speccpu2017/
 workloads/cpu2017v118_x64_gcc12_avx2.zip
-tools/spec2017/
+tools/spec2017/*
+!tools/spec2017/
+!tools/spec2017/run_int_rate_qemu.py
+!tools/spec2017/run_stage_qemu_matrix.py
 
 # Local migration / timer debug scratch
 out/submodule_migration_backup_*

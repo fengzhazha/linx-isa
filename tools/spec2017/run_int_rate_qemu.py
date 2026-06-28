@@ -1,0 +1,2768 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import select
+import shlex
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+
+STAGE_A_BENCHES = [
+    "999.specrand_ir",
+    "505.mcf_r",
+    "531.deepsjeng_r",
+]
+
+STAGE_B_BENCHES = [
+    "500.perlbench_r",
+    "502.gcc_r",
+    "505.mcf_r",
+    "520.omnetpp_r",
+    "523.xalancbmk_r",
+    "525.x264_r",
+    "531.deepsjeng_r",
+    "541.leela_r",
+    "557.xz_r",
+    "999.specrand_ir",
+]
+
+ALL_BENCHES = STAGE_B_BENCHES
+
+EXE_MAP: dict[str, list[str]] = {
+    "500.perlbench_r": ["perlbench_r_base.mytest-m64"],
+    "502.gcc_r": ["cpugcc_r_base.mytest-m64"],
+    "505.mcf_r": ["mcf_r_base.mytest-m64"],
+    "520.omnetpp_r": ["omnetpp_r_base.mytest-m64"],
+    "523.xalancbmk_r": ["cpuxalan_r_base.mytest-m64"],
+    "525.x264_r": ["x264_r_base.mytest-m64", "imagevalidate_525_base.mytest-m64"],
+    "531.deepsjeng_r": ["deepsjeng_r_base.mytest-m64"],
+    "541.leela_r": ["leela_r_base.mytest-m64"],
+    "557.xz_r": ["xz_r_base.mytest-m64"],
+    "999.specrand_ir": ["specrand_ir_base.mytest-m64"],
+}
+
+COMPARE_ARGS: dict[str, list[str]] = {
+    "500.perlbench_r": ["-m", "-l", "10", "--floatcompare", "--nonansupport"],
+    "502.gcc_r": ["-m", "-l", "10", "--floatcompare", "--nonansupport"],
+    "505.mcf_r": ["-m", "-l", "10"],
+    "520.omnetpp_r": ["-m", "-l", "10", "--abstol", "1e-06", "--reltol", "1e-05"],
+    "523.xalancbmk_r": ["-m", "-l", "10"],
+    "525.x264_r": ["-m", "-l", "10", "--reltol", "0.085"],
+    "531.deepsjeng_r": ["-m", "-l", "10", "--obiwan"],
+    "541.leela_r": ["-m", "-l", "10"],
+    "557.xz_r": ["-m", "-l", "10"],
+    "999.specrand_ir": ["-m", "-l", "10", "--floatcompare", "--nonansupport"],
+}
+
+SRC_RUN_DIR = "run_base_refrate_mytest-m64.0000"
+EMPTY_STDIN_NAME = ".linx_empty_stdin"
+
+
+def _default_musl_sysroot() -> str:
+    env = os.environ.get("LINX_SYSROOT", "").strip()
+    if env:
+        return str(Path(os.path.expanduser(env)).resolve())
+    phase_c = REPO_ROOT / "out" / "libc" / "musl" / "install" / "phase-c"
+    if _usable_static_sysroot(phase_c):
+        return str(phase_c.resolve())
+    return str((REPO_ROOT / "out" / "libc" / "musl" / "install" / "phase-b").resolve())
+
+
+def _usable_static_sysroot(path: Path) -> bool:
+    return (
+        (path / "usr" / "include" / "errno.h").is_file()
+        and (path / "lib" / "libc.a").is_file()
+        and (
+            (path / "lib" / "rcrt1.o").is_file()
+            or (path / "lib" / "crt1.o").is_file()
+        )
+    )
+
+
+def _read_control_rows(path: Path) -> list[list[str]]:
+    if not path.exists():
+        raise SystemExit(f"error: missing control file: {path}")
+    rows: list[list[str]] = []
+    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        rows.append(line.split())
+    return rows
+
+
+def _list_output_files(bench_root: Path, input_set: str) -> list[str]:
+    output_dir = bench_root / "data" / input_set / "output"
+    if not output_dir.exists():
+        raise SystemExit(f"error: missing output dir for {input_set}: {output_dir}")
+    outputs = [p.relative_to(output_dir).as_posix() for p in sorted(output_dir.rglob("*")) if p.is_file()]
+    if not outputs:
+        raise SystemExit(f"error: no output files found under {output_dir}")
+    return outputs
+
+
+def _mk_run(
+    argv: list[str],
+    stdout: str,
+    stderr: str,
+    *,
+    stdin: str | None = None,
+    verify_outputs: list[str] | None = None,
+) -> dict[str, Any]:
+    run: dict[str, Any] = {
+        "argv": argv,
+        "stdout": stdout,
+        "stderr": stderr,
+        "verify_outputs": list(verify_outputs) if verify_outputs is not None else [stdout],
+    }
+    if stdin:
+        run["stdin"] = stdin
+    return run
+
+
+def _runs_perlbench(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    input_dir = bench_root / "data" / input_set / "input"
+    if not input_dir.exists():
+        raise SystemExit(f"error: missing input dir: {input_dir}")
+
+    runs: list[dict[str, Any]] = []
+    special = {"splitmail", "perfect", "diffmail", "checkspam"}
+    for path in sorted(input_dir.iterdir()):
+        if not path.is_file() or path.suffix not in {".t", ".pl"}:
+            continue
+        name = path.stem
+        if name in special:
+            params_file = input_dir / f"{name}.in"
+            if not params_file.exists():
+                continue
+            for raw in params_file.read_text(encoding="utf-8", errors="replace").splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                params = line.split()
+                tag = ".".join(params)
+                runs.append(
+                    _mk_run(
+                        [f"./{exe}", "-I./lib", path.name, *params],
+                        f"{name}.{tag}.out",
+                        f"{name}.{tag}.err",
+                    )
+                )
+            continue
+
+        stdin = f"{name}.in" if (input_dir / f"{name}.in").exists() else None
+        run = _mk_run([f"./{exe}", "-I.", "-I./lib", path.name], f"{name}.out", f"{name}.err", stdin=stdin)
+        runs.append(run)
+
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 500.perlbench_r ({input_set})")
+    return runs
+
+
+def _runs_gcc(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    runs: list[dict[str, Any]] = []
+    for cols in rows:
+        src, *opts = cols
+        out = Path(src).stem + ".opts" + "_".join(opts)
+        out = out.replace("=", "_")
+        runs.append(_mk_run([f"./{exe}", src, *opts, "-o", f"{out}.s"], f"{out}.out", f"{out}.err"))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 502.gcc_r ({input_set})")
+    return runs
+
+
+def _runs_mcf(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    runs: list[dict[str, Any]] = []
+    for cols in rows:
+        input_name = cols[0]
+        name = input_name[:-3] if input_name.endswith(".in") else input_name
+        m = re.match(r".*\.(\d)$", name)
+        argv = [f"./{exe}", input_name]
+        if m:
+            argv.append(m.group(1))
+        verify_outputs = [f"{name}.out", "mcf.out"] if name == "inp" else [f"{name}.out"]
+        runs.append(_mk_run(argv, f"{name}.out", f"{name}.err", verify_outputs=verify_outputs))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 505.mcf_r ({input_set})")
+    return runs
+
+
+def _runs_omnetpp(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    runs: list[dict[str, Any]] = []
+    for cols in rows:
+        if len(cols) < 2:
+            continue
+        conf, runnum = cols[0], cols[1]
+        runs.append(_mk_run([f"./{exe}", "-c", conf, "-r", runnum], f"omnetpp.{conf}-{runnum}.out", f"omnetpp.{conf}-{runnum}.err"))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 520.omnetpp_r ({input_set})")
+    return runs
+
+
+def _runs_xalanc(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    input_dir = bench_root / "data" / input_set / "input"
+    if not input_dir.exists():
+        raise SystemExit(f"error: missing input dir: {input_dir}")
+    runs: list[dict[str, Any]] = []
+    for lst in sorted(input_dir.glob("*.lst")):
+        name = lst.stem
+        for raw in lst.read_text(encoding="utf-8", errors="replace").splitlines():
+            xml = raw.strip()
+            if not xml:
+                continue
+            out_base = f"{name}-{Path(xml).stem}"
+            runs.append(_mk_run([f"./{exe}", "-v", xml, "xalanc.xsl"], f"{out_base}.out", f"{out_base}.err"))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 523.xalancbmk_r ({input_set})")
+    return runs
+
+
+def _runs_x264(bench_root: Path, input_set: str, x264_exe: str, imagevalidate_exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    if not rows:
+        raise SystemExit(f"error: failed to derive runs for 525.x264_r ({input_set})")
+    cols = rows[0]
+    if len(cols) < 9:
+        raise SystemExit(f"error: malformed x264 control line for {input_set}: {' '.join(cols)}")
+
+    (
+        _org_x264,
+        yuv_output,
+        _yuv_md5,
+        new_x24,
+        size,
+        seek_val,
+        frames,
+        frames2,
+        yuvdump,
+        *validframes,
+    ) = cols
+
+    def _basename_no_exe(name: str) -> str:
+        return name[:-4] if name.endswith(".exe") else name
+
+    x264_base = _basename_no_exe(x264_exe)
+    dumpyuv = ["--dumpyuv", yuvdump] if yuvdump else []
+    io = ["-o", new_x24, yuv_output, size]
+    runs: list[dict[str, Any]] = []
+
+    frames2_i = int(frames2)
+    if frames2_i:
+        width = len(str(int(frames)))
+        pass_base = f"run_{0:0{width}d}-{frames}_{x264_base}_x264"
+        runs.append(
+            _mk_run(
+                [f"./{x264_exe}", "--pass", "1", "--stats", "x264_stats.log", "--bitrate", "1000", "--frames", frames, *io],
+                f"{pass_base}_pass1.out",
+                f"{pass_base}_pass1.err",
+                verify_outputs=[],
+            )
+        )
+        runs.append(
+            _mk_run(
+                [
+                    f"./{x264_exe}",
+                    "--pass",
+                    "2",
+                    "--stats",
+                    "x264_stats.log",
+                    "--bitrate",
+                    "1000",
+                    *dumpyuv,
+                    "--frames",
+                    frames,
+                    *io,
+                ],
+                f"{pass_base}_pass2.out",
+                f"{pass_base}_pass2.err",
+                verify_outputs=[],
+            )
+        )
+
+        width2 = len(str(frames2_i))
+        seek_i = int(seek_val)
+        run_base = f"run_{seek_i:0{width2}d}-{frames2}_{x264_base}_x264"
+        runs.append(_mk_run([f"./{x264_exe}", "--seek", seek_val, *dumpyuv, "--frames", frames2, *io], f"{run_base}.out", f"{run_base}.err", verify_outputs=[]))
+    else:
+        width = len(str(int(frames)))
+        run_base = f"run_{0:0{width}d}-{frames}_{x264_base}_x264"
+        runs.append(_mk_run([f"./{x264_exe}", *dumpyuv, "--frames", frames, *io], f"{run_base}.out", f"{run_base}.err", verify_outputs=[]))
+
+    for frame in validframes:
+        frame = frame.strip()
+        if not frame:
+            continue
+        runs.append(
+            _mk_run(
+                [
+                    f"./{imagevalidate_exe}",
+                    "-avg",
+                    "-threshold",
+                    "0.5",
+                    "-maxthreshold",
+                    "20",
+                    f"frame_{frame}.yuv",
+                    f"/spec/benchspec/CPU/525.x264_r/data/{input_set}/compare/frame_{frame}.org.tga",
+                ],
+                f"imagevalidate_frame_{frame}.out",
+                f"imagevalidate_frame_{frame}.err",
+            )
+        )
+
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 525.x264_r ({input_set})")
+    return runs
+
+
+def _runs_deepsjeng(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    input_dir = bench_root / "data" / input_set / "input"
+    runs = [_mk_run([f"./{exe}", p.name], f"{p.stem}.out", f"{p.stem}.err") for p in sorted(input_dir.glob("*.txt")) if p.is_file()]
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 531.deepsjeng_r ({input_set})")
+    return runs
+
+
+def _runs_leela(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    input_dir = bench_root / "data" / input_set / "input"
+    runs = [_mk_run([f"./{exe}", p.name], f"{p.stem}.out", f"{p.stem}.err") for p in sorted(input_dir.glob("*.sgf")) if p.is_file()]
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 541.leela_r ({input_set})")
+    return runs
+
+
+def _runs_xz(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    runs: list[dict[str, Any]] = []
+    for cols in rows:
+        if len(cols) < 6:
+            continue
+        name, size, sumv, minv, maxv, *levels = cols
+        levels = [lvl for lvl in levels if re.match(r"^\de?$", lvl)]
+        if int(size) <= 0 or not sumv or not levels:
+            continue
+        leveltext = "_".join(levels)
+        runs.append(_mk_run([f"./{exe}", f"{name}.xz", size, sumv, minv, maxv, *levels], f"{name}-{size}-{leveltext}.out", f"{name}-{size}-{leveltext}.err"))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 557.xz_r ({input_set})")
+    return runs
+
+
+def _runs_specrand(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
+    rows = _read_control_rows(bench_root / "data" / input_set / "input" / "control")
+    runs: list[dict[str, Any]] = []
+    for cols in rows:
+        if len(cols) < 2:
+            continue
+        seed, count = cols[0], cols[1]
+        runs.append(_mk_run([f"./{exe}", seed, count], f"rand.{count}.out", f"rand.{count}.err"))
+    if not runs:
+        raise SystemExit(f"error: failed to derive runs for 999.specrand_ir ({input_set})")
+    return runs
+
+
+def _resolve_cfg(spec_dir: Path, bench: str, input_set: str) -> dict[str, Any]:
+    bench_root = spec_dir / "benchspec" / "CPU" / bench
+    exes = EXE_MAP[bench]
+
+    if bench == "500.perlbench_r":
+        runs = _runs_perlbench(bench_root, input_set, exes[0])
+    elif bench == "502.gcc_r":
+        runs = _runs_gcc(bench_root, input_set, exes[0])
+    elif bench == "505.mcf_r":
+        runs = _runs_mcf(bench_root, input_set, exes[0])
+    elif bench == "520.omnetpp_r":
+        runs = _runs_omnetpp(bench_root, input_set, exes[0])
+    elif bench == "523.xalancbmk_r":
+        runs = _runs_xalanc(bench_root, input_set, exes[0])
+    elif bench == "525.x264_r":
+        runs = _runs_x264(bench_root, input_set, exes[0], exes[1])
+    elif bench == "531.deepsjeng_r":
+        runs = _runs_deepsjeng(bench_root, input_set, exes[0])
+    elif bench == "541.leela_r":
+        runs = _runs_leela(bench_root, input_set, exes[0])
+    elif bench == "557.xz_r":
+        runs = _runs_xz(bench_root, input_set, exes[0])
+    elif bench == "999.specrand_ir":
+        runs = _runs_specrand(bench_root, input_set, exes[0])
+    else:
+        raise SystemExit(f"error: unsupported benchmark: {bench}")
+
+    compares = [
+        {
+            "args": COMPARE_ARGS[bench],
+            "ref": f"benchspec/CPU/{bench}/data/{input_set}/output/{out_name}",
+            "out": out_name,
+        }
+        for out_name in _list_output_files(bench_root, input_set)
+    ]
+
+    return {
+        "exes": exes,
+        "src_run": SRC_RUN_DIR,
+        "linx_run": f"run_base_{input_set}_linx-m64.0000",
+        "runs": runs,
+        "compares": compares,
+    }
+
+
+def _check_exe(path: Path, what: str) -> Path:
+    if path.exists():
+        if not os.access(path, os.X_OK):
+            raise SystemExit(f"error: {what} is not executable: {path}")
+        return path
+    resolved = shutil.which(str(path))
+    if not resolved:
+        raise SystemExit(f"error: {what} not found: {path}")
+    rp = Path(resolved)
+    if not os.access(rp, os.X_OK):
+        raise SystemExit(f"error: {what} is not executable: {rp}")
+    return rp
+
+
+def _choose_init_static(transport: str, sysroot: Path) -> bool:
+    init_static_env = os.environ.get("LINX_SPEC_INIT_STATIC", "").strip().lower()
+    if init_static_env:
+        return init_static_env not in {"0", "false", "no"}
+    # Default initramfs runs to static PIE so Linux can exec /init without
+    # relying on dynamic-loader FDPIC behavior in early bring-up kernels.
+    if transport == "initramfs":
+        return True
+    # If the sysroot has no shared musl, prefer a static /init so static-only
+    # workloads can still exercise the QEMU/runtime path.
+    return not (sysroot / "lib" / "libc.so").exists()
+
+
+def _run_dir_requires_guest_shared_runtime(run_dir: Path, exe_names: list[str]) -> bool:
+    for exe_name in exe_names:
+        exe_path = run_dir / exe_name
+        if not exe_path.exists():
+            raise SystemExit(f"error: missing staged executable: {exe_path}")
+        data = exe_path.read_bytes()
+        if b"/lib/ld-musl-linx64.so.1" in data:
+            return True
+    return False
+
+
+def _run(
+    cmd: list[str],
+    *,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def _c_escape(s: str) -> str:
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _utc_now() -> str:
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+
+
+def _find_gen_init_cpio(linux_root: Path, out_dir: Path) -> Path:
+    cands = [
+        linux_root / "build-linx-fixed" / "usr" / "gen_init_cpio",
+        linux_root / "usr" / "gen_init_cpio",
+    ]
+    for c in cands:
+        if c.exists():
+            return c
+
+    src = linux_root / "usr" / "gen_init_cpio.c"
+    if not src.exists():
+        raise SystemExit(f"error: missing gen_init_cpio source: {src}")
+    out = out_dir / "gen_init_cpio"
+    cc = _check_exe(Path("clang"), "host clang")
+    proc = _run([str(cc), "-O2", "-Wall", "-Wextra", "-o", str(out), str(src)])
+    if proc.returncode != 0:
+        raise SystemExit(
+            "error: failed to build gen_init_cpio:\n" + proc.stdout.decode("utf-8", errors="replace")
+        )
+    return out
+
+
+def _overlay_input_set(bench_root: Path, dst_run: Path, input_set: str) -> None:
+    if input_set == "refrate":
+        return
+    input_dir = bench_root / "data" / input_set / "input"
+    if not input_dir.exists():
+        return
+
+    for src in sorted(input_dir.rglob("*")):
+        rel = src.relative_to(input_dir)
+        dst = dst_run / rel
+        if src.is_dir():
+            dst.mkdir(parents=True, exist_ok=True)
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if dst.exists() or dst.is_symlink():
+            dst.unlink()
+        if src.is_symlink():
+            os.symlink(os.readlink(src), dst)
+        else:
+            shutil.copy2(src, dst)
+
+
+def _prepare_run_dir(
+    spec_dir: Path,
+    bench: str,
+    cfg: dict[str, Any],
+    *,
+    preserve_symlinks: bool,
+    input_set: str,
+) -> Path:
+    bench_root = spec_dir / "benchspec" / "CPU" / bench
+    src_run = bench_root / "run" / cfg["src_run"]
+    dst_run = bench_root / "run" / cfg["linx_run"]
+
+    if not src_run.exists():
+        raise SystemExit(f"error: missing source run dir: {src_run}")
+
+    if dst_run.exists():
+        shutil.rmtree(dst_run)
+    shutil.copytree(src_run, dst_run, symlinks=preserve_symlinks)
+    _overlay_input_set(bench_root, dst_run, input_set)
+
+    for exe_name in cfg["exes"]:
+        exe_src = bench_root / "exe" / exe_name
+        exe_dst = dst_run / exe_name
+        if not exe_src.exists():
+            raise SystemExit(f"error: missing Linx executable: {exe_src}")
+        shutil.copy2(exe_src, exe_dst)
+        os.chmod(exe_dst, 0o755)
+
+    cleanup_files = {
+        rel
+        for run_cfg in cfg.get("runs", [])
+        for rel in (run_cfg.get("stdout"), run_cfg.get("stderr"))
+        if rel
+    }
+    cleanup_files.update(c["out"] for c in cfg.get("compares", []))
+    # Drop stale harness/output artifacts copied from source run dirs (often huge for refrate).
+    stale_suffixes = {".out", ".err", ".stdout", ".cmp"}
+    for p in dst_run.iterdir():
+        if p.is_file() and p.suffix in stale_suffixes:
+            cleanup_files.add(p.name)
+    for rel in cleanup_files:
+        p = dst_run / rel
+        if p.exists() or p.is_symlink():
+            p.unlink()
+
+    (dst_run / EMPTY_STDIN_NAME).write_bytes(b"")
+
+    return dst_run
+
+
+def _build_init_for_run(
+    bench: str,
+    cfg: dict[str, Any],
+    run_cfg: dict[str, Any],
+    dst_run: Path,
+    out_dir: Path,
+    clang: Path,
+    sysroot: Path,
+    transport: str,
+    dump_prefix_bytes: int,
+    guest_heartbeat_sec: int,
+    *,
+    emit_hashes: bool = False,
+) -> Path:
+    if transport not in {"9p", "initramfs"}:
+        raise SystemExit(f"error: unsupported transport: {transport}")
+    if dump_prefix_bytes < 0:
+        raise SystemExit("error: dump_prefix_bytes must be >= 0")
+    if guest_heartbeat_sec < 0:
+        raise SystemExit("error: guest_heartbeat_sec must be >= 0")
+
+    argv = list(run_cfg["argv"])
+    argv2_override = os.environ.get("LINX_SPEC_ARGV2_OVERRIDE", "").strip()
+    if argv2_override and len(argv) > 2:
+        argv[2] = argv2_override
+    argv_items = "\n".join(f'    "{_c_escape(arg)}",' for arg in argv)
+    stdout_rel = str(run_cfg["stdout"])
+    stderr_rel = str(run_cfg["stderr"])
+    stdin_rel = str(run_cfg.get("stdin") or EMPTY_STDIN_NAME)
+    dump_items = "\n".join(f'    "{_c_escape(name)}",' for name in run_cfg.get("verify_outputs", []))
+    if not emit_hashes:
+        dump_items = ""
+    if not dump_items:
+        dump_items = "    NULL,"
+    mirror_log_default = "0" if transport == "initramfs" else "1"
+    mirror_log_stdout = os.environ.get("LINX_SPEC_MIRROR_LOG_STDOUT", mirror_log_default).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    setup_console_env = os.environ.get("LINX_SPEC_SETUP_CONSOLE", "").lower()
+    if setup_console_env:
+        setup_console = setup_console_env in {"1", "true", "yes"}
+    else:
+        setup_console = True
+    use_kmsg_log = os.environ.get("LINX_SPEC_LOG_KMSG", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    use_vfork_default = "0" if transport == "initramfs" else "0"
+    use_vfork = os.environ.get("LINX_SPEC_USE_VFORK", use_vfork_default).lower() in {"1", "true", "yes"}
+    direct_initramfs = transport == "initramfs" and os.environ.get(
+        "LINX_SPEC_DIRECT_INITRAMFS", ""
+    ).lower() in {"1", "true", "yes"}
+    stdout_console = os.environ.get("LINX_SPEC_STDOUT_CONSOLE", "").lower() in {"1", "true", "yes"}
+    if transport == "9p":
+        mount_opts = os.environ.get("LINX_SPEC_9P_MOUNT_OPTS", "trans=virtio,version=9p2000.L")
+        guest_run = f"/spec/benchspec/CPU/{bench}/run/{cfg['linx_run']}"
+        transport_block = f"""
+  (void)mkdir("/spec", 0755);
+  int spec_mnt_rc = mount("spec2017", "/spec", "9p", 0, "{_c_escape(mount_opts)}");
+  if (spec_mnt_rc < 0)
+    LOG_LIT("LINX_SPEC_WARN 9p-mount-failed\\n");
+"""
+    else:
+        guest_run = "/spec-run"
+        transport_block = ""
+    exec_path = str(argv[0])
+    if transport == "initramfs" and exec_path.startswith("./"):
+        exec_path = f"{guest_run}/{exec_path[2:]}"
+    stdin_open_block = f"""
+  LOG_LIT("LINX_SPEC_DBG step=open-in\\n");
+  int fd_in = raw_openat("{_c_escape(stdin_rel)}", O_RDONLY, 0);
+  if (fd_in < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL open-in\\n");
+    poweroff_now();
+  }}
+"""
+    if transport == "initramfs" and not direct_initramfs:
+        debug_console_io = os.environ.get("LINX_SPEC_DEBUG_CONSOLE_IO", "").lower() in {"1", "true", "yes"}
+        if debug_console_io:
+            child_stdio_setup = """
+    if (g_log_fd >= 0)
+      write_fd_all(g_log_fd, "LINX_SPEC_DBG child-console-io\\n",
+                   sizeof("LINX_SPEC_DBG child-console-io\\n") - 1);
+"""
+        else:
+            child_stdio_setup = ""
+        if stdout_console:
+            stdout_open_block = """
+  LOG_LIT("LINX_SPEC_DBG step=open-out-inherited\\n");
+  int fd_out = STDOUT_FILENO;
+"""
+        else:
+            stdout_open_block = f"""
+  LOG_LIT("LINX_SPEC_DBG step=open-out\\n");
+  int fd_out = raw_openat("{_c_escape(stdout_rel)}", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd_out < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL open-out\\n");
+    poweroff_now();
+  }}
+"""
+        run_block = f"""
+  static const char *hash_files[] = {{
+{dump_items}
+    NULL,
+  }};
+  int child_success = 0;
+
+{stdout_open_block}
+  LOG_LIT("LINX_SPEC_DBG step=open-err\\n");
+  int fd_err = raw_openat("{_c_escape(stderr_rel)}", O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (fd_err < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL open-err\\n");
+    poweroff_now();
+  }}
+
+{stdin_open_block}
+  LOG_LIT("LINX_SPEC_DBG step=fds-ready\\n");
+  int state_pipe[2] = {{-1, -1}};
+  int state_pipe_nonblock = 0;
+  LOG_LIT("LINX_SPEC_DBG step=state-pipe-skip\\n");
+  LOG_LIT("LINX_SPEC_DBG step=sigaction-skip\\n");
+
+  LOG_LIT("LINX_SPEC_DBG step=predup-stdio\\n");
+  if (fd_in != STDIN_FILENO && dup2(fd_in, STDIN_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL predup-in\\n");
+    poweroff_now();
+  }}
+  if (fd_out != STDOUT_FILENO && dup2(fd_out, STDOUT_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL predup-out\\n");
+    poweroff_now();
+  }}
+  if (fd_err != STDERR_FILENO && dup2(fd_err, STDERR_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL predup-err\\n");
+    poweroff_now();
+  }}
+
+  LOG_LIT("LINX_SPEC_DBG step=spawn\\n");
+  errno = 0;
+  pid_t child = spawn_child_process();
+  static const char kSpawnRaw[] = "LINX_SPEC_DBG step=spawn-raw\\n";
+  write_log_all(kSpawnRaw, sizeof(kSpawnRaw) - 1);
+
+  if (child > 0)
+    LOG_LIT("LINX_SPEC_DBG step=parent-after-spawn\\n");
+  if (child == 0) {{
+    if (state_pipe[0] >= 0)
+      close(state_pipe[0]);
+    if (state_pipe[1] >= 0) {{
+      (void)write(state_pipe[1], "S", 1);
+      close(state_pipe[1]);
+      state_pipe[1] = -1;
+    }}
+    if (!kUseVfork)
+      LOG_LIT("LINX_SPEC_DBG step=child-enter\\n");
+{child_stdio_setup}
+    LOG_LIT("LINX_SPEC_DBG step=child-before-exec\\n");
+    log_preexec_probe(argv[0]);
+    log_preexec_probe(kExecPath);
+    /*
+     * Child-side close after fork is not part of SPEC semantics, and early
+     * Linx fork/exec bring-up has exposed hangs there. Keep the extra run-file
+     * descriptors open across exec; stdout/stderr still point at the intended
+     * files after dup2.
+     */
+    char *empty_envp[] = {{ NULL }};
+    int exec_rc = linx_spec_execve(kExecPath, argv, empty_envp);
+    int exec_errno = errno;
+    if (!kUseVfork)
+    {{
+      LOG_LIT("LINX_SPEC_FAIL execve rc=");
+      write_log_u64_dec((unsigned long long)(exec_rc < 0 ? -exec_rc : exec_rc));
+      LOG_LIT(" errno=");
+      write_log_u64_dec((unsigned long long)exec_errno);
+      LOG_LIT("\\n");
+      LOG_LIT("LINX_SPEC_FAIL execve\\n");
+    }}
+    _exit(124);
+  }}
+
+  LOG_LIT("LINX_SPEC_DBG step=spawn-ret\\n");
+  if (child < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL spawn\\n");
+    poweroff_now();
+  }}
+
+  if (fd_in > STDERR_FILENO)
+    close(fd_in);
+  if (fd_out > STDERR_FILENO && fd_out != fd_in)
+    close(fd_out);
+  if (fd_err > STDERR_FILENO && fd_err != fd_in && fd_err != fd_out)
+    close(fd_err);
+  if (state_pipe[1] >= 0) {{
+    close(state_pipe[1]);
+    state_pipe[1] = -1;
+  }}
+  LOG_LIT("LINX_SPEC_DBG step=parent-waitpid\\n");
+  {{
+    int status = -1;
+    pid_t wr = -2;
+    int wait_errno = 0;
+    int waitid_errno = 0;
+    int wait_fallback = 0;
+    int wait_method = 0;
+    int child_started = 1;
+    int child_pipe_eof = 0;
+
+    wait_method = 6;
+    if (kGuestHeartbeatSec > 0) {{
+      wait_method = 7;
+      for (;;) {{
+        siginfo_t si;
+        memset(&si, 0, sizeof(si));
+        errno = 0;
+        int waitid_ret = waitid(P_PID, child, &si, WEXITED | WNOHANG);
+        if (waitid_ret == 0 && si.si_pid == child) {{
+          status = wait_status_from_siginfo(&si);
+          wr = child;
+          wait_errno = 0;
+          waitid_errno = 0;
+          break;
+        }}
+        if (waitid_ret < 0) {{
+          waitid_errno = errno;
+          break;
+        }}
+
+        struct stat st_out;
+        struct stat st_err;
+        long long out_size = -1;
+        long long err_size = -1;
+        if (stat("{_c_escape(stdout_rel)}", &st_out) == 0)
+          out_size = (long long)st_out.st_size;
+        if (stat("{_c_escape(stderr_rel)}", &st_err) == 0)
+          err_size = (long long)st_err.st_size;
+        errno = 0;
+        int kr = probe_child_alive(child);
+        int kerr = errno;
+
+        LOG_LIT("LINX_SPEC_CHILD_HEARTBEAT child=");
+        write_log_s64_dec((long long)child);
+        LOG_LIT(" alive=");
+        write_log_s64_dec((long long)(kr == 0 || kerr != ESRCH));
+        LOG_LIT(" kill_errno=");
+        write_log_s64_dec((long long)kerr);
+        LOG_LIT(" out_size=");
+        write_log_s64_dec(out_size);
+        LOG_LIT(" err_size=");
+        write_log_s64_dec(err_size);
+        LOG_LIT("\\n");
+
+        if (kDumpPrefixBytes > 0 && out_size > 0) {{
+          LOG_LIT("LINX_SPEC_CHILD_STDOUT_PREFIX_BEGIN\\n");
+          (void)dump_file_prefix("{_c_escape(stdout_rel)}", kDumpPrefixBytes);
+          LOG_LIT("\\nLINX_SPEC_CHILD_STDOUT_PREFIX_END\\n");
+        }}
+        if (kDumpPrefixBytes > 0 && err_size > 0) {{
+          LOG_LIT("LINX_SPEC_CHILD_STDERR_PREFIX_BEGIN\\n");
+          (void)dump_file_prefix("{_c_escape(stderr_rel)}", kDumpPrefixBytes);
+          LOG_LIT("\\nLINX_SPEC_CHILD_STDERR_PREFIX_END\\n");
+        }}
+
+        char proc_stat_path[64];
+        int proc_stat_len = snprintf(proc_stat_path, sizeof(proc_stat_path),
+                                     "/proc/%lld/stat", (long long)child);
+        if (proc_stat_len > 0 && proc_stat_len < (int)sizeof(proc_stat_path)) {{
+          errno = 0;
+          int proc_fd = raw_openat(proc_stat_path, O_RDONLY, 0);
+          if (proc_fd >= 0) {{
+            char proc_buf[256];
+            errno = 0;
+            ssize_t proc_rd = read(proc_fd, proc_buf, sizeof(proc_buf) - 1);
+            int proc_read_errno = errno;
+            close(proc_fd);
+            if (proc_rd > 0) {{
+              proc_buf[proc_rd] = '\\0';
+              LOG_LIT("LINX_SPEC_CHILD_STAT ");
+              write_log_all(proc_buf, (unsigned long)proc_rd);
+              if (proc_buf[proc_rd - 1] != '\\n')
+                LOG_LIT("\\n");
+            }} else {{
+              LOG_LIT("LINX_SPEC_CHILD_STAT_READ_FAIL rd=");
+              write_log_s64_dec((long long)proc_rd);
+              LOG_LIT(" errno=");
+              write_log_s64_dec((long long)proc_read_errno);
+              LOG_LIT("\\n");
+            }}
+          }} else {{
+            int proc_open_errno = errno;
+            LOG_LIT("LINX_SPEC_CHILD_STAT_OPEN_FAIL errno=");
+            write_log_s64_dec((long long)proc_open_errno);
+            LOG_LIT("\\n");
+          }}
+        }}
+
+        char proc_maps_path[64];
+        int proc_maps_len = snprintf(proc_maps_path, sizeof(proc_maps_path),
+                                     "/proc/%lld/maps", (long long)child);
+        if (proc_maps_len > 0 && proc_maps_len < (int)sizeof(proc_maps_path)) {{
+          errno = 0;
+          int maps_fd = raw_openat(proc_maps_path, O_RDONLY, 0);
+          if (maps_fd >= 0) {{
+            char maps_buf[2048];
+            errno = 0;
+            ssize_t maps_rd = read(maps_fd, maps_buf, sizeof(maps_buf) - 1);
+            int maps_read_errno = errno;
+            close(maps_fd);
+            if (maps_rd > 0) {{
+              maps_buf[maps_rd] = '\\0';
+              LOG_LIT("LINX_SPEC_CHILD_MAPS_BEGIN\\n");
+              write_log_all(maps_buf, (unsigned long)maps_rd);
+              if (maps_buf[maps_rd - 1] != '\\n')
+                LOG_LIT("\\n");
+              LOG_LIT("LINX_SPEC_CHILD_MAPS_END\\n");
+            }} else {{
+              LOG_LIT("LINX_SPEC_CHILD_MAPS_READ_FAIL rd=");
+              write_log_s64_dec((long long)maps_rd);
+              LOG_LIT(" errno=");
+              write_log_s64_dec((long long)maps_read_errno);
+              LOG_LIT("\\n");
+            }}
+          }} else {{
+            int maps_open_errno = errno;
+            LOG_LIT("LINX_SPEC_CHILD_MAPS_OPEN_FAIL errno=");
+            write_log_s64_dec((long long)maps_open_errno);
+            LOG_LIT("\\n");
+          }}
+        }}
+
+        sleep(kGuestHeartbeatSec);
+      }}
+    }} else if (wait_child_waitid_blocking(child, &status, &waitid_errno) == 0) {{
+      wr = child;
+      wait_errno = 0;
+    }}
+    if (wr != child) {{
+      wait_method = 1;
+      errno = 0;
+      wr = wait_child_blocking(child, &status);
+      wait_errno = errno;
+    }}
+    if (wr < 0 && wait_errno == ENOSYS) {{
+      errno = 0;
+      wr = wait_child_blocking(child, &status);
+      wait_errno = errno;
+    }}
+    if (wr < 0 && wait_errno == ECHILD) {{
+      errno = 0;
+      wr = wait_child_blocking((pid_t)-1, &status);
+      wait_errno = errno;
+      if (wr >= 0) {{
+        wait_method = 5;
+        LOG_LIT("LINX_SPEC_WARN wait-any-child\\n");
+      }}
+    }}
+    if (wr < 0 && wait_errno == ECHILD) {{
+      unsigned int spins = 0;
+      long long last_out_size = -1;
+      unsigned int stable_count = 0;
+      wait_fallback = 1;
+      wait_method = 3;
+      LOG_LIT("LINX_SPEC_WARN wait-echild-fallback\\n");
+      for (;;) {{
+        struct stat st_out;
+        long long out_size = -1;
+        if (stat("{_c_escape(stdout_rel)}", &st_out) == 0)
+          out_size = (long long)st_out.st_size;
+        if (out_size == last_out_size)
+          stable_count++;
+        else
+          stable_count = 0;
+        last_out_size = out_size;
+
+        errno = 0;
+        int kr = probe_child_alive(child);
+        int kerr = errno;
+        if (kr < 0 && kerr == ESRCH)
+          break;
+        if (stable_count > 20000u) {{
+          LOG_LIT("LINX_SPEC_WARN wait-stable-break\\n");
+          break;
+        }}
+        if (spins > 20000000u) {{
+          LOG_LIT("LINX_SPEC_WARN wait-fallback-timeout\\n");
+          break;
+        }}
+        (void)sched_yield();
+        spins++;
+      }}
+    }} else if (wr < 0) {{
+      LOG_LIT("LINX_SPEC_FAIL waitpid-block wr=");
+      write_log_s64_dec((long long)wr);
+      LOG_LIT(" errno=");
+      write_log_s64_dec((long long)wait_errno);
+      LOG_LIT(" child=");
+      write_log_s64_dec((long long)child);
+      LOG_LIT("\\n");
+      poweroff_now();
+    }}
+    if (wr > 0 && wr != child)
+      LOG_LIT("LINX_SPEC_WARN wait-unexpected-child\\n");
+
+    if (state_pipe[1] >= 0)
+      close(state_pipe[1]);
+    if (state_pipe[0] >= 0)
+      close(state_pipe[0]);
+    if (!child_started && child_pipe_eof)
+      child_started = 1;
+    if (!child_started)
+      LOG_LIT("LINX_SPEC_WARN child-start-unknown\\n");
+    if (child_pipe_eof)
+      LOG_LIT("LINX_SPEC_DBG child-pipe-eof\\n");
+
+    LOG_LIT("LINX_SPEC_DBG wait wr=");
+    write_log_s64_dec((long long)wr);
+    LOG_LIT(" errno=");
+    write_log_s64_dec((long long)wait_errno);
+    LOG_LIT(" waitid_errno=");
+    write_log_s64_dec((long long)waitid_errno);
+    LOG_LIT(" method=");
+    write_log_s64_dec((long long)wait_method);
+    LOG_LIT(" fallback=");
+    write_log_s64_dec((long long)wait_fallback);
+    LOG_LIT(" status=0x");
+    write_log_hex_u64((unsigned long long)(unsigned int)status);
+    LOG_LIT(" exited=");
+    write_log_s64_dec((long long)WIFEXITED(status));
+    LOG_LIT(" code=");
+    write_log_s64_dec((long long)(WIFEXITED(status) ? WEXITSTATUS(status) : -1));
+    LOG_LIT(" signaled=");
+    write_log_s64_dec((long long)WIFSIGNALED(status));
+    LOG_LIT(" sig=");
+    write_log_s64_dec((long long)(WIFSIGNALED(status) ? WTERMSIG(status) : -1));
+    LOG_LIT("\\n");
+    child_success = wait_fallback || (WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    if (!child_success) {{
+      LOG_LIT("LINX_SPEC_FAIL child-exit\\n");
+    }}
+  }}
+  LOG_LIT("LINX_SPEC_DBG step=parent-hash\\n");
+
+  {{
+    int fd_dbg = raw_openat("{_c_escape(stderr_rel)}", O_RDONLY, 0);
+    if (fd_dbg >= 0) {{
+      char dbg_buf[512];
+      ssize_t dbg_n = read(fd_dbg, dbg_buf, sizeof(dbg_buf));
+      if (dbg_n > 0) {{
+        LOG_LIT("LINX_SPEC_STDERR_BEGIN\\n");
+        write_log_all(dbg_buf, (unsigned long)dbg_n);
+        LOG_LIT("\\nLINX_SPEC_STDERR_END\\n");
+      }}
+      close(fd_dbg);
+    }}
+  }}
+
+  for (int i = 0; hash_files[i]; ++i) {{
+    unsigned long long fsize = 0;
+    unsigned long long fhash = 0;
+
+    if (hash_file_fnv1a64(hash_files[i], &fsize, &fhash) < 0) {{
+      LOG_LIT("LINX_SPEC_FAIL hash\\n");
+      poweroff_now();
+    }}
+
+    /*
+     * The initramfs parent keeps the benchmark stdout fd after dup2 so the
+     * child inherits it across exec.  Emit host-visible verification markers
+     * through the log channel, not through guest stdout.
+     */
+    LOG_LIT("LINX_SPEC_HASH ");
+    write_log_cstr(hash_files[i]);
+    LOG_LIT(" ");
+    write_log_u64_dec(fsize);
+    LOG_LIT(" 0x");
+    write_log_hex_u64(fhash);
+    LOG_LIT("\\n");
+
+    if (kDumpPrefixBytes > 0) {{
+      LOG_LIT("LINX_SPEC_FILE_BEGIN ");
+      write_log_cstr(hash_files[i]);
+      LOG_LIT("\\n");
+
+      if (dump_file_prefix(hash_files[i], kDumpPrefixBytes) < 0) {{
+        LOG_LIT("LINX_SPEC_FAIL dump-prefix\\n");
+        poweroff_now();
+      }}
+
+      LOG_LIT("\\nLINX_SPEC_FILE_END ");
+      write_log_cstr(hash_files[i]);
+      LOG_LIT("\\n");
+    }}
+  }}
+
+  if (!child_success) {{
+    LOG_LIT("LINX_SPEC_FAIL child-exit-no-pass\\n");
+    poweroff_now();
+  }}
+  LOG_LIT("LINX_SPEC_PASS {_c_escape(bench)}\\n");
+  poweroff_now();
+"""
+    else:
+        if stdout_console:
+            stdout_open_block = """
+  LOG_LIT("LINX_SPEC_DBG step=open-out-inherited\\n");
+  int fd_out = STDOUT_FILENO;
+"""
+        else:
+            stdout_open_block = f"""
+  LOG_LIT("LINX_SPEC_DBG step=open-out\\n");
+  int fd_out = raw_openat("{_c_escape(stdout_rel)}", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd_out < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL open-out\\n");
+    poweroff_now();
+  }}
+"""
+        run_block = f"""
+{stdout_open_block}
+  LOG_LIT("LINX_SPEC_DBG step=open-err\\n");
+  int fd_err = raw_openat("{_c_escape(stderr_rel)}", O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (fd_err < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL open-err\\n");
+    poweroff_now();
+  }}
+
+{stdin_open_block}
+
+  LOG_LIT("LINX_SPEC_DBG step=dup2-in\\n");
+  if (fd_in != STDIN_FILENO && dup2(fd_in, STDIN_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL dup2-in\\n");
+    poweroff_now();
+  }}
+
+  LOG_LIT("LINX_SPEC_DBG step=dup2-out\\n");
+  if (fd_out != STDOUT_FILENO && dup2(fd_out, STDOUT_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL dup2-out\\n");
+    poweroff_now();
+  }}
+  LOG_LIT("LINX_SPEC_DBG step=dup2-err\\n");
+  if (fd_err != STDERR_FILENO && dup2(fd_err, STDERR_FILENO) < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL dup2-err\\n");
+    poweroff_now();
+  }}
+  LOG_LIT("LINX_SPEC_DBG step=close-in\\n");
+  if (fd_in > STDERR_FILENO)
+    close(fd_in);
+  LOG_LIT("LINX_SPEC_DBG step=close-out\\n");
+  if (fd_out > STDERR_FILENO && fd_out != fd_in)
+    close(fd_out);
+  LOG_LIT("LINX_SPEC_DBG step=close-err\\n");
+  if (fd_err > STDERR_FILENO && fd_err != fd_in && fd_err != fd_out)
+    close(fd_err);
+
+  LOG_LIT("LINX_SPEC_DBG step=direct-before-exec\\n");
+  char *empty_envp[] = {{ NULL }};
+  log_preexec_probe(argv[0]);
+  log_preexec_probe(kExecPath);
+  linx_spec_execve(kExecPath, argv, empty_envp);
+  LOG_LIT("LINX_SPEC_FAIL execve\\n");
+  poweroff_now();
+"""
+
+    c_src = out_dir / f"init_{bench.replace('.', '_')}.c"
+    c_bin = out_dir / f"init_{bench.replace('.', '_')}"
+
+    src = f"""#include <errno.h>
+#include <fcntl.h>
+#include <sched.h>
+#include <signal.h>
+#include <sys/mount.h>
+#include <sys/reboot.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/uio.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+
+#ifndef LINX_SPEC_SELFTEST_WRITEV
+#define LINX_SPEC_SELFTEST_WRITEV 0
+#endif
+
+#ifndef LINX_SPEC_SELFTEST_FP
+#define LINX_SPEC_SELFTEST_FP 0
+#endif
+
+#ifndef LINX_SPEC_IOBUF_SIZE
+#define LINX_SPEC_IOBUF_SIZE 512
+#endif
+
+#ifndef LINUX_REBOOT_MAGIC1
+#define LINUX_REBOOT_MAGIC1 0xfee1dead
+#endif
+#ifndef LINUX_REBOOT_MAGIC2
+#define LINUX_REBOOT_MAGIC2 672274793
+#endif
+#ifndef LINUX_REBOOT_CMD_POWER_OFF
+#define LINUX_REBOOT_CMD_POWER_OFF 0x4321fedc
+#endif
+
+static int raw_openat(const char *path, int flags, int mode) {{
+  return open(path, flags, mode);
+}}
+
+static long linx_spec_raw_syscall3(long n, long a0, long a1, long a2) {{
+  long ret;
+
+  __asm__ volatile(
+      "c.movr %1, ->a0\\n"
+      "c.movr %2, ->a1\\n"
+      "c.movr %3, ->a2\\n"
+      "c.movr %4, ->a7\\n"
+      "acrc 1\\n"
+      "c.bstop\\n"
+      "C.BSTART\\n"
+      "c.movr a0, ->%0\\n"
+      : "=r"(ret)
+      : "r"(a0), "r"(a1), "r"(a2), "r"(n)
+      : "a0", "a1", "a2", "a7",
+        "x0", "x1", "x2", "x3", "memory");
+
+  return ret;
+}}
+
+static int linx_spec_execve(const char *path, char *const argv[], char *const envp[]) {{
+  long ret = linx_spec_raw_syscall3(SYS_execve, (long)path, (long)argv, (long)envp);
+  if (ret < 0 && ret >= -4095) {{
+    errno = (int)-ret;
+    return -1;
+  }}
+  return (int)ret;
+}}
+
+static int g_log_fd = -1;
+static const unsigned long kDumpPrefixBytes = {dump_prefix_bytes}ul;
+static const int kMirrorLogToStdout = {1 if mirror_log_stdout else 0};
+static const int kSetupConsole = {1 if setup_console else 0};
+static const int kUseVfork = {1 if use_vfork else 0};
+static const int kUseKmsgLog = {1 if use_kmsg_log else 0};
+static const unsigned int kGuestHeartbeatSec = {guest_heartbeat_sec}u;
+
+__attribute__((noinline, returns_twice)) static pid_t spawn_child_process(void) {{
+  if (!kUseVfork) {{
+#ifdef SYS_fork
+    return (pid_t)syscall(SYS_fork);
+#endif
+    return (pid_t)syscall(SYS_clone, (long)SIGCHLD, 0L, 0L, 0L, 0L);
+  }}
+  return kUseVfork ? vfork() : fork();
+}}
+
+static int wait_status_from_siginfo(const siginfo_t *si) {{
+  switch (si->si_code) {{
+  case CLD_EXITED:
+    return ((si->si_status & 0xff) << 8);
+  case CLD_KILLED:
+    return (si->si_status & 0x7f);
+  case CLD_DUMPED:
+    return (si->si_status & 0x7f) | 0x80;
+  case CLD_STOPPED:
+    return ((si->si_status & 0xff) << 8) | 0x7f;
+  case CLD_CONTINUED:
+    return 0xffff;
+  default:
+    return -1;
+  }}
+}}
+
+static int wait_child_waitid_blocking(pid_t child, int *status, int *wait_errno) {{
+  siginfo_t si;
+  memset(&si, 0, sizeof(si));
+  errno = 0;
+  int ret = waitid(P_PID, child, &si, WEXITED);
+  if (ret == 0) {{
+    *status = wait_status_from_siginfo(&si);
+    *wait_errno = 0;
+    return 0;
+  }}
+  *wait_errno = errno;
+  return -1;
+}}
+
+static pid_t wait_child_blocking(pid_t child, int *status) {{
+  pid_t ret = waitpid(child, status, 0);
+  if (ret < 0 && errno == ECHILD) {{
+    errno = 0;
+    ret = waitpid(-1, status, 0);
+  }}
+  return ret;
+}}
+
+static int probe_child_alive(pid_t child) {{
+  return kill(child, 0);
+}}
+
+static void write_fd_all(int fd, const char *p, unsigned long n) {{
+  while (n > 0) {{
+    ssize_t wr = write(fd, p, n);
+    if (wr <= 0)
+      return;
+    p += (unsigned long)wr;
+    n -= (unsigned long)wr;
+  }}
+}}
+
+static void write_all(const char *p, unsigned long n) {{
+  write_fd_all(STDOUT_FILENO, p, n);
+}}
+
+static void write_log_all(const char *p, unsigned long n) {{
+  if (g_log_fd < 0 || kMirrorLogToStdout)
+    write_fd_all(STDOUT_FILENO, p, n);
+  if (g_log_fd >= 0)
+    write_fd_all(g_log_fd, p, n);
+}}
+
+static void try_open_kmsg_log(void) {{
+  if (kUseKmsgLog)
+    g_log_fd = raw_openat("/dev/kmsg", O_WRONLY | O_CLOEXEC, 0);
+  if (g_log_fd < 0 && kSetupConsole)
+    g_log_fd = raw_openat("/dev/console", O_WRONLY | O_CLOEXEC, 0);
+  if (g_log_fd < 0 && kSetupConsole)
+    g_log_fd = raw_openat("/dev/ttyS0", O_WRONLY | O_CLOEXEC, 0);
+  if (g_log_fd < 0)
+    g_log_fd = -1;
+}}
+
+static void write_cstr(const char *s) {{
+  const char *p = s;
+  while (*p)
+    p++;
+  write_all(s, (unsigned long)(p - s));
+}}
+
+static void write_hex_u32(unsigned int v) {{
+  static const char kHex[] = "0123456789abcdef";
+  char out[8];
+  int i;
+  for (i = 7; i >= 0; --i) {{
+    out[i] = kHex[v & 0xfu];
+    v >>= 4;
+  }}
+  write_all(out, sizeof(out));
+}}
+
+static void write_log_cstr(const char *s) {{
+  const char *p = s;
+  while (*p)
+    p++;
+  write_log_all(s, (unsigned long)(p - s));
+}}
+
+static void write_log_hex_u64(unsigned long long v) {{
+  static const char kHex[] = "0123456789abcdef";
+  char out[16];
+  int i;
+  for (i = 15; i >= 0; --i) {{
+    out[i] = kHex[(unsigned int)(v & 0xfu)];
+    v >>= 4;
+  }}
+  write_log_all(out, sizeof(out));
+}}
+
+static void write_log_u64_dec(unsigned long long v) {{
+  char out[32];
+  int i = 0;
+
+  if (v == 0) {{
+    write_log_all("0", 1);
+    return;
+  }}
+
+  while (v && i < (int)sizeof(out)) {{
+    out[i++] = (char)('0' + (v % 10));
+    v /= 10;
+  }}
+
+  while (i > 0)
+    write_log_all(&out[--i], 1);
+}}
+
+static void write_log_s64_dec(long long v) {{
+  if (v < 0) {{
+    write_log_all("-", 1);
+    write_log_u64_dec((unsigned long long)(-v));
+  }} else {{
+    write_log_u64_dec((unsigned long long)v);
+  }}
+}}
+
+static void log_preexec_probe(const char *path) {{
+  struct stat st;
+  errno = 0;
+  int sr = stat(path, &st);
+  int serr = errno;
+  write_log_cstr("LINX_SPEC_PREEXEC path=");
+  write_log_cstr(path);
+  write_log_cstr(" stat=");
+  write_log_s64_dec((long long)sr);
+  write_log_cstr(" errno=");
+  write_log_s64_dec((long long)serr);
+  if (sr == 0) {{
+    write_log_cstr(" mode=0x");
+    write_log_hex_u64((unsigned long long)st.st_mode);
+    write_log_cstr(" size=");
+    write_log_u64_dec((unsigned long long)st.st_size);
+  }}
+  errno = 0;
+  int fd = raw_openat(path, O_RDONLY, 0);
+  int oerr = errno;
+  write_log_cstr(" open=");
+  write_log_s64_dec((long long)fd);
+  write_log_cstr(" open_errno=");
+  write_log_s64_dec((long long)oerr);
+  if (fd >= 0) {{
+    unsigned char hdr[4] = {{0, 0, 0, 0}};
+    ssize_t rd = read(fd, hdr, sizeof(hdr));
+    int rerr = errno;
+    write_log_cstr(" read4=");
+    write_log_s64_dec((long long)rd);
+    write_log_cstr(" read_errno=");
+    write_log_s64_dec((long long)rerr);
+    if (rd == (ssize_t)sizeof(hdr)) {{
+      unsigned int magic = ((unsigned int)hdr[0] << 24) |
+                           ((unsigned int)hdr[1] << 16) |
+                           ((unsigned int)hdr[2] << 8) |
+                           (unsigned int)hdr[3];
+      write_log_cstr(" magic=0x");
+      write_log_hex_u64((unsigned long long)magic);
+    }}
+    close(fd);
+  }}
+  write_log_cstr("\\n");
+}}
+
+static unsigned long long va_arg_double_bits(int tag, ...) {{
+  va_list ap;
+  va_start(ap, tag);
+  double d = va_arg(ap, double);
+  va_end(ap);
+  unsigned long long out = 0;
+  memcpy(&out, (const void *)&d, sizeof(out));
+  return out;
+}}
+
+static int hash_file_fnv1a64(const char *path,
+                             unsigned long long *out_size,
+                             unsigned long long *out_hash) {{
+  int fd = raw_openat(path, O_RDONLY, 0);
+  unsigned int hash = 2166136261u;
+  unsigned long long size = 0;
+  unsigned char buf[LINX_SPEC_IOBUF_SIZE];
+
+  if (fd < 0)
+    return -1;
+
+  for (;;) {{
+    ssize_t n = read(fd, buf, sizeof(buf));
+    if (n == 0)
+      break;
+    if (n < 0) {{
+      close(fd);
+      return -1;
+    }}
+    for (ssize_t i = 0; i < n; ++i) {{
+      hash ^= (unsigned int)buf[i];
+      hash = hash
+           + (hash << 1)
+           + (hash << 4)
+           + (hash << 7)
+           + (hash << 8)
+           + (hash << 24);
+    }}
+    size += (unsigned long long)n;
+  }}
+
+  close(fd);
+  *out_size = size;
+  *out_hash = (unsigned long long)hash;
+  return 0;
+}}
+
+static int dump_file(const char *path) {{
+  int fd = raw_openat(path, O_RDONLY, 0);
+  char buf[LINX_SPEC_IOBUF_SIZE];
+  if (fd < 0)
+    return -1;
+
+  for (;;) {{
+    ssize_t n = read(fd, buf, sizeof(buf));
+    if (n == 0) {{
+      close(fd);
+      return 0;
+    }}
+    if (n < 0) {{
+      close(fd);
+      return -1;
+    }}
+    write_log_all(buf, (unsigned long)n);
+  }}
+}}
+
+static int dump_file_prefix(const char *path, unsigned long max_bytes) {{
+  int fd = raw_openat(path, O_RDONLY, 0);
+  char buf[LINX_SPEC_IOBUF_SIZE];
+  if (fd < 0)
+    return -1;
+
+  unsigned long remaining = max_bytes;
+  while (remaining > 0) {{
+    unsigned long want = remaining < sizeof(buf) ? remaining : (unsigned long)sizeof(buf);
+    ssize_t n = read(fd, buf, want);
+    if (n == 0) {{
+      close(fd);
+      return 0;
+    }}
+    if (n < 0) {{
+      close(fd);
+      return -1;
+    }}
+    write_log_all(buf, (unsigned long)n);
+    remaining -= (unsigned long)n;
+  }}
+
+  close(fd);
+  return 0;
+}}
+
+static int dump_run_file(const char *run_root, const char *name) {{
+  char path[512];
+  unsigned long i = 0;
+  unsigned long j = 0;
+
+  while (run_root[i] && i + 1 < sizeof(path)) {{
+    path[i] = run_root[i];
+    i++;
+  }}
+
+  if (i == 0 || path[i - 1] != '/') {{
+    if (i + 1 >= sizeof(path))
+      return -1;
+    path[i++] = '/';
+  }}
+
+  while (name[j] && i + 1 < sizeof(path)) {{
+    path[i++] = name[j++];
+  }}
+  path[i] = '\\0';
+
+  return dump_file(path);
+}}
+
+static void setup_console(void) {{
+  int fd_out = raw_openat("/dev/console", O_WRONLY, 0);
+  if (fd_out < 0)
+    fd_out = raw_openat("/dev/console", O_RDWR, 0);
+  if (fd_out < 0)
+    fd_out = raw_openat("/dev/ttyS0", O_WRONLY, 0);
+  if (fd_out < 0)
+    fd_out = raw_openat("/dev/ttyS0", O_RDWR, 0);
+  if (fd_out < 0)
+    fd_out = raw_openat("/dev/kmsg", O_WRONLY, 0);
+  if (fd_out < 0)
+    fd_out = raw_openat("/dev/null", O_WRONLY, 0);
+
+  if (fd_out >= 0) {{
+    /*
+     * Duplicate output fds before touching stdin. In early init the first open
+     * can return fd 0, so this ordering avoids aliasing stdout/stderr onto a
+     * read-only stdin fd.
+     */
+    (void)dup2(fd_out, STDOUT_FILENO);
+    (void)dup2(fd_out, STDERR_FILENO);
+  }}
+
+  {{
+    int fd_in = raw_openat("/dev/null", O_RDONLY, 0);
+    if (fd_in < 0)
+      fd_in = raw_openat("/dev/console", O_RDONLY, 0);
+    if (fd_in >= 0) {{
+      (void)dup2(fd_in, STDIN_FILENO);
+      if (fd_in > STDERR_FILENO && fd_in != fd_out)
+        close(fd_in);
+    }} else if (fd_out >= 0) {{
+      (void)dup2(fd_out, STDIN_FILENO);
+    }}
+  }}
+
+  if (fd_out > STDERR_FILENO)
+    close(fd_out);
+}}
+
+__attribute__((noreturn)) static void spin_forever(void) {{
+  for (;;) {{
+    __asm__ __volatile__("" ::: "memory");
+  }}
+}}
+
+__attribute__((noreturn)) static void poweroff_now(void) {{
+  sync();
+  (void)reboot(LINUX_REBOOT_CMD_POWER_OFF);
+  spin_forever();
+}}
+
+static void selftest_writev(void) {{
+#if LINX_SPEC_SELFTEST_WRITEV
+  struct iovec iov[2];
+  iov[0].iov_base = (void *)"AAA";
+  iov[0].iov_len = 3;
+  iov[1].iov_base = (void *)"BBB";
+  iov[1].iov_len = 3;
+
+  int fd = raw_openat("/tmp/linx_spec_writev_test.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd < 0) {{
+    write_cstr("LINX_SPEC_FAIL writev-selftest-open\\n");
+    poweroff_now();
+  }}
+
+  ssize_t wr = writev(fd, iov, 2);
+  close(fd);
+  if (wr != 6) {{
+    write_cstr("LINX_SPEC_FAIL writev-selftest-wr\\n");
+    poweroff_now();
+  }}
+
+  fd = raw_openat("/tmp/linx_spec_writev_test.txt", O_RDONLY, 0);
+  if (fd < 0) {{
+    write_cstr("LINX_SPEC_FAIL writev-selftest-reopen\\n");
+    poweroff_now();
+  }}
+
+  char buf[6];
+  ssize_t rd = read(fd, buf, sizeof(buf));
+  close(fd);
+  if (rd != (ssize_t)sizeof(buf) || memcmp(buf, "AAABBB", sizeof(buf)) != 0) {{
+    write_cstr("LINX_SPEC_FAIL writev-selftest-rd\\n");
+    poweroff_now();
+  }}
+#endif
+}}
+
+static void selftest_fp_bits(void) {{
+#if LINX_SPEC_SELFTEST_FP
+  unsigned long long bits = 0;
+  char line[160];
+
+  /*
+   * Keep these inputs volatile so the compiler cannot constant-fold the
+   * conversions/ops away. SPECINT failures have historically been "looks fine
+   * in bits" when we were only printing constants.
+   */
+  volatile unsigned long long vi = 123ull;
+  volatile double d3 = 3.0;
+  volatile double d05 = 0.5;
+  volatile double denom = 4294967296.0;
+  volatile double fmtv = 0.819302;
+
+  unsigned long long vabits = va_arg_double_bits(0, (double)fmtv);
+  write_cstr("LINX_SPEC_DBG va_arg(double) bits=0x");
+  write_log_hex_u64(vabits);
+  write_cstr("\\n");
+  if (vabits != 0x3fea37b8d3f1843cull) {{
+    write_cstr("LINX_SPEC_FAIL fp-selftest-vaarg-double\\n");
+    poweroff_now();
+  }}
+
+  /* Integer -> double conversion (forces UC/VTCVT execution). */
+  volatile double fp_cvt = (double)vi;
+  memcpy(&bits, (const void *)&fp_cvt, sizeof(bits));
+  int n1 = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG fpcvt123 bits=0x%016llx\\n",
+                    bits);
+  if (n1 > 0 && n1 < (int)sizeof(line))
+    write_all(line, (unsigned long)n1);
+  if (bits != 0x405ec00000000000ull) {{
+    write_cstr("LINX_SPEC_FAIL fp-selftest-fpcvt123\\n");
+    poweroff_now();
+  }}
+
+  /* 1.0 / 2^32 runtime division. */
+  volatile double fp_k = 1.0 / denom;
+  memcpy(&bits, (const void *)&fp_k, sizeof(bits));
+  int n2 = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG fpk bits=0x%016llx\\n",
+                    bits);
+  if (n2 > 0 && n2 < (int)sizeof(line))
+    write_all(line, (unsigned long)n2);
+  if (bits != 0x3df0000000000000ull) {{
+    write_cstr("LINX_SPEC_FAIL fp-selftest-fpk\\n");
+    poweroff_now();
+  }}
+
+  /* Runtime multiply (forces __muldf3 or FMUL path). */
+  volatile double fp_mul = d3 * d05;
+  memcpy(&bits, (const void *)&fp_mul, sizeof(bits));
+  int n3 = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG fpmul bits=0x%016llx\\n",
+                    bits);
+  if (n3 > 0 && n3 < (int)sizeof(line))
+    write_all(line, (unsigned long)n3);
+  if (bits != 0x3ff8000000000000ull) {{
+    write_cstr("LINX_SPEC_FAIL fp-selftest-fpmul\\n");
+    poweroff_now();
+  }}
+
+  /* Float -> integer conversions used by musl printf floating formatting. */
+  volatile double dscale = fmtv * 1000000.0;
+  volatile unsigned int u32_scale = (unsigned int)dscale;
+  int n4 = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG fptoui32_scale=%u\\n",
+                    (unsigned)u32_scale);
+  if (n4 > 0 && n4 < (int)sizeof(line))
+    write_all(line, (unsigned long)n4);
+  if (u32_scale != 819302u) {{
+    write_cstr("LINX_SPEC_FAIL fp-selftest-fptoui32_scale\\n");
+    poweroff_now();
+  }}
+
+  /* Sanity: show raw bits for the formatting probe value. */
+  memcpy(&bits, (const void *)&fmtv, sizeof(bits));
+  int nb = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG fmtv bits=0x%016llx\\n",
+                    bits);
+  if (nb > 0 && nb < (int)sizeof(line))
+    write_all(line, (unsigned long)nb);
+
+  /* libc puts() behavior (banner regression triage). */
+  int outfd = fileno(stdout);
+  int errfd = fileno(stderr);
+  int nfds = snprintf(line, sizeof(line),
+                      "LINX_SPEC_DBG stdio fds stdout=%d stderr=%d\\n",
+                      outfd, errfd);
+  if (nfds > 0 && nfds < (int)sizeof(line))
+    write_all(line, (unsigned long)nfds);
+
+  /* libc float formatting sanity: should not print all zeros. */
+  char fmtbuf[32];
+  int fn = snprintf(fmtbuf, sizeof(fmtbuf), "%.6f", (double)fmtv);
+  int nf = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG snprintf(0.819302)=<%s> n=%d\\n",
+                    fmtbuf, fn);
+  if (nf > 0 && nf < (int)sizeof(line))
+    write_all(line, (unsigned long)nf);
+  if (fn != 8 || memcmp(fmtbuf, "0.819302", 8) != 0) {{
+    write_cstr("LINX_SPEC_WARN fp-selftest-snprintf\\n");
+  }}
+
+  /* Hex-float formatting (%a) helps distinguish dtoa vs value issues. */
+  char fmtabuf[64];
+  int fan = snprintf(fmtabuf, sizeof(fmtabuf), "%a", (double)fmtv);
+  int fa = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG snprintf(%%a)=<%s> n=%d\\n",
+                    fmtabuf, fan);
+  if (fa > 0 && fa < (int)sizeof(line))
+    write_all(line, (unsigned long)fa);
+
+  /* Direct writev() probe (puts/fwrite use writev internally on musl). */
+  struct iovec wiov[2];
+  wiov[0].iov_base = (void *)"WV";
+  wiov[0].iov_len = 2;
+  wiov[1].iov_base = (void *)"\\n";
+  wiov[1].iov_len = 1;
+  write_cstr("LINX_SPEC_DBG before_direct_writev\\n");
+  errno = 0;
+  ssize_t wvr = writev(STDOUT_FILENO, wiov, 2);
+  int wve = errno;
+  write_cstr("LINX_SPEC_DBG after_direct_writev\\n");
+  int nwv = snprintf(line, sizeof(line),
+                     "LINX_SPEC_DBG direct_writev ret=%lld errno=%d\\n",
+                     (long long)wvr, wve);
+  if (nwv > 0 && nwv < (int)sizeof(line))
+    write_all(line, (unsigned long)nwv);
+
+  errno = 0;
+  int pr = puts("LINX_SPEC_DBG puts_selftest");
+  int pe = errno;
+  int np = snprintf(line, sizeof(line),
+                    "LINX_SPEC_DBG puts ret=%d errno=%d\\n", pr, pe);
+  if (np > 0 && np < (int)sizeof(line))
+    write_all(line, (unsigned long)np);
+#endif
+}}
+
+#define WRITE_LIT(s) write_all((s), (unsigned long)(sizeof(s) - 1))
+#define LOG_LIT(s) write_log_all((s), (unsigned long)(sizeof(s) - 1))
+
+int main(void) {{
+  if (kSetupConsole)
+    setup_console();
+  char *argv[] = {{
+{argv_items}
+    NULL,
+  }};
+  static const char kExecPath[] = "{_c_escape(exec_path)}";
+
+  (void)mkdir("/proc", 0755);
+  (void)mkdir("/sys", 0755);
+  (void)mkdir("/dev", 0755);
+  /* Keep static device nodes from initramfs (/dev/console, /dev/ttyS0). */
+  (void)mount("proc", "/proc", "proc", 0, "");
+  (void)mount("sysfs", "/sys", "sysfs", 0, "");
+  selftest_fp_bits();
+  selftest_writev();
+  try_open_kmsg_log();
+  /* Use inherited init stdio from the kernel console wiring. */
+  LOG_LIT("LINX_SPEC_START {_c_escape(bench)}\\n");
+{transport_block}
+
+  LOG_LIT("LINX_SPEC_DBG step=chdir\\n");
+  if (chdir("{_c_escape(guest_run)}") < 0) {{
+    LOG_LIT("LINX_SPEC_FAIL chdir-rundir\\n");
+    poweroff_now();
+  }}
+  LOG_LIT("LINX_SPEC_DBG step=chdir-ok\\n");
+
+{run_block}
+}}
+"""
+
+    c_src.write_text(src, encoding="utf-8")
+
+    c_obj = out_dir / f"init_{bench.replace('.', '_')}.o"
+    init_static = _choose_init_static(transport, sysroot)
+
+    compile_cmd = [
+        str(clang),
+        "--target=linx64-unknown-linux-musl",
+        f"--sysroot={sysroot}",
+        "-O1",
+        "-c",
+        "-o",
+        str(c_obj),
+        str(c_src),
+    ]
+    if os.environ.get("LINX_SPEC_SELFTEST_WRITEV", "").lower() in {"1", "true", "yes"}:
+        compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_WRITEV=1")
+    if os.environ.get("LINX_SPEC_SELFTEST_FP", "").lower() in {"1", "true", "yes"}:
+        compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_FP=1")
+    if init_static:
+        compile_cmd.insert(4, "-fPIE")
+    proc = _run(compile_cmd)
+    if proc.returncode != 0:
+        raise SystemExit(
+            f"error: failed to compile init source for {bench}:\n"
+            + proc.stdout.decode("utf-8", errors="replace")
+        )
+
+    libdir = sysroot / "lib"
+    crt1 = libdir / ("rcrt1.o" if init_static else "Scrt1.o")
+    crti = libdir / "crti.o"
+    crtn = libdir / "crtn.o"
+    runtime_rt = libdir / "liblinx_builtin_rt.a"
+    builtins_rt = libdir / "libclang_rt.builtins-linx64.a"
+    libc_a = libdir / "libc.a"
+    libc_so = libdir / "libc.so"
+    required = [crt1, crti, crtn, runtime_rt]
+    if init_static:
+        required.extend([libc_a, builtins_rt])
+    else:
+        required.append(libc_so)
+    for req in required:
+        if not req.exists():
+            raise SystemExit(f"error: missing required sysroot artifact: {req}")
+
+    link_cmd = [str(clang), "--target=linx64-unknown-linux-musl", f"--sysroot={sysroot}", "-fuse-ld=lld", "-nostdlib"]
+    if init_static:
+        link_cmd.extend(
+            [
+                "-static",
+                "-Wl,-pie",
+                "-Wl,-z,now",
+                str(crt1),
+                str(crti),
+                str(c_obj),
+                str(runtime_rt),
+                str(builtins_rt),
+                "-L" + str(libdir),
+                "-L" + str(sysroot / "usr" / "lib"),
+                "-lc",
+                str(crtn),
+                "-Wl,--build-id=none",
+                "-Wl,--image-base=0x40000000",
+                "-o",
+                str(c_bin),
+            ]
+        )
+    else:
+        link_cmd.extend(
+            [
+                "-Wl,-pie",
+                "-Wl,-z,now",
+                str(crt1),
+                str(crti),
+                str(c_obj),
+                str(runtime_rt),
+                "-L" + str(libdir),
+                "-L" + str(sysroot / "usr" / "lib"),
+                "-lc",
+                str(crtn),
+                "-Wl,--dynamic-linker=/lib/ld-musl-linx64.so.1",
+                "-Wl,--image-base=0x40000000",
+                "-o",
+                str(c_bin),
+            ]
+        )
+    proc = _run(link_cmd)
+    if proc.returncode != 0:
+        raise SystemExit(
+            f"error: failed to link init for {bench}:\n"
+            + proc.stdout.decode("utf-8", errors="replace")
+        )
+
+    return c_bin
+
+
+def _build_initramfs(
+    bench: str,
+    out_dir: Path,
+    gen_init_cpio: Path,
+    init_bin: Path,
+    sysroot: Path,
+    run_dir: Path | None,
+    transport: str,
+    include_shared_runtime: bool,
+) -> tuple[Path, Path]:
+    init_list = out_dir / f"initramfs_{bench.replace('.', '_')}.list"
+    init_cpio = out_dir / f"initramfs_{bench.replace('.', '_')}.cpio"
+    init_log = out_dir / f"initramfs_{bench.replace('.', '_')}.log"
+
+    lines = [
+        "dir /dev 0755 0 0",
+        "nod /dev/console 0600 0 0 c 5 1",
+        "nod /dev/null 0666 0 0 c 1 3",
+        "nod /dev/kmsg 0600 0 0 c 1 11",
+        "nod /dev/ttyS0 0600 0 0 c 4 64",
+        "dir /proc 0755 0 0",
+        "dir /sys 0755 0 0",
+        "dir /tmp 1777 0 0",
+        "dir /lib 0755 0 0",
+        f"file /init {init_bin} 0755 0 0",
+    ]
+    if include_shared_runtime:
+        libc_so = sysroot / "lib" / "libc.so"
+        if not libc_so.exists():
+            raise SystemExit(f"error: missing libc.so in sysroot: {libc_so}")
+        lines.extend(
+            [
+                f"file /lib/libc.so {libc_so} 0755 0 0",
+                f"file /lib/ld-musl-linx64.so.1 {libc_so} 0755 0 0",
+                f"file /lib/libm.so {libc_so} 0755 0 0",
+            ]
+        )
+
+    if transport == "9p":
+        lines.append("dir /spec 0755 0 0")
+    elif transport == "initramfs":
+        if run_dir is None:
+            raise SystemExit("error: run_dir is required for initramfs transport")
+        lines.append("dir /spec-run 0755 0 0")
+        for host in sorted(run_dir.rglob("*")):
+            rel = host.relative_to(run_dir).as_posix()
+            guest = f"/spec-run/{rel}"
+            if host.is_symlink():
+                lines.append(f"slink {guest} {os.readlink(host)} 0777 0 0")
+            elif host.is_dir():
+                lines.append(f"dir {guest} 0755 0 0")
+            elif host.is_file():
+                mode = 0o755 if os.access(host, os.X_OK) else 0o644
+                lines.append(f"file {guest} {host} {mode:o} 0 0")
+    else:
+        raise SystemExit(f"error: unsupported transport: {transport}")
+
+    lines.append("")
+    init_list.write_text("\n".join(lines), encoding="utf-8")
+
+    cmd = [str(gen_init_cpio), "-o", str(init_cpio), str(init_list)]
+    proc = _run(cmd)
+    init_log.write_bytes(proc.stdout)
+    if proc.returncode != 0:
+        raise SystemExit(f"error: failed to build initramfs for {bench} (see {init_log})")
+
+    return init_cpio, init_log
+
+
+def _run_qemu(
+    bench: str,
+    qemu: Path,
+    kernel: Path,
+    initramfs: Path,
+    spec_dir: Path,
+    timeout: int,
+    out_log: Path,
+    transport: str,
+    memory_mb: int,
+    heartbeat_sec: float,
+    qemu_heartbeat_interval: int,
+    no_progress_timeout: float,
+    append_extra: str,
+) -> dict[str, Any]:
+    append = "lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0"
+    disable_timer_irq = os.environ.get("LINX_DISABLE_TIMER_IRQ", "").lower() in {"1", "true", "yes"}
+    if disable_timer_irq and "linx_disable_timer_irq=" not in append:
+        append += " linx_disable_timer_irq=1"
+    force_virtio_mmio = os.environ.get("LINX_SPEC_9P_FORCE_VIRTIO_MMIO", "").lower() in {"1", "true", "yes"}
+    if transport == "9p" and force_virtio_mmio and "virtio_mmio.device=" not in append:
+        append += " virtio_mmio.device=0x200@0x30001000:1"
+    if append_extra.strip():
+        append += " " + append_extra.strip()
+
+    machine = "virt"
+    machine_extra = os.environ.get("LINX_SPEC_QEMU_MACHINE_EXTRA", "").strip()
+    if machine_extra:
+        if not machine_extra.startswith(","):
+            machine += ","
+        machine += machine_extra
+
+    qemu_extra = shlex.split(os.environ.get("LINX_SPEC_QEMU_EXTRA_ARGS", ""))
+
+    cmd = [
+        str(qemu),
+        "-machine",
+        machine,
+        "-nographic",
+        "-monitor",
+        "none",
+        "-no-reboot",
+        "-m",
+        str(memory_mb),
+        "-kernel",
+        str(kernel),
+        "-initrd",
+        str(initramfs),
+        "-append",
+        append,
+    ]
+    if "-bios" not in cmd and "qemu-system-linx64-bios-none" not in qemu.name:
+        cmd += ["-bios", "none"]
+    cmd += qemu_extra
+    if transport == "9p":
+        cmd += [
+            "-fsdev",
+            f"local,id=specfs,path={spec_dir},security_model=none",
+            "-device",
+            "virtio-9p-device,fsdev=specfs,mount_tag=spec2017",
+        ]
+
+    qemu_env = os.environ.copy()
+    if qemu_heartbeat_interval > 0:
+        qemu_env["LINX_HEARTBEAT_INTERVAL"] = str(qemu_heartbeat_interval)
+
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=qemu_env,
+    )
+    heartbeat_counts_progress = os.environ.get("LINX_SPEC_HEARTBEAT_COUNTS_PROGRESS", "").lower()
+    if heartbeat_counts_progress in {"1", "true", "yes"}:
+        heartbeat_progress_enabled = True
+    elif heartbeat_counts_progress in {"0", "false", "no"}:
+        heartbeat_progress_enabled = False
+    else:
+        # Initramfs lane redirects benchmark output to guest files, so stdout
+        # can remain quiet for long stretches while work is still progressing.
+        # Once QEMU's own BPC heartbeat is enabled, only QEMU output should
+        # reset no-progress accounting; host heartbeat lines are just liveness
+        # breadcrumbs from the wrapper.
+        heartbeat_progress_enabled = (transport == "initramfs" and qemu_heartbeat_interval <= 0)
+    fd = proc.stdout.fileno() if proc.stdout is not None else -1
+    chunks: list[bytes] = []
+    bytes_seen = 0
+    timed_out = False
+    stalled = False
+    terminal_failure_seen = False
+    recent_output = b""
+    terminal_failure_markers = (
+        b"Kernel panic - not syncing",
+        b"LINX_PANIC",
+        b"LINX_EXIT_INIT",
+    )
+    start = time.monotonic()
+    last_activity = start
+    next_heartbeat = start + heartbeat_sec if heartbeat_sec > 0 else float("inf")
+
+    out_log.parent.mkdir(parents=True, exist_ok=True)
+    log_fp = out_log.open("wb")
+
+    while fd >= 0:
+        now = time.monotonic()
+        elapsed = now - start
+        if elapsed >= timeout:
+            timed_out = True
+            break
+
+        idle = now - last_activity
+        if no_progress_timeout > 0 and idle >= no_progress_timeout:
+            stalled = True
+            break
+
+        wait_for = min(0.5, timeout - elapsed)
+        if heartbeat_sec > 0:
+            wait_for = min(wait_for, max(0.0, next_heartbeat - now))
+        if no_progress_timeout > 0:
+            wait_for = min(wait_for, max(0.0, no_progress_timeout - idle))
+
+        readable, _, _ = select.select([fd], [], [], wait_for)
+        if readable:
+            try:
+                data = os.read(fd, 8192)
+            except OSError:
+                data = b""
+            if not data:
+                fd = -1
+            else:
+                chunks.append(data)
+                log_fp.write(data)
+                log_fp.flush()
+                bytes_seen += len(data)
+                last_activity = time.monotonic()
+                recent_output = (recent_output + data)[-4096:]
+                if any(marker in recent_output for marker in terminal_failure_markers):
+                    terminal_failure_seen = True
+                    break
+
+        now = time.monotonic()
+        if heartbeat_sec > 0 and now >= next_heartbeat:
+            hb_line = (
+                "LINX_SPEC_HEARTBEAT "
+                f"bench={bench} "
+                f"elapsed={now - start:.1f}s "
+                f"idle={now - last_activity:.1f}s "
+                f"bytes={bytes_seen}"
+            )
+            print(hb_line, file=sys.stderr, flush=True)
+            hb_data = (hb_line + "\n").encode("utf-8")
+            chunks.append(hb_data)
+            log_fp.write(hb_data)
+            log_fp.flush()
+            if heartbeat_progress_enabled:
+                last_activity = now
+            while next_heartbeat <= now:
+                next_heartbeat += heartbeat_sec
+
+    if timed_out or stalled or terminal_failure_seen:
+        proc.kill()
+
+    extra = b""
+    try:
+        out_extra, _ = proc.communicate(timeout=1.0)
+        if out_extra:
+            extra = out_extra
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out_extra, _ = proc.communicate()
+        if out_extra:
+            extra = out_extra
+    if extra:
+        chunks.append(extra)
+        log_fp.write(extra)
+        log_fp.flush()
+    log_fp.close()
+
+    text = b"".join(chunks).decode("utf-8", errors="replace")
+    qemu_rc = proc.returncode if proc.returncode is not None else -1
+    panic_seen = (
+        "Kernel panic - not syncing" in text
+        or "LINX_PANIC" in text
+        or "LINX_EXIT_INIT" in text
+    )
+    fail_marker = f"LINX_SPEC_FAIL {bench}" in text or "LINX_SPEC_FAIL" in text
+    classification = _classify_qemu_result(
+        text=text,
+        timed_out=timed_out,
+        stalled=stalled,
+        panic_seen=panic_seen,
+        fail_marker=fail_marker,
+    )
+
+    return {
+        "command": cmd,
+        "qemu_rc": qemu_rc,
+        "timed_out": timed_out,
+        "stalled": stalled,
+        "panic_seen": panic_seen,
+        "trap_seen": "[linx trap]" in text.lower(),
+        "pass_marker": f"LINX_SPEC_PASS {bench}" in text,
+        "fail_marker": fail_marker,
+        "failure_class": classification["class"],
+        "failure_evidence": classification["evidence"],
+        "last_heartbeat": classification["last_heartbeat"],
+        "heartbeat_progress": classification["heartbeat_progress"],
+        "log": str(out_log),
+    }
+
+
+def _classify_qemu_result(
+    *,
+    text: str,
+    timed_out: bool,
+    stalled: bool,
+    panic_seen: bool,
+    fail_marker: bool,
+) -> dict[str, Any]:
+    heartbeats = re.findall(r"^LINX_HEARTBEAT .*$", text, flags=re.MULTILINE)
+    last_heartbeat = heartbeats[-1] if heartbeats else ""
+    heartbeat_progress = _heartbeat_progress(heartbeats)
+
+    if stalled:
+        return {
+            "class": "no-progress-timeout",
+            "evidence": "no QEMU output before no-progress timeout",
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+    if timed_out:
+        cls = "live-timeout" if heartbeat_progress else "timeout-no-bpc-progress"
+        evidence = last_heartbeat or "timeout without LINX_HEARTBEAT evidence"
+        return {
+            "class": cls,
+            "evidence": evidence,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+    if panic_seen:
+        line = _first_matching_line(text, ("LINX_PANIC", "Kernel panic - not syncing", "LINX_EXIT_INIT"))
+        return {
+            "class": "kernel-panic",
+            "evidence": line,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+
+    trap = _first_matching_line(text, ("LINX_USER_TRAP", "[linx trap]"))
+    if trap:
+        return {
+            "class": "user-trap",
+            "evidence": trap,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+
+    if "Bad file number" in text:
+        return {
+            "class": "fd-io-bad-file-number",
+            "evidence": _first_matching_line(text, ("Bad file number",)),
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+    if "Bad file descriptor" in text:
+        return {
+            "class": "fd-io-bad-file-descriptor",
+            "evidence": _first_matching_line(text, ("Bad file descriptor",)),
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+    if "Range iterator outside integer range" in text:
+        return {
+            "class": "user-arithmetic-range",
+            "evidence": _first_matching_line(text, ("Range iterator outside integer range",)),
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+
+    execve = _first_matching_line(text, ("LINX_SPEC_FAIL execve",))
+    if execve:
+        return {
+            "class": "execve-failure",
+            "evidence": execve,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+
+    if fail_marker:
+        return {
+            "class": "spec-wrapper-fail",
+            "evidence": _first_matching_line(text, ("LINX_SPEC_FAIL",)) or "LINX_SPEC_FAIL",
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat_progress,
+        }
+
+    return {
+        "class": "none",
+        "evidence": "",
+        "last_heartbeat": last_heartbeat,
+        "heartbeat_progress": heartbeat_progress,
+    }
+
+
+def _first_matching_line(text: str, needles: tuple[str, ...]) -> str:
+    for line in text.splitlines():
+        if any(needle in line for needle in needles):
+            return line[:512]
+    return ""
+
+
+def _heartbeat_progress(heartbeats: list[str]) -> bool:
+    counts: list[int] = []
+    bpcs: list[str] = []
+    for line in heartbeats[-8:]:
+        count = re.search(r"\bcount=([0-9]+)", line)
+        bpc = re.search(r"\bbpc=(0x[0-9a-fA-F]+)", line)
+        if count:
+            counts.append(int(count.group(1)))
+        if bpc:
+            bpcs.append(bpc.group(1).lower())
+    return len(set(counts)) > 1 or len(set(bpcs)) > 1
+
+
+def _collect_outputs_from_log(qemu_log: Path, run_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
+    data = qemu_log.read_bytes()
+    wanted = sorted({cmp_cfg["out"] for cmp_cfg in cfg.get("compares", [])})
+    collected: list[str] = []
+    missing: list[str] = []
+
+    for name in wanted:
+        begin = f"LINX_SPEC_FILE_BEGIN {name}".encode("utf-8")
+        end = f"LINX_SPEC_FILE_END {name}".encode("utf-8")
+        i = data.find(begin)
+        if i < 0:
+            missing.append(name)
+            continue
+        payload_start = data.find(b"\n", i + len(begin))
+        if payload_start < 0:
+            missing.append(name)
+            continue
+        payload_start += 1
+
+        j = data.find(end, payload_start)
+        if j < 0:
+            missing.append(name)
+            continue
+
+        payload_end = j
+        if payload_end >= 2 and data[payload_end - 2 : payload_end] == b"\r\n":
+            payload_end -= 2
+        elif payload_end >= 1 and data[payload_end - 1 : payload_end] == b"\n":
+            payload_end -= 1
+
+        payload = data[payload_start:payload_end].replace(b"\r\n", b"\n")
+        out_path = run_dir / name
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(payload)
+        collected.append(str(out_path))
+
+    return {"ok": not missing, "missing": missing, "collected": collected}
+
+
+def _fnv1a32(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    h = 0x811C9DC5
+    for b in data:
+        h ^= b
+        h = (
+            h
+            + ((h << 1) & 0xFFFFFFFF)
+            + ((h << 4) & 0xFFFFFFFF)
+            + ((h << 7) & 0xFFFFFFFF)
+            + ((h << 8) & 0xFFFFFFFF)
+            + ((h << 24) & 0xFFFFFFFF)
+        ) & 0xFFFFFFFF
+    return len(data), h
+
+
+def _verify_hash_markers(spec_dir: Path, qemu_log: Path, bench: str, cfg: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    text = qemu_log.read_text(encoding="utf-8", errors="replace")
+    pat = re.compile(r"LINX_SPEC_HASH\s+(\S+)\s+(\d+)\s+0x([0-9a-fA-F]+)")
+    seen: dict[str, tuple[int, int]] = {}
+    for m in pat.finditer(text):
+        name = m.group(1)
+        size = int(m.group(2), 10)
+        hv = int(m.group(3), 16)
+        seen[name] = (size, hv)
+
+    checks: list[dict[str, Any]] = []
+    all_ok = True
+    for idx, cmp_cfg in enumerate(cfg.get("compares", []), start=1):
+        out_name = cmp_cfg["out"]
+        ref_path = spec_dir / cmp_cfg["ref"]
+        ref_size, ref_hash = _fnv1a32(ref_path)
+        got = seen.get(out_name)
+        ok = bool(got and got[0] == ref_size and got[1] == ref_hash)
+        all_ok = all_ok and ok
+
+        log_path = out_dir / f"{bench.replace('.', '_')}_hashcheck_{idx}.log"
+        log_lines = [
+            f"output={out_name}",
+            f"reference={ref_path}",
+            f"expected_size={ref_size}",
+                f"expected_hash=0x{ref_hash:08x}",
+        ]
+        if got is None:
+            log_lines.append("actual=missing")
+        else:
+            log_lines.append(f"actual_size={got[0]}")
+            log_lines.append(f"actual_hash=0x{got[1]:08x}")
+        log_lines.append(f"ok={str(ok).lower()}")
+        log_path.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+
+        checks.append(
+            {
+                "ok": ok,
+                "method": "fnv1a32",
+                "reference": str(ref_path),
+                "output_name": out_name,
+                "expected_size": ref_size,
+                "expected_hash": f"0x{ref_hash:08x}",
+                "actual_size": got[0] if got else None,
+                "actual_hash": f"0x{got[1]:08x}" if got else None,
+                "log": str(log_path),
+            }
+        )
+
+    return {"ok": all_ok, "checks": checks}
+
+
+def _run_specdiff(spec_dir: Path, run_dir: Path, bench: str, cfg: dict[str, Any], out_dir: Path) -> dict[str, Any]:
+    specperl = spec_dir / "bin" / "specperl"
+    specdiff = spec_dir / "bin" / "harness" / "specdiff"
+    if not specdiff.exists():
+        raise SystemExit(f"error: missing specdiff under {spec_dir / 'bin'}")
+
+    perl_cmd: list[str]
+    if specperl.exists():
+        try:
+            probe = subprocess.run(
+                [str(specperl), "-e", "print 1"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            perl_cmd = [str(specperl)] if probe.returncode == 0 else []
+        except OSError:
+            perl_cmd = []
+    else:
+        perl_cmd = []
+
+    if not perl_cmd:
+        host_perl = shutil.which("perl")
+        if not host_perl:
+            raise SystemExit("error: could not find a runnable perl interpreter for specdiff")
+        perl_cmd = [host_perl]
+
+    checks: list[dict[str, Any]] = []
+    all_ok = True
+    for idx, cmp_cfg in enumerate(cfg.get("compares", []), start=1):
+        ref = spec_dir / cmp_cfg["ref"]
+        out = run_dir / cmp_cfg["out"]
+        cmp_log = out_dir / f"{bench.replace('.', '_')}_specdiff_{idx}.log"
+
+        cmd = [*perl_cmd, str(specdiff), *cmp_cfg["args"], str(ref), str(out)]
+        proc = _run(
+            cmd,
+            cwd=spec_dir,
+            env={**os.environ, "SPEC": str(spec_dir)},
+        )
+        cmp_log.write_bytes(proc.stdout)
+        ok = proc.returncode == 0
+        all_ok = all_ok and ok
+        checks.append(
+            {
+                "ok": ok,
+                "returncode": proc.returncode,
+                "reference": str(ref),
+                "output": str(out),
+                "log": str(cmp_log),
+            }
+        )
+
+    return {"ok": all_ok, "checks": checks}
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Run SPEC CPU2017 INT workloads under Linx Linux on qemu-system-linx64.")
+    parser.add_argument(
+        "--spec-dir",
+        default=str(REPO_ROOT / "workloads" / "spec2017" / "cpu2017v118_x64_gcc12_avx2"),
+    )
+    parser.add_argument("--qemu", default=str(REPO_ROOT / "emulator" / "qemu" / "build" / "qemu-system-linx64"))
+    parser.add_argument("--kernel", default=str(REPO_ROOT / "kernel" / "linux" / "build-linx-fixed" / "vmlinux"))
+    parser.add_argument("--linux-root", default=str(REPO_ROOT / "kernel" / "linux"))
+    parser.add_argument("--clang", default=str(REPO_ROOT / "compiler" / "llvm" / "build-linxisa-clang" / "bin" / "clang"))
+    parser.add_argument("--sysroot", default=_default_musl_sysroot())
+    parser.add_argument("--timeout", type=int, default=240)
+    parser.add_argument("--memory-mb", type=int, default=2048)
+    parser.add_argument(
+        "--heartbeat-sec",
+        type=float,
+        default=float(os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30")),
+        help="Emit host heartbeat while QEMU is running (0 to disable).",
+    )
+    parser.add_argument(
+        "--qemu-heartbeat-interval",
+        type=int,
+        default=int(os.environ.get("LINX_SPEC_QEMU_HEARTBEAT_INTERVAL", "0")),
+        help="Set LINX_HEARTBEAT_INTERVAL for QEMU BPC progress logging (0 disables).",
+    )
+    parser.add_argument(
+        "--guest-heartbeat-sec",
+        type=int,
+        default=int(os.environ.get("LINX_SPEC_GUEST_HEARTBEAT_SEC", "0")),
+        help="Emit guest-side child/output heartbeats from the init wrapper while waiting (0 to disable).",
+    )
+    parser.add_argument(
+        "--no-progress-timeout",
+        type=float,
+        default=float(os.environ.get("LINX_SPEC_NO_PROGRESS_TIMEOUT", "0")),
+        help="Fail if QEMU emits no output for this many seconds (0 to disable).",
+    )
+    parser.add_argument(
+        "--append-extra",
+        default=str(os.environ.get("LINX_SPEC_APPEND_EXTRA", "")),
+        help="Extra kernel cmdline appended to the built-in defaults (for example: 'norandmaps').",
+    )
+    parser.add_argument(
+        "--dump-prefix-bytes",
+        type=int,
+        default=int(os.environ.get("LINX_SPEC_DUMP_PREFIX_BYTES", "0")),
+        help="If >0, emit first N bytes for each verified output in initramfs mode.",
+    )
+    parser.add_argument(
+        "--strict-hash",
+        dest="strict_hash",
+        action="store_true",
+        help="Require initramfs hash verification to pass (default: on for initramfs).",
+    )
+    parser.add_argument(
+        "--no-strict-hash",
+        dest="strict_hash",
+        action="store_false",
+        help="Do not fail initramfs runs on hash mismatches/missing hash markers.",
+    )
+    parser.set_defaults(strict_hash=None)
+    parser.add_argument("--stage", choices=["a", "b"], default="a")
+    parser.add_argument("--transport", choices=["9p", "initramfs"], default="9p")
+    parser.add_argument("--input-set", choices=["refrate", "test", "train"], default="refrate")
+    parser.add_argument(
+        "--bench",
+        action="append",
+        choices=sorted(ALL_BENCHES),
+        help="Optional benchmark override. Repeat to run multiple.",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default="",
+        help="Directory for logs/json (default: <spec-dir>/tmp/linx-qemu-results).",
+    )
+    args = parser.parse_args(argv)
+    if args.timeout <= 0:
+        raise SystemExit("error: --timeout must be > 0")
+    if args.heartbeat_sec < 0:
+        raise SystemExit("error: --heartbeat-sec must be >= 0")
+    if args.qemu_heartbeat_interval < 0:
+        raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.guest_heartbeat_sec < 0:
+        raise SystemExit("error: --guest-heartbeat-sec must be >= 0")
+    if args.no_progress_timeout < 0:
+        raise SystemExit("error: --no-progress-timeout must be >= 0")
+    if args.dump_prefix_bytes < 0:
+        raise SystemExit("error: --dump-prefix-bytes must be >= 0")
+
+    spec_dir = Path(os.path.expanduser(args.spec_dir)).resolve()
+    qemu = _check_exe(Path(os.path.expanduser(args.qemu)).resolve(), "qemu-system-linx64")
+    kernel = _check_exe(Path(os.path.expanduser(args.kernel)).resolve(), "kernel image")
+    linux_root = Path(os.path.expanduser(args.linux_root)).resolve()
+    clang = _check_exe(Path(os.path.expanduser(args.clang)).resolve(), "clang")
+    sysroot = Path(os.path.expanduser(args.sysroot)).resolve()
+
+    if not (spec_dir / "benchspec" / "CPU").exists():
+        raise SystemExit(f"error: invalid SPEC dir: {spec_dir}")
+
+    out_dir = Path(os.path.expanduser(args.out_dir)).resolve() if args.out_dir else spec_dir / "tmp" / "linx-qemu-results"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    strict_hash = bool(args.strict_hash) if args.strict_hash is not None else (args.transport == "initramfs")
+    started_at_utc = _utc_now()
+    start_wall = time.monotonic()
+
+    gen_init_cpio = _find_gen_init_cpio(linux_root, out_dir)
+    if args.stage == "a":
+        benches = args.bench if args.bench else STAGE_A_BENCHES
+    else:
+        benches = args.bench if args.bench else STAGE_B_BENCHES
+
+    summary: dict[str, Any] = {
+        "schema_version": "linx-spec-qemu-v1",
+        "stage": args.stage,
+        "transport": args.transport,
+        "input_set": args.input_set,
+        "spec_dir": str(spec_dir),
+        "qemu": str(qemu),
+        "kernel": str(kernel),
+        "sysroot": str(sysroot),
+        "heartbeat_sec": args.heartbeat_sec,
+        "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
+        "guest_heartbeat_sec": args.guest_heartbeat_sec,
+        "no_progress_timeout": args.no_progress_timeout,
+        "append_extra": args.append_extra,
+        "dump_prefix_bytes": args.dump_prefix_bytes,
+        "strict_hash": strict_hash,
+        "started_at_utc": started_at_utc,
+        "results": {},
+    }
+
+    overall_ok = True
+    for bench in benches:
+        cfg = _resolve_cfg(spec_dir, bench, args.input_set)
+        bench_out = out_dir / bench.replace(".", "_")
+        bench_out.mkdir(parents=True, exist_ok=True)
+
+        bench_result: dict[str, Any] = {
+            "ok": False,
+            "bench": bench,
+            "run_dir": "",
+            "qemu": [],
+            "run_count": len(cfg.get("runs", [])),
+            "specdiff": {},
+        }
+
+        try:
+            run_dir = _prepare_run_dir(
+                spec_dir,
+                bench,
+                cfg,
+                preserve_symlinks=(args.transport == "9p"),
+                input_set=args.input_set,
+            )
+            bench_result["run_dir"] = str(run_dir)
+            init_static = _choose_init_static(args.transport, sysroot)
+            guest_shared_runtime = _run_dir_requires_guest_shared_runtime(run_dir, cfg.get("exes", []))
+            bench_result["guest_shared_runtime"] = guest_shared_runtime
+            if guest_shared_runtime and not (sysroot / "lib" / "libc.so").exists():
+                raise SystemExit(
+                    f"error: benchmark requires shared musl guest runtime but sysroot is missing {(sysroot / 'lib' / 'libc.so')}"
+                )
+
+            qemu_ok = True
+            qemu_runs: list[dict[str, Any]] = []
+            hash_checks: list[dict[str, Any]] = []
+            hash_ok = True
+            collected_outputs = False
+            collected_outputs_ok = True
+            for run_idx, run_cfg in enumerate(cfg.get("runs", []), start=1):
+                run_out = bench_out / f"run_{run_idx:03d}"
+                run_out.mkdir(parents=True, exist_ok=True)
+
+                init_bin = _build_init_for_run(
+                    bench,
+                    cfg,
+                    run_cfg,
+                    run_dir,
+                    run_out,
+                    clang,
+                    sysroot,
+                    args.transport,
+                    args.dump_prefix_bytes,
+                    args.guest_heartbeat_sec,
+                    emit_hashes=(args.transport == "initramfs"),
+                )
+                initramfs, initramfs_log = _build_initramfs(
+                    bench,
+                    run_out,
+                    gen_init_cpio,
+                    init_bin,
+                    sysroot,
+                    run_dir if args.transport == "initramfs" else None,
+                    args.transport,
+                    include_shared_runtime=(guest_shared_runtime or not init_static),
+                )
+
+                qemu_log = run_out / "qemu.log"
+                qemu_info = _run_qemu(
+                    bench,
+                    qemu,
+                    kernel,
+                    initramfs,
+                    spec_dir,
+                    args.timeout,
+                    qemu_log,
+                    args.transport,
+                    args.memory_mb,
+                    args.heartbeat_sec,
+                    args.qemu_heartbeat_interval,
+                    args.no_progress_timeout,
+                    args.append_extra,
+                )
+                qemu_info["run_index"] = run_idx
+                qemu_info["stdout"] = run_cfg.get("stdout")
+                qemu_info["stderr"] = run_cfg.get("stderr")
+                qemu_info["initramfs"] = str(initramfs)
+                qemu_info["initramfs_log"] = str(initramfs_log)
+                qemu_runs.append(qemu_info)
+
+                if args.transport == "9p":
+                    # In 9p mode, guest outputs are validated from host-visible files.
+                    # Do not gate on panic/timeout here: when /init execs a benchmark
+                    # directly as PID1, Linux may terminate with "init exited" panic
+                    # after the benchmark finishes. Host-side specdiff is authoritative.
+                    one_ok = (not qemu_info["fail_marker"]) and (not qemu_info.get("stalled", False))
+                else:
+                    one_ok = (
+                        (not qemu_info["fail_marker"])
+                        and (not qemu_info["panic_seen"])
+                        and (not qemu_info["timed_out"])
+                        and (not qemu_info.get("stalled", False))
+                    )
+
+                if one_ok and args.transport == "initramfs":
+                    verify_names = set(run_cfg.get("verify_outputs", []))
+                    if verify_names:
+                        cmp_subset = [cmp_cfg for cmp_cfg in cfg.get("compares", []) if cmp_cfg["out"] in verify_names]
+                        if not cmp_subset:
+                            raise SystemExit(
+                                f"error: no compare entries matched verify_outputs for {bench} run {run_idx}: {sorted(verify_names)}"
+                            )
+                        subset_cfg = {"compares": cmp_subset}
+                        hash_info = _verify_hash_markers(spec_dir, qemu_log, bench, subset_cfg, run_out)
+                        qemu_info["hashcheck"] = hash_info
+                        hash_ok = hash_ok and bool(hash_info.get("ok", False))
+                        for check in hash_info.get("checks", []):
+                            hash_checks.append({**check, "run_index": run_idx})
+                        full_dump_available = (
+                            args.dump_prefix_bytes > 0
+                            and all(
+                                check.get("actual_size") is not None
+                                and int(check["actual_size"]) <= args.dump_prefix_bytes
+                                for check in hash_info.get("checks", [])
+                            )
+                        )
+                        if full_dump_available:
+                            collect_info = _collect_outputs_from_log(qemu_log, run_dir, subset_cfg)
+                            qemu_info["collected_outputs"] = collect_info
+                            collected_outputs = True
+                            collected_outputs_ok = collected_outputs_ok and bool(collect_info.get("ok", False))
+                        if strict_hash and not hash_info.get("ok", False):
+                            one_ok = False
+
+                if not one_ok:
+                    qemu_ok = False
+                    break
+
+            bench_result["qemu"] = qemu_runs
+
+            if qemu_ok:
+                if args.transport == "initramfs":
+                    if collected_outputs and collected_outputs_ok:
+                        specdiff_info = _run_specdiff(spec_dir, run_dir, bench, cfg, bench_out)
+                        specdiff_info["hash_checks"] = hash_checks
+                        specdiff_info["strict_hash"] = strict_hash
+                        bench_result["specdiff"] = specdiff_info
+                        bench_result["ok"] = bool(specdiff_info.get("ok", False)) and (
+                            bool(hash_ok) if strict_hash else True
+                        )
+                    else:
+                        bench_result["specdiff"] = {"ok": hash_ok, "checks": hash_checks, "strict_hash": strict_hash}
+                        bench_result["ok"] = bool(hash_ok) if strict_hash else True
+                else:
+                    specdiff_info = _run_specdiff(spec_dir, run_dir, bench, cfg, bench_out)
+                    bench_result["specdiff"] = specdiff_info
+                    bench_result["ok"] = bool(specdiff_info.get("ok", False))
+            else:
+                bench_result["specdiff"] = {"ok": False, "checks": []}
+                bench_result["ok"] = False
+
+        except Exception as exc:  # pylint: disable=broad-except
+            bench_result["error"] = str(exc)
+            bench_result["ok"] = False
+
+        summary["results"][bench] = bench_result
+        overall_ok = overall_ok and bool(bench_result.get("ok", False))
+
+    summary["ok"] = overall_ok
+    summary["finished_at_utc"] = _utc_now()
+    summary["elapsed_sec"] = round(time.monotonic() - start_wall, 3)
+    summary_path = out_dir / f"stage_{args.stage}_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    if overall_ok:
+        print(f"ok: stage-{args.stage} benchmarks passed ({summary_path})")
+        return 0
+
+    print(f"error: stage-{args.stage} benchmarks failed ({summary_path})", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
