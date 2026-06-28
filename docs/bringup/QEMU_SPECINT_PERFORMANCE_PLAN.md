@@ -248,7 +248,10 @@ Additional opt-in QEMU debug switches used during this pass:
   `LINX_MEM_TRACE_LIMIT`, `LINX_MEM_TRACE_PC_LO/HI`, and
   `LINX_MEM_TRACE_ACR=<0..15>`. Use `LINX_MEM_TRACE_CONTEXT=1` when the trace
   must show the current user/kernel address-space context; it appends
-  `mmu_idx`, `ttbr0`, `ttbr1`, and `tcr` to each matching record.
+  `mmu_idx`, `ttbr0`, `ttbr1`, and `tcr` to each matching record. QEMU now
+  emits the helper call only for translated accesses that overlap the watched
+  range; set `LINX_MEM_TRACE_FAST=0` to restore the older helper-on-every-access
+  path if the fast address guard itself is under suspicion.
 - `LINX_SYSCALL_TRACE=1` logs Linx hosted syscall entry and ACRE return pairs
   with syscall number, BPC/TPC, arguments, return value, and cstate. Narrow
   with `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_LIMIT`, and
@@ -294,9 +297,13 @@ Additional opt-in QEMU debug switches used during this pass:
   dump them only when `LINX_FAULT_TRACE` reports a synchronous fault. Tune the
   retained window with `LINX_DEBUG_PC_WATCH_RING_SIZE=<1..128>`. This is the
   preferred path when synchronous PC-watch printing perturbs a SPEC failure.
+  Add `LINX_DEBUG_PC_WATCH_RING_MEM_REG=<gpr|tp|tqN|uqN|t#N|u#N>` and
+  `LINX_DEBUG_PC_WATCH_RING_MEM_OFFSET=<bytes>` when each deferred ring entry
+  must also snapshot a guest 64-bit word derived from a watched pointer.
 - `LINX_TP_TRACE=1` records user-to-kernel TP handoff points for service
-  requests, synchronous traps, IRQ entry, and ACRE staging. Use
-  `LINX_TP_TRACE_LIMIT=<n>` on full SPEC runs.
+  requests, synchronous traps, IRQ entry, same-ACR trap/IRQ frame creation, and
+  ACRE staging. Same-ACR frame records include the interrupted `x1` value saved
+  into ETEMP. Use `LINX_TP_TRACE_LIMIT=<n>` on full SPEC runs.
 - `LINX_TP_TRACE_SSR=1` adds TP/ETEMP/ETEMP0 SSR writes and swaps to
   `LINX_TP_TRACE`. `LINX_TP_TRACE_READS=1` adds reads. These are high-volume
   options for focused runs, not for train-all profiling.
@@ -465,10 +472,11 @@ Artifacts:
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
 `999.specrand_ir` passes by hash. The other nine train-input benchmarks are
-classified by first failing symptom. The current raw-prlimit run finished in
-`947.371s`; no failed benchmark was marked `stalled`, and every failed run has
-`heartbeat_running=true` plus `heartbeat_site_progress=true`, so the failures
-below are crash/correctness/throughput stops rather than a global QEMU deadlock.
+classified by first failing symptom. The latest same-ACR `x1` frame run finished
+in `911.065s`; no failed benchmark was marked `stalled`, and every failed run
+has `heartbeat_running=true` plus `heartbeat_site_progress=true`, so the
+failures below are correctness or throughput stops rather than a global QEMU
+deadlock.
 
 Important 2026-06-29 correction: Linx `prlimit64` succeeds, but the current
 libc `setrlimit()` wrapper reports `errno=21` after that successful syscall.
@@ -479,16 +487,16 @@ legacy unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | kernel panic | `LINX_DIE msg=Oops` at kernel `tpc=0xffffffff8013c3de`, then `LINX_EXIT_INIT code=0xb`; last heartbeat count `2250000005`, BPC `0xffffffff8006ba5c` | inspect the kernel Oops before returning to the earlier Perl BigInt user-range evidence |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000015`, BPC `0x1555935e78` | stack limit is effective; continue with fault regs/code bytes around the new GCC user BPC path and preserve the brk/mmap allocator evidence |
-| `505.mcf_r` | user trap | `addr=0x155557e018`, user `tpc=0x155555c7c6`, `bpc=0x155555c7a8`; last heartbeat count `10400000004`, BPC `0x155555c9b8` | treat as current correctness again; symbolize the user loop and compare with the older stdio/open-file corruption evidence |
-| `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000005`, BPC `0xffffffff800449ca` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
-| `523.xalancbmk_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555a6306a`, `bpc=0x1555a6306a`; last heartbeat count `10350000013`, BPC `0xffffffff8005e0c4` | reclassify from live-slow to correctness under effective finite stack; use fault regs/code bytes around the C++ user trap |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `23150000011`, BPC `0xffffffff803e8f4c`, `progress=site-change`, `stalled=false` | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `25000000005`, BPC `0x15555595ae`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | live timeout at 180s | last heartbeat count `13400000003`, BPC `0xffffffff80048d36`, `progress=site-change`, `stalled=false` | back in live-slow under effective finite stack; profile or symbolize recurring kernel BPCs before extending budgets |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `26900000010`, BPC `0x155558d612`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
-| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `500000000`, BPC `0xffffffff803e2a80` | smoke sentinel closed |
+| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000002`, BPC `0x155582976a` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
+| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000000`, BPC `0xffffffff803dde02` | stack limit is effective; continue with fault regs/code bytes around the new GCC user BPC path and preserve the brk/mmap allocator evidence |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `40350000005`, BPC `0x155555c44a`, `progress=site-change`, `stalled=false` | train input is now throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000002`, BPC `0xffffffff800fcede` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
+| `523.xalancbmk_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555a6306a`, `bpc=0x1555a6306a`; last heartbeat count `10350000005`, BPC `0xffffffff800fe0da` | reclassify from live-slow to correctness under effective finite stack; use fault regs/code bytes around the C++ user trap |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `20800000000`, BPC `0xffffffff800019bc`, `progress=site-change`, `stalled=false` | current owner is throughput/live-progress; the older panic is historical unless it reappears |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `30450000007`, BPC `0x155556764a`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555623796`, `bpc=0x1555623796`; last heartbeat count `5950000004`, BPC `0xffffffff803dde02` | now grouped with the C++/stack-edge user traps rather than live-slow |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `30500000010`, BPC `0x155558d612`, `progress=same-site` but recent unique sites `4`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `450000000`, BPC `0xffffffff803dde02` | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
 `workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
@@ -515,16 +523,16 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Profile `523.xalancbmk_r`, `525.x264_r`, and `541.leela_r` with heartbeat
-   off or at a very coarse interval. These workloads are live but too slow in
-   the 180s train-all diagnostic loop; the next QEMU speedups should focus on
-   page-local BSTART decode caching, TB-friendly template/queue fast paths,
-   and avoiding helper probes in hot branch-validation paths.
-3. Continue `500.perlbench_r` from the current kernel dcache Oops, not from a
-   deadlock hypothesis. The latest raw-prlimit train-all run faults in
-   `__d_lookup_rcu` at `tpc=0xffffffff8013c3de`; the earlier Perl BigInt
-   `Range iterator outside integer range` failure remains the next known
-   blocker after the dentry/name corruption path is fixed.
+2. Profile `505.mcf_r`, `525.x264_r`, `531.deepsjeng_r`, and `557.xz_r` with
+   heartbeat off or at a very coarse interval. These workloads are live but too
+   slow in the 180s train-all diagnostic loop; the next QEMU speedups should
+   focus on page-local BSTART decode caching, TB-friendly template/queue fast
+   paths, and avoiding helper probes in hot branch-validation paths.
+3. Continue `500.perlbench_r` from the Perl BigInt range failure, not from the
+   now-closed dcache Oops. The same-ACR QEMU frame fix restores Linux's
+   kernel-origin entry contract: live `x1=0`, current-bank ETEMP holds the
+   interrupted `x1`, and the dentry-name memory remains valid across the
+   compare loop.
 4. Continue `502.gcc_r` from the allocator/VM overlap. Syscall 169 now
    returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
    AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
@@ -543,15 +551,14 @@ Proposed next fixes:
    add a Linx oldmalloc large-mmap hint outside the heap-extension window while
    preserving fallback heap mmap at `end` when brk growth is exhausted.
 5. Continue deterministic userspace traps separately from throughput work:
-   `505.mcf_r` traps at small address `0x19`, `520.omnetpp_r` traps on a null
-   object/callback path, and `531.deepsjeng_r` traps through a zero branch
-   target state. The latest `557.xz_r` also advances past its prior live timeout
-   into a bad-address user trap. Use `LINX_FAULT_TRACE_REGS=1`,
+   `502.gcc_r` traps at `0x305910060a11b059`, `520.omnetpp_r` traps on a null
+   object/callback path, and `523.xalancbmk_r` / `541.leela_r` trap at the
+   stack-edge address `0x3feffffff8`. Use `LINX_FAULT_TRACE_REGS=1`,
    `LINX_CALL_TRACE_RING=1`, and, when a specific PC is known,
    `LINX_DEBUG_PC_WATCH_REGS=1` plus symbolization before changing QEMU
-   control-flow rules. The 505 focused run showed `fflush` receiving a bad
-   stdio/open-file pointer, so the next 505 loop should locate the earlier
-   corruption rather than only patch the final trap site. A follow-up
+   control-flow rules. Older 505 focused runs showed `fflush` receiving a bad
+   stdio/open-file pointer, but the latest train run is live-slow; reproduce
+   the trap before returning 505 to the correctness lane. A follow-up
    `LINX_DEBUG_PC_WATCH_DUMP_CODE_BYTES=16` run corrected an earlier
    symbolization mistake: runtime `0x155555c254` has bytes
    `4100a50c0e000140b908d65259301108`, which match file offset `0x6254` /
@@ -568,9 +575,10 @@ Proposed next fixes:
 
 ## 2026-06-29 500 Dcache Oops Triage
 
-The latest raw-prlimit train-all gate regressed `500.perlbench_r` from the
+The raw-prlimit train-all gate temporarily regressed `500.perlbench_r` from the
 intermediate Perl BigInt user-range stop back into a kernel Oops in
-`__d_lookup_rcu`:
+`__d_lookup_rcu`. The current QEMU same-ACR frame fix closes that Oops and moves
+`500.perlbench_r` back to the BigInt blocker:
 
 - Baseline focused rerun:
   `workloads/generated/specint-500-baseline-20260629-r1/stage_b_summary.json`.
@@ -591,20 +599,37 @@ intermediate Perl BigInt user-range stop back into a kernel Oops in
   the Oops records `pc=0xffffffff8013c3de`, `x1=0x1`,
   `x2=0xff6000007dd40027`, `a0=0xff60000004c020c0`,
   `a1=0xff60000004c02d88`, and `traparg0=0x1`. This proves the fault is a bad
-  dentry-name pointer reaching the compare loop, not a deadlocked QEMU.
+  live-register value reaching the compare loop, not a deadlocked QEMU.
+- Ring memory snapshot:
+  `workloads/generated/specint-500-pcwatch-ring-mem-a1-20260629-r1/` adds
+  `LINX_DEBUG_PC_WATCH_RING_MEM_REG=a1` and
+  `LINX_DEBUG_PC_WATCH_RING_MEM_OFFSET=0x20`. The final ring entries show
+  `x1=0x1` while `mem_value=0xff60000004c02db8` remains valid at `[a1+0x20]`.
+  This rules out the dentry name field as the corrupted state and points at
+  live `x1` handling.
+- Root cause:
+  Linux `arch/linx/kernel/entry.S` expects same-ACR kernel-origin traps and
+  IRQs to enter with live `x1=0` and the interrupted `x1` saved in the current
+  bank's ETEMP. QEMU saved EBARG/block state but did not populate that same-ACR
+  `x1` frame, so a same-ring event could clobber the VFS compare loop's live
+  `x1`.
+- Fix and evidence:
+  QEMU now builds same-ACR exception/IRQ frames before vectoring and TP trace
+  emits `sync_same_acr_frame` / `irq_same_acr_frame` records when enabled. The
+  focused rerun
+  `workloads/generated/specint-500-after-same-acr-x1-20260629-r1/` has no
+  kernel panic and reaches `Range iterator outside integer range at
+  lib/Math/BigInt.pm line 2675`; the full train-all rerun
+  `workloads/generated/specint-train-all-20260629-same-acr-x1-r1/` shows the
+  same `user-arithmetic-range` class for `500.perlbench_r`.
 
-Proposed next solution path:
+Next solution path:
 
-1. Use a non-printing PC-watch ring plus a memory trace on the dentry name
-   pointer field loaded by `ldi [a1, 32], ->x1` to find the first store that
-   changes that field to `0x1` or otherwise corrupts the dentry.
-2. If the first corrupting store is guest code, move ownership to kernel/VFS or
-   libc path mutation. If the stored value is correct but QEMU later presents
-   `x1=0x1`, reduce to an AVS/QEMU register-transfer test around the
-   `ldi`/`lbui`/`addi` loop shape.
-3. Only after the dcache Oops is closed, resume the older Perl BigInt
-   `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`
-   investigation.
+1. Keep the same-ACR `x1` entry contract covered by AVS and do not treat future
+   500 BigInt failures as dentry corruption unless the Oops reproduces.
+2. Resume the Perl BigInt `Range iterator outside integer range at
+   lib/Math/BigInt.pm line 2675` investigation with a smaller Linx-native Perl
+   scalar/range smoke or a non-perturbing QEMU watchpoint on the Perl range path.
 
 ## 2026-06-28 500 Fixup Triage
 

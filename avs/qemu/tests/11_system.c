@@ -222,6 +222,7 @@ static inline void hl_ssrset_uimm24(uint32_t ssrid, uint64_t value)
 
 extern void linx_acr1_syscall_handler(void);
 extern void linx_acr1_timer_handler(void);
+extern void linx_acr1_timer_return_handler(void);
 extern void linx_acr0_exit_handler(void);
 extern void linx_acr1_record_trap_handler(void);
 extern void linx_acr1_bp_resume_handler(void);
@@ -272,6 +273,22 @@ __asm__(
     "  hl.ssrset a0, 0x1f41\n"  /* EBARG_BPC_CUR_ACR1 = cont */
     "  hl.ssrset a0, 0x1f43\n"  /* EBARG_TPC_ACR1 = cont */
     "  acre 0\n"
+);
+
+/* ACR1 same-ring timer handler:
+ * - mark seen (SSR_IRQ_SEEN=1)
+ * - cancel TIMECMP (disable re-fire)
+ * - return to the interrupted ACR1 block through the saved EBARG state
+ */
+__asm__(
+    ".globl linx_acr1_timer_return_handler\n"
+    "linx_acr1_timer_return_handler:\n"
+    "  C.BSTART\n"
+    "  addi zero, 1, ->a1\n"
+    "  ssrset a1, 0x0032\n"     /* irq seen */
+    "  addi zero, 0, ->a1\n"
+    "  hl.ssrset a1, 0x1f21\n"  /* TIMECMP=0 (cancel) */
+    "  acre 1\n"
 );
 
 /* ACR0 exit handler (service request from ACR2):
@@ -924,7 +941,7 @@ __attribute__((noreturn)) static void linx_after_acr1_sec_exit(void)
     ssrset_uimm(SSR_IRQ_SEEN, 0);
     ssrset_uimm(SSR_IRQ_SEEN_BEFORE_ENABLE, 0);
     ssrset_uimm(SSR_CONT_EXIT, (uint64_t)(uintptr_t)&linx_after_irq_gate_exit);
-    hl_ssrset_uimm24(SSR_EVBASE_ACR1, (uint64_t)(uintptr_t)&linx_acr1_timer_handler);
+    hl_ssrset_uimm24(SSR_EVBASE_ACR1, (uint64_t)(uintptr_t)&linx_acr1_timer_return_handler);
     ssrset_uimm(SSR_ECSTATE_ACR0, 1); /* enter ACR1 */
     ssrset_uimm(SSR_EBARG_BPC_CUR_ACR0, (uint64_t)(uintptr_t)&linx_acr1_irq_gate_user);
     __asm__ volatile("acre 0" : : : "memory");
@@ -957,7 +974,9 @@ __attribute__((noreturn)) static void linx_acr1_irq_gate_user(void)
     ssrset_cstate_symbol(cstate);
 
     for (volatile uint32_t spin = 0; spin < QEMU_IRQ_WAIT_SPINS; spin++) {
-        /* interrupt handler should redirect control to linx_acr1_irq_gate_after */
+        if (ssrget_uimm(SSR_IRQ_SEEN) == 1) {
+            linx_acr1_irq_gate_after();
+        }
     }
 
     test_fail(TESTID_IRQ_GATE_ACR1 + 3, 1, ssrget_uimm(SSR_IRQ_SEEN));
