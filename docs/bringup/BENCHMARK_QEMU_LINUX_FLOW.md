@@ -139,6 +139,12 @@ fields `heartbeat_running`, `heartbeat_site_progress`, `heartbeat_last_bpc`,
 and `heartbeat_last_progress` to decide whether a timeout is deadlock or live
 slow execution.
 
+Use `LINX_DEBUG_PC_WATCH=<pc>[,<pc>...] LINX_DEBUG_PC_WATCH_REGS=1` after a
+fault, heartbeat, or symbolization pass identifies a narrow PC window. This
+adds `LINX_PC_WATCH_REGS` full-register records without making the normal
+train-all loop noisy. Reserve `LINX_DEBUG_PC_WATCH_EXIT=1` for short smoke
+checks, not correctness runs.
+
 Run the promotion path only when the Linux path is green:
 
 ```bash
