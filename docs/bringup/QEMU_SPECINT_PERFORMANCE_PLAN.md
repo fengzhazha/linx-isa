@@ -393,6 +393,9 @@ Artifacts:
 - `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-copyout-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-heartbeat-regs-smoke-20260628/qemu_matrix_summary.json`
 - `workloads/generated/specint-heartbeat-regs-smoke-20260628/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-pcwatch-regs-smoke-20260628-r1/qemu_matrix_summary.json`
@@ -418,15 +421,15 @@ the launcher raises `RLIMIT_STACK`.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | live timeout at 180s | last heartbeat count `14050000003`, BPC `0xffffffff80090c7e`, `progress=site-change`; log also contains `LINX_DIE msg=Oops` at `tpc=0xffffffff800cc1f6` | currently live-progressing with a kernel Oops breadcrumb; keep prior BigInt focused run as non-current evidence |
-| `502.gcc_r` | fail | `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`; last heartbeat count `5550000005`, BPC `0xffffffff803dde02`, `progress=same-site` | static userspace errno/file-state corruption, not currently proven as kernel fd-table failure |
-| `505.mcf_r` | user trap | `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`; last heartbeat count `1300000003`, BPC `0xffffffff800f5d62` | deterministic small-pointer userspace trap in `fflush`; focused fault regs show corrupted stdio/open-file state |
-| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000003`, BPC `0xffffffff803dde02`, `progress=same-site` | C++ object/callback path after allocator growth succeeds |
-| `523.xalancbmk_r` | live timeout at 180s | last heartbeat count `31350000003`, BPC `0xffffffff80090e84`, `progress=site-change`, `stalled=false`, TP nonzero; log also contains `LINX_DIE msg=Oops` at `tpc=0xffffffff803cdbc8` | running too slowly in the 180s diagnostic budget, but first symbolize the Oops breadcrumb |
-| `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff800016`; last heartbeat count `450000004`, BPC `0xffffffff803dde02` | early kernel/initramfs path |
-| `531.deepsjeng_r` | user trap | branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`; last heartbeat count `6700000001`, BPC `0xffffffff800fd1f8` | deterministic indirect-control/target-state userspace trap |
-| `541.leela_r` | live timeout at 180s | last heartbeat count `15650000000`, BPC `0xffffffff80090c62`, `progress=site-change`, `stalled=false`, TP nonzero; log also contains `LINX_DIE msg=Oops` at `tpc=0xffffffff803cdb8c` | running too slowly in the 180s diagnostic budget, but first symbolize the Oops breadcrumb |
-| `557.xz_r` | user trap | `addr=0x04000415794a241f`, `tpc=0x155557fae8`, `bpc=0x155557fada`; last heartbeat count `9050000002`, BPC `0xffffffff800fb9ca` | reaches later xz execution and fails by deterministic bad-address trap |
+| `500.perlbench_r` | user range error | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; last heartbeat count `3350000000`, BPC `0x15555fc84a`, `progress=site-change` | reaches Perl user code; continue from BigInt/runtime integer range behavior |
+| `502.gcc_r` | fail | `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`; last heartbeat count `5600000000`, BPC `0xffffffff803debba`, `progress=site-change` | static userspace errno/file-state corruption, not a proven kernel fd-table/stat-copyout failure |
+| `505.mcf_r` | user trap | `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`; last heartbeat count `1300000001`, BPC `0xffffffff800f5aea` | deterministic small-pointer userspace trap in `fflush`; focused fault regs show corrupted stdio/open-file state |
+| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000000`, BPC `0xffffffff803dde02`, `progress=site-change` | C++ object/callback path after allocator growth succeeds |
+| `523.xalancbmk_r` | live timeout at 180s | last heartbeat count `16500000000`, BPC `0xffffffff80048fae`, `progress=site-change`, `stalled=false`, TP nonzero; log also contains `LINX_DIE msg=Oops` at `tpc=0xffffffff803cdb8c` | running too slowly in the 180s diagnostic budget, but first symbolize the Oops breadcrumb |
+| `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648`; last heartbeat count `450000002`, BPC `0xffffffff803dde02` | early kernel/initramfs path |
+| `531.deepsjeng_r` | user trap | branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`; last heartbeat count `6700000000`, BPC `0xffffffff800fcc1c` | deterministic indirect-control/target-state userspace trap |
+| `541.leela_r` | live timeout at 180s | last heartbeat count `13250000000`, BPC `0xffffffff800091f2`, `progress=site-change`, `stalled=false`, TP nonzero; log also contains `LINX_DIE msg=Oops` at `tpc=0xffffffff803cdb8c` | running too slowly in the 180s diagnostic budget, but first symbolize the Oops breadcrumb |
+| `557.xz_r` | user trap | `addr=0x04000415794a241f`, `tpc=0x155557fae8`, `bpc=0x155557fada`; last heartbeat count `9050000000`, BPC `0xffffffff800fd2b2` | reaches later xz execution and fails by deterministic bad-address trap |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -456,11 +459,11 @@ Proposed next fixes:
    the 180s train-all diagnostic loop; the next QEMU speedups should focus on
    page-local BSTART decode caching, TB-friendly template/queue fast paths,
    and avoiding helper probes in hot branch-validation paths.
-3. Continue `500.perlbench_r` from the current live-timeout/Oops breadcrumb,
-   not from a deadlock hypothesis. A previous focused run reached the Perl
-   BigInt user-code stop, but the current train-all run times out after a
-   `LINX_DIE msg=Oops`; symbolize that kernel stop first, then rerun to see
-   whether the BigInt path is again the first user-visible failure.
+3. Continue `500.perlbench_r` from the current Perl BigInt user-code stop, not
+   from a deadlock hypothesis. The current train-all run reaches
+   `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`, so
+   the next loop should compare range iterator inputs and integer semantics
+   against host SPEC behavior.
 4. Continue `502.gcc_r` from the syscall-copyout trace. Syscall 169 now
    returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
    AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
@@ -545,12 +548,11 @@ Next 500-specific solution path:
 1. Commit the filelock-init and runner stdin/absolute-exec fixes as SPEC flow
    prerequisites. The kernel Oops and false ENOENT/EBADF symptoms are now
    understood and should not be re-triaged as QEMU deadlocks.
-2. Continue from the current live-timeout/Oops breadcrumb captured by
-   `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/`. The
-   earlier `Math::BigInt` user-code failure is still useful prior evidence, but
-   the next loop should first symbolize the current kernel `LINX_DIE msg=Oops`
-   at `tpc=0xffffffff800cc1f6`, then rerun to see whether the BigInt path again
-   becomes the first user-visible failure.
+2. Continue from the current BigInt user-code stop captured by
+   `workloads/generated/specint-train-all-20260628-copyout-r1/`. The next loop
+   should compare the Linx static musl/compiler path against host SPEC behavior
+   around `Math::BigInt.pm:2675` and the range iterator inputs before changing
+   kernel/QEMU liveness policy.
 3. Keep the v0.56 fixup parser as a prerequisite for all uaccess-heavy SPEC
    work; without it, normal faultable usercopy recovery is misclassified as an
    unhandled kernel page fault.
@@ -559,21 +561,17 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/500_perlbench_r/run_001/qemu.log`
-  last heartbeat: count `14050000003`, BPC `0xffffffff80090c7e`,
-  PC `0xffffffff80090e84`, `progress=site-change`; the same log has an Oops
-  breadcrumb at `tpc=0xffffffff800cc1f6`.
-- `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
-  last heartbeat: count `31350000003`, BPC `0xffffffff80090e84`,
-  PC `0xffffffff80090e92`, `progress=site-change`; the same log has an Oops
-  breadcrumb at `tpc=0xffffffff803cdbc8`.
-- `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
-  last heartbeat: count `15650000000`, BPC `0xffffffff80090c62`,
-  PC `0xffffffff80090c7e`, `progress=site-change`; the same log has an Oops
+- `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
+  last heartbeat: count `16500000000`, BPC `0xffffffff80048fae`,
+  PC `0xffffffff80048fc2`, `progress=site-change`; the same log has an Oops
   breadcrumb at `tpc=0xffffffff803cdb8c`.
-- `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
+- `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
+  last heartbeat: count `13250000000`, BPC `0xffffffff800091f2`,
+  PC `0xffffffff803e94b8`, `progress=site-change`; the same log has an Oops
+  breadcrumb at `tpc=0xffffffff803cdb8c`.
+- `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
   no longer ends as a live timeout in the latest 180s loop. It reaches a
-  bad-address user trap after heartbeat count `9050000002`; treat it as a
+  bad-address user trap after heartbeat count `9050000000`; treat it as a
   correctness trap before spending more speedup budget on it.
 - Short macOS `sample` captures during the same train-all run are stored under
   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`

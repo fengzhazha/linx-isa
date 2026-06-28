@@ -59,10 +59,9 @@
   Evidence: `workloads/generated/specint-500-after-filelock-20260628/`, `workloads/generated/specint-500-syscall-openat-ret-20260628/`, and `workloads/generated/specint-500-stdin-empty-20260628/`.
 
 - [ ] ID: SPEC-M05-BIGINT-500 `500.perlbench_r` must complete Perl train input.
-  Current blocker: the current fast train-all gate classifies `500.perlbench_r` as `live-timeout`; the log contains `LINX_DIE msg=Oops` at `tpc=0xffffffff800cc1f6` before the timeout, and the last heartbeat is still `progress=site-change`.
-  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/stage_b_summary.json` classifies `500.perlbench_r` as `live-timeout` with `heartbeat_running=true`, `heartbeat_site_progress=true`, count `14050000003`, and BPC `0xffffffff80090c7e`.
-  Prior evidence: `workloads/generated/specint-train-all-20260628-nestedcall-fix-r1/train-all/initramfs/stage_b_summary.json` classified `500.perlbench_r` as `user-arithmetic-range` and the per-benchmark qemu log contained `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`.
-  Proposed solution: first symbolize the current kernel Oops breadcrumb and determine whether it is fatal or a recoverable noisy path; then rerun to see whether the Perl BigInt path again becomes the first user-visible failure. Do not re-triage this as a deadlock; the heartbeat advanced to `progress=site-change`.
+  Current blocker: the current fast train-all gate classifies `500.perlbench_r` as `user-arithmetic-range`.
+  Evidence: `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/stage_b_summary.json` classifies `500.perlbench_r` as `user-arithmetic-range` with `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; heartbeat was still running with site progress, count `3350000000`, and BPC `0x15555fc84a`.
+  Proposed solution: continue from the Perl BigInt/runtime range iterator state, compare the Linx static musl/compiler path against host SPEC behavior around `Math::BigInt.pm:2675`, and do not re-triage this as a QEMU deadlock.
 
 - [ ] ID: SPEC-M05-FD-502 `502.gcc_r` must read `200.c` correctly.
   Current blocker: `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`.
@@ -70,11 +69,10 @@
   Proposed solution: stop treating this as a kernel fd-table/stat-copyout failure. Instrument or symbolize `502.gcc_r` around `cpp_files.c:open_file/open_file_failed`, validate the compiled `errno`/`file->err_no` store path, and compare static musl errno/TLS plus compiler codegen before changing QEMU or SPEC packaging.
 
 - [ ] ID: SPEC-M05-LIVE-SLOW The live slow train workloads need QEMU speedups or longer diagnostic budgets.
-  Current blockers: `500.perlbench_r`, `523.xalancbmk_r`, and `541.leela_r` timed out at the faster 180s train-all diagnostic budget, but QEMU heartbeat counts and BPCs continued to advance and `stalled=false`.
+  Current blockers: `523.xalancbmk_r` and `541.leela_r` timed out at the faster 180s train-all diagnostic budget, but QEMU heartbeat counts and BPCs continued to advance and `stalled=false`.
   Evidence:
-  - `500.perlbench_r`: last heartbeat count `14050000003`, BPC `0xffffffff80090c7e`, `progress=site-change`; Oops breadcrumb at `tpc=0xffffffff800cc1f6`
-  - `523.xalancbmk_r`: last heartbeat count `31350000003`, BPC `0xffffffff80090e84`, `progress=site-change`; Oops breadcrumb at `tpc=0xffffffff803cdbc8`
-  - `541.leela_r`: last heartbeat count `15650000000`, BPC `0xffffffff80090c62`, `progress=site-change`; Oops breadcrumb at `tpc=0xffffffff803cdb8c`
+  - `523.xalancbmk_r`: last heartbeat count `16500000000`, BPC `0xffffffff80048fae`, `progress=site-change`; Oops breadcrumb at `tpc=0xffffffff803cdb8c`
+  - `541.leela_r`: last heartbeat count `13250000000`, BPC `0xffffffff800091f2`, `progress=site-change`; Oops breadcrumb at `tpc=0xffffffff803cdb8c`
   Note: `557.xz_r` was a live timeout in the previous heartbeat-stacklimit run, but the current liveness run advances to a user trap and should be handled under correctness first.
   Proposed solution: profile with heartbeat off or very coarse; target page-local BSTART decode caching, TB chaining, template/queue fast helpers, and removal of helper probes from hot paths. Current samples are under `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`.
 
@@ -83,7 +81,7 @@
   - `505.mcf_r`: `LINX_USER_TRAP` at `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`.
   - `531.deepsjeng_r`: branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`, and `trapno=0xc000000005000000`.
   - `557.xz_r`: bad-address trap at `addr=0x04000415794a241f`, `tpc=0x155557fae8`, `bpc=0x155557fada`.
-  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat-code-r1/train-all/initramfs/stage_b_summary.json` and per-benchmark qemu logs. Focused 505 evidence in `workloads/generated/specint-505-final-faultregs-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log` shows the final `fflush` trap receives a bad stdio/open-file pointer, so the final trap is probably a symptom of earlier state corruption. Follow-up byte evidence in `workloads/generated/specint-505-codebytes-c254-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log` proves runtime `0x155555c254` matches ELF `0x40007254` (`primal_net_simplex`), and the caller at ELF `0x40002714` is the expected `global_opt -> primal_net_simplex` call.
+  Evidence: `workloads/generated/specint-train-all-20260628-copyout-r1/train-all/initramfs/stage_b_summary.json` and per-benchmark qemu logs. Focused 505 evidence in `workloads/generated/specint-505-final-faultregs-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log` shows the final `fflush` trap receives a bad stdio/open-file pointer, so the final trap is probably a symptom of earlier state corruption. Follow-up byte evidence in `workloads/generated/specint-505-codebytes-c254-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log` proves runtime `0x155555c254` matches ELF `0x40007254` (`primal_net_simplex`), and the caller at ELF `0x40002714` is the expected `global_opt -> primal_net_simplex` call.
   Proposed solution: rerun focused with `LINX_FAULT_TRACE=1 LINX_FAULT_TRACE_REGS=1`, `LINX_CALL_TRACE_RING=1`, `LINX_DEBUG_PC_WATCH_REGS=1`, and `LINX_DEBUG_PC_WATCH_DUMP_CODE_BYTES=16` around symbolized PCs. Inspect compiler/ABI/QEMU branch-target state and earlier FILE/list corruption before treating either case as a throughput issue.
 
 - [x] ID: SPEC-M05-OLDMALLOC-CPP Early Linx oldmalloc no longer rounds heap growth to zero before libc init.
