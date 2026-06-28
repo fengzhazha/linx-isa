@@ -268,6 +268,25 @@ callee_hl_icall_ok:
 	C.BSTART.STD RET
 	c.setc.tgt ra
 	C.BSTOP
+#elif CASE == 27
+	# A predicated FALL block must skip the adjacent HL CALL body to its join.
+	C.BSTART.STD
+	c.movi 0, ->a0
+	setc.nei a0, -22
+	HL.BSTART.STD CALL, cond_skip_hl_call_bad, ra=cond_skip_hl_call_after
+	C.BSTART	DIRECT, cond_skip_hl_call_bad
+	C.BSTOP
+cond_skip_hl_call_ok:
+	C.BSTART	DIRECT, cond_skip_hl_call_ok
+	C.BSTOP
+cond_skip_hl_call_after:
+	C.BSTART	DIRECT, cond_skip_hl_call_ok
+	setret cond_skip_hl_call_bad
+	C.BSTOP
+cond_skip_hl_call_bad:
+	C.BSTART.STD RET
+	c.setc.tgt zero
+	C.BSTOP
 #else
 	C.BSTART.STD
 	C.BSTOP

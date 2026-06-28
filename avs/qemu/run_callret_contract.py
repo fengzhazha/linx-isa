@@ -136,6 +136,7 @@ def main(argv: list[str]) -> int:
         ("valid_hl_setret_header", 24, "no_fault"),
         ("hl_call_delayed_hl_setret", 25, "blockfmt"),
         ("valid_hl_icall_setret_header", 26, "no_fault"),
+        ("cond_skips_adjacent_hl_call", 27, "no_fault"),
     ]
     branch_skips = {
         "valid_ret_setctgt": "branch does not yet prove general-register RET target materialization in this AVS lane",
