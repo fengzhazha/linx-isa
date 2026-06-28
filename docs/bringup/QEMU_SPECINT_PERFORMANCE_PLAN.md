@@ -287,10 +287,11 @@ Additional opt-in QEMU debug switches used during this pass:
   companion record with up to 32 bytes at the watched PC.
 - `LINX_DEBUG_PC_WATCH_DUMP_REGS=<reg>[,<reg>...]` dumps guest words from
   several GPR/TP/TQ/UQ pointer sources in one PC-watch hit. It shares
-  `LINX_DEBUG_PC_WATCH_DUMP_WORDS` and `LINX_DEBUG_PC_WATCH_DUMP_OFFSET` with
-  the single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path, and is useful when
-  allocator or list corruption needs before/after chunk state from multiple
-  registers in the same multi-billion-instruction run.
+  `LINX_DEBUG_PC_WATCH_DUMP_WORDS`, `LINX_DEBUG_PC_WATCH_DUMP_OFFSET`, and
+  optional `LINX_DEBUG_PC_WATCH_DUMP_OFFSETS=<off>[,<off>...]` with the
+  single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path. Use the offset list when
+  allocator/list/frame corruption needs several slots from the same
+  multi-billion-instruction run without rerunning the window.
 - `LINX_DEBUG_PC_WATCH_PRINT=0` suppresses immediate `linx_pc_watch:` output
   after the selected PC/count/hit/GPR filters pass. Pair it with
   `LINX_DEBUG_PC_WATCH_RING=1` to record matching hits in a bounded ring and
@@ -387,30 +388,30 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --continue-on-fail
 ```
 
-Current raw-prlimit train-all loop. This rerun uses the same all-ten SPECint
-train suite, initramfs transport, no guest heartbeat, and QEMU heartbeat every
-50M guest instructions. The SPEC runner now treats `LINX_USER_TRAP` as terminal
-failure evidence and records it as the primary class even when the parent init
-process would otherwise keep polling until a timeout. The generated init wrapper
-also installs the SPEC stack limit with a raw `prlimit64` syscall before falling
-back to libc `setrlimit()`, which bypasses the current libc return-value bug.
+Current train-all loop. This rerun uses the same all-ten SPECint train suite,
+initramfs transport, no guest heartbeat, and QEMU heartbeat every 50M guest
+instructions. The SPEC runner treats `LINX_USER_TRAP` as terminal failure
+evidence and records it as the primary class even when the parent init process
+would otherwise keep polling until a timeout. The generated init wrapper also
+installs the SPEC stack limit with a raw `prlimit64` syscall before falling back
+to libc `setrlimit()`, which bypasses the current libc return-value bug.
 
 ```bash
 LINX_QEMU_HEARTBEAT_CODE_BYTES=0 \
 SPEC_GUEST_HEARTBEAT_SEC=0 \
 SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 \
-SPEC_NO_PROGRESS_TIMEOUT=120 \
+SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
   --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
   --qemu emulator/qemu/build-linx/qemu-system-linx64 \
   --sysroot out/libc/musl/install/phase-b \
-  --out-dir workloads/generated/specint-train-all-20260629-raw-prlimit-r1 \
+  --out-dir workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1 \
   --append-extra norandmaps \
   --heartbeat-sec 30 \
   --qemu-heartbeat-interval 50000000 \
   --guest-heartbeat-sec 0 \
-  --no-progress-timeout 120 \
+  --no-progress-timeout 180 \
   --transports initramfs \
   --continue-on-fail
 ```
@@ -454,6 +455,9 @@ Artifacts:
 - `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-999-prlimit-trace-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-999-raw-prlimit-20260629-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-raw-prlimit-20260629-r1/qemu_matrix_summary.json`
@@ -463,6 +467,10 @@ Artifacts:
 - `workloads/generated/specint-pcwatch-regs-smoke-20260628-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-heartbeat-code-smoke-20260628-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-heartbeat-code-smoke-20260628-r1/initramfs/999_specrand_ir/run_001/qemu.log`
+- `workloads/generated/specint-pcwatch-dump-offsets-smoke-20260629-r1/qemu_matrix_summary.json`
+- `workloads/generated/specint-pcwatch-dump-offsets-smoke-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
+- `workloads/generated/specint-500-ppflop-offsets-20260629-r1/initramfs/500_perlbench_r/run_001/qemu.log`
+- `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-505-final-faultregs-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log`
 - `workloads/generated/specint-505-nestedcall-fix-20260628-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
@@ -472,10 +480,10 @@ Artifacts:
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
 `999.specrand_ir` passes by hash. The other nine train-input benchmarks are
-classified by first failing symptom. The latest same-ACR `x1` frame run finished
-in `911.065s`; no failed benchmark was marked `stalled`, and every failed run
-has `heartbeat_running=true` plus `heartbeat_site_progress=true`, so the
-failures below are correctness or throughput stops rather than a global QEMU
+classified by first failing symptom. The latest post-PC-watch-offset QEMU run
+finished in `909.005s`; no failed benchmark was marked `stalled`, and every
+failed run has `heartbeat_running=true` plus `heartbeat_site_progress=true`, so
+the failures below are correctness or throughput stops rather than a global QEMU
 deadlock.
 
 Important 2026-06-29 correction: Linx `prlimit64` succeeds, but the current
@@ -487,16 +495,16 @@ legacy unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000002`, BPC `0x155582976a` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000000`, BPC `0xffffffff803dde02` | stack limit is effective; continue with fault regs/code bytes around the new GCC user BPC path and preserve the brk/mmap allocator evidence |
-| `505.mcf_r` | live timeout at 180s | last heartbeat count `40350000005`, BPC `0x155555c44a`, `progress=site-change`, `stalled=false` | train input is now throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
-| `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000002`, BPC `0xffffffff800fcede` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
-| `523.xalancbmk_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555a6306a`, `bpc=0x1555a6306a`; last heartbeat count `10350000005`, BPC `0xffffffff800fe0da` | reclassify from live-slow to correctness under effective finite stack; use fault regs/code bytes around the C++ user trap |
+| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000008`, BPC `0x15556193a0` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
+| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000005`, BPC `0xffffffff803dde02` | stack limit is effective; continue with fault regs/code bytes around the new GCC user BPC path and preserve the brk/mmap allocator evidence |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `34900000001`, BPC `0x155555c430`, `progress=site-change`, `stalled=false` | train input is now throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000002`, BPC `0xffffffff803dde02` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
+| `523.xalancbmk_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555a6306a`, `bpc=0x1555a6306a`; last heartbeat count `10350000000`, BPC `0xffffffff80069ff6` | reclassify from live-slow to correctness under effective finite stack; use fault regs/code bytes around the C++ user trap |
 | `525.x264_r` | live timeout at 180s | last heartbeat count `20800000000`, BPC `0xffffffff800019bc`, `progress=site-change`, `stalled=false` | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `30450000007`, BPC `0x155556764a`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555623796`, `bpc=0x1555623796`; last heartbeat count `5950000004`, BPC `0xffffffff803dde02` | now grouped with the C++/stack-edge user traps rather than live-slow |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `30500000010`, BPC `0x155558d612`, `progress=same-site` but recent unique sites `4`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
-| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `450000000`, BPC `0xffffffff803dde02` | smoke sentinel closed |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `30850000002`, BPC `0x1555560764`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | user trap | `addr=0x3feffffff8`, user `tpc=0x1555623796`, `bpc=0x1555623796`; last heartbeat count `5950000001`, BPC `0xffffffff803dde02` | now grouped with the C++/stack-edge user traps rather than live-slow |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `30550000006`, BPC `0x155558d612`, `progress=site-change`, recent unique sites `5`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `450000001`, BPC `0xffffffff803dde02` | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
 `workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
@@ -516,7 +524,11 @@ log contains `LINX_HEARTBEAT_REGS`. A separate
 `999.specrand_ir` and emits `LINX_HEARTBEAT_CODE` records with PC/BPC bytes.
 The new `LINX_DEBUG_PC_WATCH_DUMP_REGS=sp,tp,a0` sentinel run passes
 `999.specrand_ir` and emits three same-hit guest-word dumps, so allocator and
-list traces can capture multiple pointer sources in one long run.
+list traces can capture multiple pointer sources in one long run. The new
+`LINX_DEBUG_PC_WATCH_DUMP_OFFSETS=0,8` sentinel also passes
+`999.specrand_ir` and emits multiple offsets from one pointer source in a single
+hit; focused 500 runs use the same switch to capture several Perl range-frame
+slots without rerunning the billion-instruction window.
 
 Proposed next fixes:
 
@@ -628,8 +640,12 @@ Next solution path:
 1. Keep the same-ACR `x1` entry contract covered by AVS and do not treat future
    500 BigInt failures as dentry corruption unless the Oops reproduces.
 2. Resume the Perl BigInt `Range iterator outside integer range at
-   lib/Math/BigInt.pm line 2675` investigation with a smaller Linx-native Perl
-   scalar/range smoke or a non-perturbing QEMU watchpoint on the Perl range path.
+   lib/Math/BigInt.pm line 2675` investigation from
+   `workloads/generated/specint-500-ppflop-offsets-20260629-r1/` and
+   `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/`. Map the
+   captured `pp_flop` frame/register state to Perl SV flag/value fields, then
+   minimize a Linx-native scalar/range smoke before changing SPEC packaging or
+   QEMU control-flow rules.
 
 ## 2026-06-28 500 Fixup Triage
 
