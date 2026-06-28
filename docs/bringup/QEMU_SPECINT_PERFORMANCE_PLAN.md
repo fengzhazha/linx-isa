@@ -282,6 +282,12 @@ Additional opt-in QEMU debug switches used during this pass:
   for short smoke checks.
 - `LINX_DEBUG_PC_WATCH_DUMP_CODE_BYTES=<n>` adds a `LINX_PC_WATCH_CODE`
   companion record with up to 32 bytes at the watched PC.
+- `LINX_DEBUG_PC_WATCH_DUMP_REGS=<reg>[,<reg>...]` dumps guest words from
+  several GPR/TP/TQ/UQ pointer sources in one PC-watch hit. It shares
+  `LINX_DEBUG_PC_WATCH_DUMP_WORDS` and `LINX_DEBUG_PC_WATCH_DUMP_OFFSET` with
+  the single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path, and is useful when
+  allocator or list corruption needs before/after chunk state from multiple
+  registers in the same multi-billion-instruction run.
 - `LINX_TP_TRACE=1` records user-to-kernel TP handoff points for service
   requests, synchronous traps, IRQ entry, and ACRE staging. Use
   `LINX_TP_TRACE_LIMIT=<n>` on full SPEC runs.
@@ -455,6 +461,9 @@ log contains `LINX_HEARTBEAT_REGS`. A separate
 `LINX_PC_WATCH_REGS` full-GPR records. The new
 `LINX_QEMU_HEARTBEAT_CODE_BYTES=16` sentinel run also passes
 `999.specrand_ir` and emits `LINX_HEARTBEAT_CODE` records with PC/BPC bytes.
+The new `LINX_DEBUG_PC_WATCH_DUMP_REGS=sp,tp,a0` sentinel run passes
+`999.specrand_ir` and emits three same-hit guest-word dumps, so allocator and
+list traces can capture multiple pointer sources in one long run.
 
 Proposed next fixes:
 
@@ -478,10 +487,16 @@ Proposed next fixes:
    file. The remaining failure is a later oldmalloc trap: `brk` stalls at
    `0x1556273000`, anonymous `mmap` returns at the same address, and a rejected
    one-page kernel guard only moves the symptom to `memset(0x1556273000, 0,
-   0x1800)`. The next target is the allocation that returns `0x1556273000`:
-   trace oldmalloc large-mmap/free/trim/bin insertion with
-   `LINX_MEM_TRACE_ACR=2 LINX_MEM_TRACE_CONTEXT=1` before choosing a kernel
-   map-window reservation or allocator/QEMU/compiler metadata fix.
+   0x1800)`. The latest `LINX_DEBUG_PC_WATCH_DUMP_REGS` trace proves the
+   overlap mechanism: oldmalloc trims and bins both `0x1556272ff0` and
+   `0x1556273010`, creating overlapping free chunks at `0x1556276010` and
+   `0x1556276030`; a later allocation returns payload `0x1556276020`, and
+   normal GCC GGC writes corrupt the still-binned `0x1556276030` node before
+   the final `unbin` trap. The next fix should separate normal anonymous mmap
+   placement from brk-frontier heap-extension mmap. Either keep non-heap
+   anonymous mappings away from `mm->brk` in the Linx kernel mmap policy, or
+   add a Linx oldmalloc large-mmap hint outside the heap-extension window while
+   preserving fallback heap mmap at `end` when brk growth is exhausted.
 5. Continue deterministic userspace traps separately from throughput work:
    `505.mcf_r` traps at small address `0x19`, `520.omnetpp_r` traps on a null
    object/callback path, and `531.deepsjeng_r` traps through a zero branch
