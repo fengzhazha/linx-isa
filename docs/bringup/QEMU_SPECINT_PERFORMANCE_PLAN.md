@@ -202,10 +202,12 @@ Current Linx QEMU adds an opt-in Linx heartbeat in the QEMU log. Set either
 `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL` to a nonzero
 instruction-count interval. When enabled, QEMU emits `LINX_HEARTBEAT` records
 with host time, instruction count, count delta, PC, BPC, body TPC, branch
-state, selected argument registers, and `same_site`. A high or growing
-`same_site` value means the same `(pc, bpc, tpc)` location is recurring at
-heartbeat boundaries; changing BPC/PC with increasing count means the guest is
-still executing and should be treated as slow, not deadlocked.
+state, `progress=first|site-change|same-site`, `same_site`, stack/return
+registers, TP, ring-1 ETEMP/ETEMP0 breadcrumbs, and selected argument
+registers. A high or growing `same_site` value means the same `(pc, bpc, tpc)`
+location is recurring at heartbeat boundaries; changing BPC/PC with increasing
+count means the guest is still executing and should be treated as slow, not
+deadlocked.
 
 The SPEC fast gate now has an explicit `train` profile, backed by a `train-all`
 suite covering all current Linx SPECint rate benchmarks:
@@ -244,6 +246,12 @@ Additional opt-in QEMU debug switches used during this pass:
 - `LINX_FAULT_TRACE_REGS=1` prints a `LINX_FAULT_REGS` record after
   `LINX_FAULT_TRACE` reports a synchronous trap, again with the full GPR file.
 - `LINX_TRACE_REGS=1` enables both syscall and fault register records.
+- `LINX_TP_TRACE=1` records user-to-kernel TP handoff points for service
+  requests, synchronous traps, IRQ entry, and ACRE staging. Use
+  `LINX_TP_TRACE_LIMIT=<n>` on full SPEC runs.
+- `LINX_TP_TRACE_SSR=1` adds TP/ETEMP/ETEMP0 SSR writes and swaps to
+  `LINX_TP_TRACE`. `LINX_TP_TRACE_READS=1` adds reads. These are high-volume
+  options for focused runs, not for train-all profiling.
 
 Static build command. Rebuild the SPEC-profile C++ runtime overlay after every
 phase-b musl sysroot refresh; the musl install step replaces the sysroot
@@ -284,8 +292,8 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --continue-on-fail
 ```
 
-Latest rerun after the Linx oldmalloc early-page-size fix and C++ runtime
-overlay rebuild. This uses the redesigned faster 300s train-all budget:
+Earlier rerun after the Linx oldmalloc early-page-size fix and C++ runtime
+overlay rebuild. This used the redesigned faster 300s train-all budget:
 
 ```bash
 SPECINT_TRAIN_ALL_TIMEOUT=300 \
@@ -304,38 +312,72 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --continue-on-fail
 ```
 
+Latest diagnostic rerun after the TP/BPC heartbeat extension, static C++
+startup-entry repair, and initramfs launcher stack-limit fix. This is the
+current fast train-all loop: all ten SPECint train benchmarks, initramfs
+transport, 180s per benchmark, no guest heartbeat, and a QEMU heartbeat every
+50M guest instructions.
+
+```bash
+python3 tools/spec2017/run_stage_qemu_matrix.py \
+  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --stage b \
+  --input-set train \
+  --transports initramfs \
+  --sysroot out/libc/musl/install/phase-b \
+  --timeout 180 \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 50000000 \
+  --no-progress-timeout 120 \
+  --guest-heartbeat-sec 0 \
+  --append-extra norandmaps \
+  --out-dir workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run
+```
+
 Artifacts:
 
 - `workloads/generated/specint-build-after-oldmalloc-20260628/build_manifest_final.json`
 - `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json`
 - `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json`
+- `avs/qemu/out/musl-tp-preserve-20260628-r2/summary.json`
+- `avs/qemu/out/musl-tp-preserve-debug-r2-20260628/summary.json`
 - `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/qemu_matrix_summary.json`
+- `workloads/generated/specint-cxx-startup-fix-20260628/build_manifest.json`
+- `workloads/generated/specint-cxx-stacklimit-20260628/qemu-focused/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260628-after-oldmalloc/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/qemu-523-xalancbmk-r.sample.txt`
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/qemu-531-deepsjeng-r.sample.txt`
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/qemu-557-xz-r.sample.txt`
 - `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
 - `workloads/generated/specint-502-static-fulltrace-post-gtod-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
 - `avs/qemu/out/musl-time-syscalls-20260628/summary.json`
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
-`999.specrand_ir` passes. The other nine train-input benchmarks are classified
-by first failing symptom. Timeouts with changing BPC/count are live-slow
-results, not deadlocks. The old C++ oldmalloc symptom is fixed: 520 and 523
-now grow the `brk` region by pages instead of issuing a no-op `brk(current)`,
-then fail later in C++/locale code.
+`999.specrand_ir` passes by hash. The other nine train-input benchmarks are
+classified by first failing symptom. No benchmark in the current run was marked
+`stalled`; every failed run had heartbeat progress, so the failures below are
+crash/correctness/throughput stops rather than a global QEMU deadlock. The old
+C++ `_start`/TP symptom is removed: `523.xalancbmk_r` and `541.leela_r` now
+enter through musl `_start` with nonzero TP and fail only by live timeout after
+the launcher raises `RLIMIT_STACK`.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | fail | `LINX_DIE msg=Oops`, then `LINX_EXIT_INIT code=0xb` | kernel Oops after rebuilt sysroot; re-symbolize before assuming the prior Perl BigInt failure still comes first |
-| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number`; post-fix syscall trace has no `-EBADF` syscall return | static userspace errno/file-state corruption, not kernel fd-table failure |
-| `505.mcf_r` | timeout at 300s | last count `64000000003`, BPC `0x155555c44a` | running too slowly, not deadlocked |
-| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; symbolized to `sectionbasedconfig.cc` after `__stdio_read` | C++ object/callback path after allocator growth succeeds |
-| `523.xalancbmk_r` | user trap | `addr=0xffffffffffffffd0`, `tpc=0x47df2a`, `bpc=0x47df28`; symbolized to `__ctype_get_mb_cur_max` after `__linx_get_tp` returned zero | TLS/thread-pointer setup or static libc/C++ runtime state |
-| `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff8000164` | early kernel/initramfs path |
-| `531.deepsjeng_r` | timeout at 300s | last count `43000000004`, BPC `0x155556832e` | running too slowly, not deadlocked |
-| `541.leela_r` | user trap | `addr=0xffffffffffffffe8`, `tpc=0x6d39a`, `bpc=0x6d38c`; symbolized to `std::__1::basic_ostream<...>::sentry::sentry` | C++ iostream/static initialization or null vtable/basic_ios state |
-| `557.xz_r` | timeout at 300s | last count `51000000002`, BPC `0x1555577b66` | running too slowly, not deadlocked |
-| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir` | smoke sentinel closed |
+| `500.perlbench_r` | fail | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; last heartbeat had `progress=site-change`, BPC `0x15556fd9d0` | reaches Perl user code; investigate integer range/codegen/libc conversion state |
+| `502.gcc_r` | fail | `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`; last heartbeat in kernel fd path had `progress=site-change`, BPC `0xffffffff8006ba9c` | static userspace errno/file-state corruption, not currently proven as kernel fd-table failure |
+| `505.mcf_r` | user trap | `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`; last heartbeat still had `progress=site-change` | deterministic null/small-pointer userspace trap |
+| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; heartbeat was live before the trap | C++ object/callback path after allocator growth succeeds |
+| `523.xalancbmk_r` | live timeout at 180s | last heartbeat count `36600000005`, BPC `0xffffffff803dde02`, `progress=same-site`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget, not the earlier TP/startup trap |
+| `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648` | early kernel/initramfs path |
+| `531.deepsjeng_r` | user trap | branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`; last heartbeat had `progress=site-change` | deterministic indirect-control/target-state userspace trap |
+| `541.leela_r` | live timeout at 180s | last heartbeat count `13650000004`, BPC `0xffffffff800091d8`, `progress=site-change`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget, not the earlier TP/startup trap |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `24350000000`, BPC `0xffffffff80110c46`, `progress=site-change`, `stalled=false` | running too slowly, not deadlocked |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
 `workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
@@ -353,28 +395,27 @@ Proposed next fixes:
 
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
-   `same_site` before increasing timeouts.
-2. Profile `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` with heartbeat off
-   or at a very coarse interval. These workloads are live but too slow; the
-   next QEMU speedups should focus on page-local BSTART decode caching,
-   TB-friendly template/queue fast paths, and avoiding helper probes in hot
-   branch-validation paths.
-3. Reproduce `500.perlbench_r` focused against the rebuilt oldmalloc sysroot
-   with `LINX_FAULT_TRACE_REGS=1`, symbolize the new `LINX_DIE msg=Oops` site,
-   and then decide whether the prior Perl BigInt range failure still remains
-   behind the kernel stop.
+   `progress` and `same_site` before increasing timeouts.
+2. Profile `523.xalancbmk_r`, `541.leela_r`, and `557.xz_r` with heartbeat
+   off or at a very coarse interval. These workloads are live but too slow in
+   the 180s train-all diagnostic loop; the next QEMU speedups should focus on
+   page-local BSTART decode caching, TB-friendly template/queue fast paths,
+   and avoiding helper probes in hot branch-validation paths.
+3. Continue `500.perlbench_r` from the user-code BigInt stop. The earlier
+   kernel Oops is no longer the first stop in this loop. Symbolize the Perl
+   failure path, then inspect integer range codegen, libc conversion helpers,
+   and call/return ABI only where the symbolized path points.
 4. Continue `502.gcc_r` from the post-`gettimeofday` trace. Syscall 169 now
    returns `0`, `200.c` opens as fd 3, fd/procfd status checks succeed, and
    the trace contains no `-EBADF` syscall return. The next target is
    userspace state: symbolize/instrument `cpp_files.c:open_file` and
    `open_file_failed`, then validate static musl errno/TLS and the compiler
    codegen that stores `file->err_no`.
-5. Continue the C++ traps from the new first failures. `520.omnetpp_r` now
-   traps on a null object/callback in `sectionbasedconfig.cc`; `523.xalancbmk_r`
-   traps when `__ctype_get_mb_cur_max` reads from a zero thread pointer; and
-   `541.leela_r` traps inside iostream sentry construction. Inspect static C++
-   runtime constructors, TLS/thread-pointer setup, iostream initialization,
-   relocations, exception/unwind setup, and call/return ABI state.
+5. Continue deterministic userspace traps separately from throughput work:
+   `505.mcf_r` traps at small address `0x19`, `520.omnetpp_r` traps on a null
+   object/callback path, and `531.deepsjeng_r` traps through a zero branch
+   target state. Use `LINX_FAULT_TRACE_REGS=1` plus symbolization before
+   changing QEMU control-flow rules.
 6. Reproduce `525.x264_r` with the same initramfs footprint but a tiny payload,
    symbolize `0xffffffff80001648`, and inspect early unpack/page-allocation
    paths before treating it as an x264 userspace failure.
@@ -432,10 +473,11 @@ Next 500-specific solution path:
 1. Commit the filelock-init and runner stdin/absolute-exec fixes as SPEC flow
    prerequisites. The kernel Oops and false ENOENT/EBADF symptoms are now
    understood and should not be re-triaged as QEMU deadlocks.
-2. Reproduce the latest post-oldmalloc `LINX_DIE msg=Oops` with
-   `LINX_FAULT_TRACE_REGS=1` and symbolize the kernel stop. Only after that
-   stop is fixed should the loop return to the prior `Math::BigInt` user-code
-   failure.
+2. Continue from the current `Math::BigInt` user-code failure captured by
+   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/`.
+   If the older post-oldmalloc `LINX_DIE msg=Oops` reappears, reproduce it
+   with `LINX_FAULT_TRACE_REGS=1` and symbolize the kernel stop before
+   changing the Perl/runtime path.
 3. Keep the v0.56 fixup parser as a prerequisite for all uaccess-heavy SPEC
    work; without it, normal faultable usercopy recovery is misclassified as an
    unhandled kernel page fault.
@@ -444,15 +486,18 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/505_mcf_r/run_001/qemu.log`
-  last heartbeat: count `64000000003`, BPC `0x155555c44a`, PC
-  `0x155555c46c`.
-- `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
-  last heartbeat: count `43000000004`, BPC `0x155556832e`, PC
-  `0x155556833e`.
-- `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/557_xz_r/run_001/qemu.log`
-  last heartbeat: count `51000000002`, BPC `0x1555577b66`, PC
-  `0x1555577adc`.
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/initramfs/523_xalancbmk_r/run_001/qemu.log`
+  last heartbeat: count `36600000005`, BPC `0xffffffff803dde02`,
+  PC `0xffffffff803dde02`, `progress=same-site`, `same_site=3`.
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/initramfs/541_leela_r/run_001/qemu.log`
+  last heartbeat: count `13650000004`, BPC `0xffffffff800091d8`,
+  PC `0xffffffff800091f2`, `progress=site-change`.
+- `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/run/initramfs/557_xz_r/run_001/qemu.log`
+  last heartbeat: count `24350000000`, BPC `0xffffffff80110c46`,
+  PC `0xffffffff80110566`, `progress=site-change`.
+- Short macOS `sample` captures during the same train-all run are stored under
+  `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`
+  for `523.xalancbmk_r`, `531.deepsjeng_r`, and `557.xz_r`.
 - Earlier diagnostic samples in
   `workloads/generated/specint-train-all-20260628-debug-v2/profile/` included
   `helper_linx_scalar_read_reg`, `helper_linx_tq_push`,
@@ -461,8 +506,12 @@ Current train-all live-progress evidence:
   `helper_linx_check_bstart_target`, and disabled trace initialization checks
   (`linx_cosim_init`, `linx_call_trace_init`, `linx_minst_trace_init`,
   `linx_commit_trace_init`).
-- Because this diagnostic run deliberately enabled heartbeat, treat
-  `helper_linx_heartbeat` as instrumentation cost, not workload semantics.
+- The current samples still show visible time in `helper_linx_scalar_read_reg`,
+  `helper_linx_tq_push`, `helper_linx_tile_commit`,
+  `helper_linx_template_step`, `helper_linx_check_bstart_target`, MMU
+  lookup/probe paths, and `helper_linx_heartbeat`. Because this run
+  deliberately enabled heartbeat, treat `helper_linx_heartbeat` as
+  instrumentation cost.
 
 Prioritized QEMU speedups:
 

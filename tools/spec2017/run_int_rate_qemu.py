@@ -1149,6 +1149,7 @@ def _build_init_for_run(
 #include <signal.h>
 #include <sys/mount.h>
 #include <sys/reboot.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
@@ -1367,6 +1368,21 @@ static void write_log_s64_dec(long long v) {{
     write_log_u64_dec((unsigned long long)(-v));
   }} else {{
     write_log_u64_dec((unsigned long long)v);
+  }}
+}}
+
+static void set_spec_stack_limit(void) {{
+  struct rlimit rl;
+  rl.rlim_cur = RLIM_INFINITY;
+  rl.rlim_max = RLIM_INFINITY;
+  errno = 0;
+  if (setrlimit(RLIMIT_STACK, &rl) < 0) {{
+    int err = errno;
+    write_log_cstr("LINX_SPEC_WARN setrlimit-stack errno=");
+    write_log_s64_dec((long long)err);
+    write_log_cstr("\\n");
+  }} else {{
+    write_log_cstr("LINX_SPEC_DBG stack-limit=unlimited\\n");
   }}
 }}
 
@@ -1784,6 +1800,7 @@ int main(void) {{
   selftest_fp_bits();
   selftest_writev();
   try_open_kmsg_log();
+  set_spec_stack_limit();
   /* Use inherited init stdio from the kernel console wiring. */
   LOG_LIT("LINX_SPEC_START {_c_escape(bench)}\\n");
 {transport_block}

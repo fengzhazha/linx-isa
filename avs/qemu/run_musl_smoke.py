@@ -77,6 +77,11 @@ SAMPLES: dict[str, dict[str, str]] = {
         "start": "MUSL_TIME_SYSCALLS_START",
         "pass": "MUSL_TIME_SYSCALLS_PASS",
     },
+    "tp_preserve": {
+        "src": "linux_musl_tp_preserve.c",
+        "start": "MUSL_TP_PRESERVE_START",
+        "pass": "MUSL_TP_PRESERVE_PASS",
+    },
     "cpp17_smoke": {
         "src": "linux_musl_cpp17_smoke.cpp",
         "start": "MUSL_CPP17_START",

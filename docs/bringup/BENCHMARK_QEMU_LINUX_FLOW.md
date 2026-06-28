@@ -110,6 +110,29 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
   --report-out workloads/generated/flow-specint-fast/report.json
 ```
 
+Run the current all-SPECint train diagnostic loop directly when the goal is to
+classify every train workload rather than stop at PR smoke:
+
+```bash
+SPECINT_TRAIN_ALL_TIMEOUT=180 \
+SPEC_GUEST_HEARTBEAT_SEC=0 \
+SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 \
+SPEC_NO_PROGRESS_TIMEOUT=120 \
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile train \
+  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --sysroot out/libc/musl/install/phase-b \
+  --out-dir workloads/generated/specint-train-all-<date> \
+  --append-extra norandmaps \
+  --continue-on-fail
+```
+
+Use `LINX_TP_TRACE=1 LINX_TP_TRACE_LIMIT=<n>` only for focused TP/TLS
+diagnosis. Use `LINX_TP_TRACE_SSR=1` or `LINX_TP_TRACE_READS=1` only after a
+focused run identifies a TP handoff window; those switches are too noisy for
+routine train-all profiling.
+
 Run the promotion path only when the Linux path is green:
 
 ```bash

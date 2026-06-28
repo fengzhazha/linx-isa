@@ -27,6 +27,11 @@
   Status: ✅ PASS (2026-06-28 local) - `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json` reports `ok=true`. Focused SPEC traces for `520.omnetpp_r` and `523.xalancbmk_r` now show first `brk` growth to the next page instead of the earlier no-op `brk(current)`.
   Follow-up: any phase-b musl sysroot rebuild invalidates the SPEC C++ runtime overlay. Run `./tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b` before rebuilding SPEC C++ workloads; `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json` is the current overlay evidence.
 
+- [x] ID: LIBC-008 Preserve Linx TP across syscall, malloc, and locale paths.
+  Command: `LINX_HEARTBEAT_INTERVAL=10000000 LINX_TP_TRACE=1 LINX_TP_TRACE_LIMIT=200 python3 avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample tp_preserve --qemu emulator/qemu/build-linx/qemu-system-linx64 --append 'lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0 norandmaps' --timeout 180 --out-dir avs/qemu/out/musl-tp-preserve-debug-r2-20260628`
+  Done means: a static musl payload observes a nonzero TP and the same TP value across `gettimeofday`, repeated `malloc`/`free`, and locale access, while QEMU can log user-to-kernel TP handoffs.
+  Status: ✅ PASS (2026-06-28 local) - `avs/qemu/out/musl-tp-preserve-20260628-r2/summary.json`, `avs/qemu/out/musl-tp-preserve-debug-r2-20260628/summary.json`, and `avs/qemu/out/musl-tp-preserve-final-20260628/summary.json` report `ok=true`; the debug qemu log includes `LINX_HEARTBEAT ... tp=...` and `LINX_TP_TRACE event=service_user_to_kernel`.
+
 - [x] ID: LIBC-004 Keep runtime status evidence updated in bring-up gate artifacts.
   Done means: gate report rows include evidence links for musl/glibc runtime checks.
   Status: ✅ PASS (2026-03-15) - `docs/bringup/gates/latest.json` includes refreshed musl/glibc runtime evidence for the latest pin-lane run, including the regressed `Library::glibc runtime dynamic hello` row and its log path.

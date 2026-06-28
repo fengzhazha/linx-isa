@@ -136,8 +136,8 @@ SUITES: dict[str, Suite] = {
         benches=SPECINT_STAGE_B_BENCHES,
         transports="initramfs",
         timeout_env="SPECINT_TRAIN_ALL_TIMEOUT",
-        timeout_default=1800,
-        description="all SPECint train-input breadth gate",
+        timeout_default=180,
+        description="bounded all-SPECint train-input diagnostic gate",
     ),
 }
 
