@@ -152,6 +152,12 @@ variable unset for normal train-all runs. This is the preferred next step when
 the symptom is `errno`/fd/path corruption but `LINX_SYSCALL_RETURN` does not
 show the reported errno.
 
+Use `LINX_MEM_TRACE_CONTEXT=1` when a memory trace must prove whether two
+stores come from the same guest address space. Pair it with
+`LINX_MEM_TRACE_ACR=2` for focused userspace heap/list traces; leave both unset
+for normal train-all runs because context printing belongs in narrow triage
+windows.
+
 Use `LINX_DEBUG_PC_WATCH=<pc>[,<pc>...] LINX_DEBUG_PC_WATCH_REGS=1` after a
 fault, heartbeat, or symbolization pass identifies a narrow PC window. This
 adds `LINX_PC_WATCH_REGS` full-register records without making the normal

@@ -991,7 +991,7 @@ if [[ "${RUN_SPEC_PR_GATES:-0}" == "1" ]]; then
   run_gate \
     "Regression" \
     "SPECint fast test/train gate" \
-    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\"" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-0}\" --heartbeat-sec \"${SPEC_HEARTBEAT_SEC:-30}\" --qemu-heartbeat-interval \"${SPEC_QEMU_HEARTBEAT_INTERVAL:-50000000}\" --no-progress-timeout \"${SPEC_NO_PROGRESS_TIMEOUT:-120}\"" \
     "workload_specint_fast_pass" \
     "workload_specint_fast_fail" \
     "workload_specint_fast"
@@ -999,7 +999,7 @@ else
   record_skipped_gate \
     "Regression" \
     "SPECint fast test/train gate" \
-    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\"" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile ${SPECINT_FAST_PROFILE:-pr} --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-fast-gate --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-0}\" --heartbeat-sec \"${SPEC_HEARTBEAT_SEC:-30}\" --qemu-heartbeat-interval \"${SPEC_QEMU_HEARTBEAT_INTERVAL:-50000000}\" --no-progress-timeout \"${SPEC_NO_PROGRESS_TIMEOUT:-120}\"" \
     "RUN_SPEC_PR_GATES=0" \
     "workload_specint_fast" \
     "no"
@@ -1009,7 +1009,7 @@ if [[ "$LINX_GATE_TIER" == "nightly" ]]; then
   run_gate \
     "Regression" \
     "SPECint nightly test/train gate" \
-    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile nightly --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-nightly-test-train --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-60}\" --continue-on-fail" \
+    "python3 $ROOT/tools/bringup/run_specint_fast_gate.py --profile nightly --spec-dir ${LINX_SPEC_DIR:-$ROOT/workloads/spec2017/cpu2017v118_x64_gcc12_avx2} --qemu $QEMU_BIN --sysroot ${WORKLOAD_SYSROOT:-$ROOT/out/libc/musl/install/phase-b} --out-dir ${WORKLOAD_OUT_DIR:-$ROOT/workloads/generated}/specint-nightly-test-train --append-extra \"${SPEC_APPEND_EXTRA:-norandmaps}\" --guest-heartbeat-sec \"${SPEC_GUEST_HEARTBEAT_SEC:-0}\" --heartbeat-sec \"${SPEC_HEARTBEAT_SEC:-30}\" --qemu-heartbeat-interval \"${SPEC_QEMU_HEARTBEAT_INTERVAL:-50000000}\" --no-progress-timeout \"${SPEC_NO_PROGRESS_TIMEOUT:-120}\" --continue-on-fail" \
     "workload_specint_nightly_pass" \
     "workload_specint_nightly_fail" \
     "workload_specint_nightly"

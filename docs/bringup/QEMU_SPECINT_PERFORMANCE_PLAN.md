@@ -244,8 +244,11 @@ Additional opt-in QEMU debug switches used during this pass:
   Use `LINX_CALL_TRACE_RING_SIZE=<1..128>` to tune the retained window.
 - `LINX_MEM_TRACE_ADDR=<addr>` instruments translated loads/stores and prints
   only accesses overlapping the requested address range. Narrow with
-  `LINX_MEM_TRACE_SIZE`, `LINX_MEM_TRACE_ACCESS=load|store|all`,
-  `LINX_MEM_TRACE_LIMIT`, and `LINX_MEM_TRACE_PC_LO/HI`.
+  `LINX_MEM_TRACE_SIZE`, `LINX_MEM_TRACE_ACCESS=loads|stores|all`,
+  `LINX_MEM_TRACE_LIMIT`, `LINX_MEM_TRACE_PC_LO/HI`, and
+  `LINX_MEM_TRACE_ACR=<0..15>`. Use `LINX_MEM_TRACE_CONTEXT=1` when the trace
+  must show the current user/kernel address-space context; it appends
+  `mmu_idx`, `ttbr0`, `ttbr1`, and `tcr` to each matching record.
 - `LINX_SYSCALL_TRACE=1` logs Linx hosted syscall entry and ACRE return pairs
   with syscall number, BPC/TPC, arguments, return value, and cstate. Narrow
   with `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_LIMIT`, and
