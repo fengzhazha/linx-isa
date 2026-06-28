@@ -3,27 +3,30 @@
 ## Live Blockers (2026-06-28)
 
 - [x] ID: SPEC-M01F Train-all gate shape exists and covers every current Linx SPECint rate benchmark.
-  Static build command: `MODE=phase-b bash tools/spec2017/build_int_rate_linx.sh --force-static --jobs 10 --emit-manifest workloads/generated/specint-train-all-20260628-static/build-manifest-v2.json`
-  Static run command: `SPECINT_TRAIN_ALL_TIMEOUT=600 LINX_SPEC_HEARTBEAT_SEC=30 LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 LINX_SPEC_NO_PROGRESS_TIMEOUT=180 python3 tools/bringup/run_specint_fast_gate.py --profile train --out-dir workloads/generated/specint-train-all-20260628-static --qemu emulator/qemu/build-linx/qemu-system-linx64 --append-extra norandmaps --guest-heartbeat-sec 0 --heartbeat-sec 30 --qemu-heartbeat-interval 1000000000 --no-progress-timeout 180 --continue-on-fail`
-  Latest static run after the Linux time-syscall fix: `SPECINT_TRAIN_ALL_TIMEOUT=600 LINX_SPEC_HEARTBEAT_SEC=30 LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 LINX_SPEC_NO_PROGRESS_TIMEOUT=180 python3 tools/bringup/run_specint_fast_gate.py --profile train --out-dir workloads/generated/specint-train-all-20260628-after-gtod --qemu emulator/qemu/build-linx/qemu-system-linx64 --append-extra norandmaps --guest-heartbeat-sec 0 --heartbeat-sec 30 --qemu-heartbeat-interval 1000000000 --no-progress-timeout 180 --continue-on-fail`
-  Evidence: `workloads/generated/specint-train-all-20260628-static/build-manifest-v2.json`, `workloads/generated/specint-train-all-20260628-static/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260628-static/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/stage_b_summary.json`.
-  Latest evidence: `workloads/generated/specint-train-all-20260628-after-gtod/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260628-after-gtod/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/stage_b_summary.json`.
+  Static build command: `MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh && ./tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b && LINX_SPEC_FORCE_STATIC=1 bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --emit-manifest workloads/generated/specint-build-after-oldmalloc-20260628/build_manifest_final.json`
+  Static run command: `SPECINT_TRAIN_ALL_TIMEOUT=300 LINX_SPEC_HEARTBEAT_SEC=30 LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 LINX_SPEC_NO_PROGRESS_TIMEOUT=180 python3 tools/bringup/run_specint_fast_gate.py --profile train --out-dir workloads/generated/specint-train-all-20260628-after-oldmalloc --qemu emulator/qemu/build-linx/qemu-system-linx64 --append-extra norandmaps --guest-heartbeat-sec 0 --heartbeat-sec 30 --qemu-heartbeat-interval 1000000000 --no-progress-timeout 180 --continue-on-fail`
+  Evidence: `workloads/generated/specint-build-after-oldmalloc-20260628/build_manifest_final.json`, `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json`, `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json`, `workloads/generated/specint-train-all-20260628-after-oldmalloc/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/stage_b_summary.json`.
   Status: suite wiring covers `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, `557.xz_r`, and `999.specrand_ir`.
   Static build result: all ten selected C/C++ benchmarks built as Linx executables; source immutability check passed.
 
 - [x] ID: SPEC-QEMU-HB-001 BPC heartbeat switch exists.
   Switches: `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL`; fast-gate option `--qemu-heartbeat-interval`.
   Done means: qemu logs emit `LINX_HEARTBEAT` with count, delta, PC, BPC, TPC, branch state, selected argument registers, and `same_site`.
-  Evidence: `workloads/generated/specint-heartbeat-smoke-20260628/test-smoke/initramfs/999_specrand_ir/run_001/qemu.log` and train-all per-benchmark `qemu.log` files under `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/` and `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/`.
+  Evidence: `workloads/generated/specint-heartbeat-smoke-20260628/test-smoke/initramfs/999_specrand_ir/run_001/qemu.log` and train-all per-benchmark `qemu.log` files under `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/` and `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/`.
   Result: `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` timed out with changing user-space BPCs, so they are live-slow/performance cases, not deadlocks.
 
 - [x] ID: SPEC-QEMU-SYSCALL-DBG-001 Syscall trace can identify path/fd failures without full traces.
-  Switches: `LINX_SYSCALL_TRACE=1`, optional `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_PC_LO/HI`, `LINX_SYSCALL_TRACE_LIMIT`, `LINX_SYSCALL_TRACE_STRINGS=1`, and `LINX_SYSCALL_TRACE_STRING_MAX`.
-  Done means: qemu logs emit syscall entry/return pairs, entry arguments on returns, unpaired syscall markers, and separate `LINX_SYSCALL_ARGSTR` records for pathname arguments.
+  Switches: `LINX_SYSCALL_TRACE=1`, optional `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_PC_LO/HI`, `LINX_SYSCALL_TRACE_LIMIT`, `LINX_SYSCALL_TRACE_STRINGS=1`, `LINX_SYSCALL_TRACE_STRING_MAX`, `LINX_SYSCALL_TRACE_REGS=1`, and shared `LINX_TRACE_REGS=1`.
+  Done means: qemu logs emit syscall entry/return pairs, entry arguments on returns, unpaired syscall markers, separate `LINX_SYSCALL_ARGSTR` records for pathname arguments, and opt-in `LINX_SYSCALL_REGS` full-GPR records.
   Evidence: `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log` contains `LINX_SYSCALL_ARGSTR` records for `/dev/console`, `/spec-run`, SPEC output/input paths, and `.linx_empty_stdin`.
 
+- [x] ID: SPEC-QEMU-FAULT-DBG-001 Fault trace can dump full Linx register state.
+  Switches: `LINX_FAULT_TRACE=1`, `LINX_FAULT_TRACE_REGS=1`, optional `LINX_FAULT_TRACE_LIMIT`, and shared `LINX_TRACE_REGS=1`.
+  Done means: qemu logs emit `LINX_FAULT_REGS` after a synchronous fault with all GPRs, BPC/TPC context, and instruction count.
+  Evidence: `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/520_omnetpp_r/run_001/qemu.log`, `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/523_xalancbmk_r/run_001/qemu.log`, and `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/541_leela_r/run_001/qemu.log`.
+
 - [x] ID: SPEC-M05-SMOKE `999.specrand_ir` train input passes under the all-train run.
-  Evidence: `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/999_specrand_ir/run_001/qemu.log` contains `LINX_SPEC_PASS 999.specrand_ir`; `stage_b_summary.json` records `ok=true` for this benchmark.
+  Evidence: `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/999_specrand_ir/run_001/qemu.log` contains `LINX_SPEC_PASS 999.specrand_ir`; `stage_b_summary.json` records `ok=true` for this benchmark.
   Note: a shared-runtime rebuild made `999.specrand_ir` a 15 KiB dynamic executable and it trapped in shared startup; the static phase-b executable is the current correctness gate until shared SPEC runtime is green.
 
 - [x] ID: SPEC-M05-GTOD-502 Legacy `gettimeofday` no longer poisons 502 diagnostics.
@@ -34,7 +37,7 @@
 - [x] ID: SPEC-M05-EXECVE-500 `500.perlbench_r` static PIE is present and readable before `execve`.
   Resolution: the original `errno=2` classification was narrowed by the init-wrapper pre-exec probe; the benchmark path is valid in the initramfs.
   Evidence: `workloads/generated/specint-500-preexec-20260628/initramfs/500_perlbench_r/run_001/qemu.log` shows `stat=0`, `open=6`, `read4=4`, and ELF magic `0x7f454c46`.
-  Follow-up: `500.perlbench_r` now reaches Perl user code and fails in `Math::BigInt` range handling.
+  Follow-up: the after-`gettimeofday` run reached Perl user code and failed in `Math::BigInt` range handling; the latest post-oldmalloc train-all gate now stops earlier at the new kernel Oops tracked by `SPEC-M05-PANIC-500`.
 
 - [x] ID: SPEC-M05-FIXUP-500 Linx Linux recognizes v0.56 faultable usercopy fixup blocks.
   Resolution: `arch/linx/mm/extable.c` now accepts nonzero-offset 32-bit and 48-bit `BSTART.{STD,SYS,FP} FALL<, fixup_label>` fixup encodings before the legacy 128-bit block-header fallback.
@@ -45,10 +48,11 @@
   Resolution: the Linx curated init path now initializes the file-lock slab cache, moving past the prior `kmem_cache_alloc_noprof` null-cache fault.
   Evidence: `workloads/generated/specint-500-after-filelock-20260628/`, `workloads/generated/specint-500-syscall-openat-ret-20260628/`, and `workloads/generated/specint-500-stdin-empty-20260628/`.
 
-- [ ] ID: SPEC-M05-BIGINT-500 `500.perlbench_r` must complete Perl BigInt train input.
-  Current blocker: `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`.
-  Evidence: `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/stage_b_summary.json` classifies `500.perlbench_r` as `user-arithmetic-range`.
-  Proposed solution: reduce to a Perl snippet with syscall tracing disabled; compare integer conversion/range behavior against host SPEC; then inspect compiler integer lowering, libc conversion state, and call/return ABI before changing benchmark sources.
+- [ ] ID: SPEC-M05-PANIC-500 `500.perlbench_r` must get back to Perl user-code failure and complete train input.
+  Current blocker: after the oldmalloc/sysroot rebuild, the latest 300s train-all gate stops earlier with `LINX_DIE msg=Oops` and `LINX_EXIT_INIT code=0xb`.
+  Evidence: `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/stage_b_summary.json` classifies `500.perlbench_r` as `kernel-panic`; `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/500_perlbench_r/run_001/qemu.log` contains the Oops.
+  Prior evidence: `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/stage_b_summary.json` classified the previous first user-code stop as `user-arithmetic-range` with `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`.
+  Proposed solution: rerun 500 focused with `LINX_FAULT_TRACE_REGS=1`, symbolize the new kernel Oops, compare against the previous BigInt run after the kernel stop is fixed, then inspect compiler integer lowering, libc conversion state, and call/return ABI only if the BigInt failure still remains.
 
 - [ ] ID: SPEC-M05-FD-502 `502.gcc_r` must read `200.c` correctly.
   Current blocker: `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`.
@@ -56,24 +60,29 @@
   Proposed solution: stop treating this as a kernel fd-table failure. Instrument or symbolize `502.gcc_r` around `cpp_files.c:open_file/open_file_failed`, validate the compiled `errno`/`file->err_no` store path, and compare static musl errno/TLS plus compiler codegen before changing QEMU or SPEC packaging.
 
 - [ ] ID: SPEC-M05-LIVE-SLOW The live slow train workloads need QEMU speedups or longer diagnostic budgets.
-  Current blockers: `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` timed out at 600s, but QEMU heartbeat counts and BPCs continued to advance.
+  Current blockers: `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` timed out at the faster 300s train-all budget, but QEMU heartbeat counts and BPCs continued to advance.
   Evidence:
-  - `505.mcf_r`: last heartbeat count `111000000000`, BPC `0x155555c8dc`
-  - `531.deepsjeng_r`: last heartbeat count `80000000029`, BPC `0x155555b576`
-  - `557.xz_r`: last heartbeat count `106000000002`, BPC `0x15555710f0`
+  - `505.mcf_r`: last heartbeat count `64000000003`, BPC `0x155555c44a`
+  - `531.deepsjeng_r`: last heartbeat count `43000000004`, BPC `0x155556832e`
+  - `557.xz_r`: last heartbeat count `51000000002`, BPC `0x1555577b66`
   Proposed solution: profile with heartbeat off or very coarse; target page-local BSTART decode caching, TB chaining, template/queue fast helpers, and removal of disabled trace/env checks from hot helpers.
+
+- [x] ID: SPEC-M05-OLDMALLOC-CPP Early Linx oldmalloc no longer rounds heap growth to zero before libc init.
+  Resolution: Linx oldmalloc now falls back to a compile-time page size when `libc.page_size` has not been initialized yet.
+  Evidence: `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json` passes focused static musl smoke, and `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/520_omnetpp_r/run_001/qemu.log` plus `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/523_xalancbmk_r/run_001/qemu.log` show first `brk` growth to the next page (`0x27c000` and `0x4f7000`) instead of the earlier no-op `brk(current)`.
+  Follow-up: this fixed the allocator symptom only; 520/523 still trap later in C++ runtime or application code.
 
 - [ ] ID: SPEC-M05-CPP-TRAPS The C++ train workloads must stop trapping in userspace.
   Current blockers:
-  - `520.omnetpp_r`: trap at `addr=0x27b010`, `a0=0x27b000`
-  - `523.xalancbmk_r`: trap at `addr=0x4f5010`, `a0=0x4f5000`
-  - `541.leela_r`: trap at `addr=0xffffffffffffffe8`
-  Evidence: train-all per-benchmark `qemu.log` files under `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/`.
-  Proposed solution: symbolize against the static benchmark ELFs and inspect C++ runtime constructors, static object relocation, TLS, exception/unwind setup, and call/return ABI state. Keep the C++ runtime overlay build (`tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b`) as a prerequisite for shared diagnostics.
+  - `520.omnetpp_r`: trap at `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; symbolized to `sectionbasedconfig.cc` after `__stdio_read`
+  - `523.xalancbmk_r`: trap at `addr=0xffffffffffffffd0`, `tpc=0x47df2a`, `bpc=0x47df28`; symbolized to `__ctype_get_mb_cur_max` after `__linx_get_tp` returns zero
+  - `541.leela_r`: trap at `addr=0xffffffffffffffe8`, `tpc=0x6d39a`, `bpc=0x6d38c`; symbolized to `std::__1::basic_ostream<...>::sentry::sentry`
+  Evidence: train-all per-benchmark `qemu.log` files under `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/` and the focused register-trace run under `workloads/generated/specint-cxx-after-oldmalloc-20260628/run/initramfs/`.
+  Proposed solution: inspect static C++ runtime constructors, TLS/thread-pointer setup, iostream initialization, static object relocation, exception/unwind setup, and call/return ABI state. Keep the C++ runtime overlay build (`tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b`) as a prerequisite after any phase-b musl rebuild.
 
 - [ ] ID: SPEC-M05-PANIC-525 `525.x264_r` must boot far enough to execute userspace.
   Current blocker: early `LINX_PANIC caller=0xffffffff80001648`.
-  Evidence: `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/525_x264_r/run_001/qemu.log`.
+  Evidence: `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/525_x264_r/run_001/qemu.log`.
   Proposed solution: reproduce with the same large initramfs footprint and a tiny payload, then symbolize the panic caller and inspect early initramfs unpack/page-allocation paths before treating this as an x264 userspace failure.
 
 - [ ] ID: SPEC-M05-SHARED-RUNTIME Shared SPEC executables must match the static gate behavior.
