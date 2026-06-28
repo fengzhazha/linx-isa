@@ -27,6 +27,12 @@
   Status: ✅ PASS (2026-06-28 local) - `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json` reports `ok=true`. Focused SPEC traces for `520.omnetpp_r` and `523.xalancbmk_r` now show first `brk` growth to the next page instead of the earlier no-op `brk(current)`.
   Follow-up: any phase-b musl sysroot rebuild invalidates the SPEC C++ runtime overlay. Run `./tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b` before rebuilding SPEC C++ workloads; `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json` is the current overlay evidence.
 
+- [x] ID: LIBC-009 Use mallocng as the default Linx phase-b allocator.
+  Command: `MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh`
+  Done means: the default phase-b summary records `malloc_impl=mallocng`, focused static smoke still passes, and oldmalloc remains available with `MALLOC_IMPL=oldmalloc` for targeted allocator bisection.
+  Status: PASS (2026-06-29 local) - `out/libc/musl/logs/phase-b-summary.txt` records `malloc_impl=mallocng`; `avs/qemu/out/musl-static-mallocng-default-20260629/summary.json` reports `ok=true` for static `malloc_printf`, `cpp17_smoke`, and `time_syscalls`; `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json` was rebuilt after the musl sysroot refresh; `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/stage_b_summary.json` proves the allocator switch does not close SPEC `500`/`502` correctness yet, while `999.specrand_ir` still passes strict hash.
+  Follow-up: do not treat allocator selection alone as SPEC closure. Keep `MALLOC_IMPL=oldmalloc` for reproducing older brk/mmap overlap evidence, but keep mallocng as the default maintained allocator baseline.
+
 - [x] ID: LIBC-008 Preserve Linx TP across syscall, malloc, and locale paths.
   Command: `LINX_HEARTBEAT_INTERVAL=10000000 LINX_TP_TRACE=1 LINX_TP_TRACE_LIMIT=200 python3 avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample tp_preserve --qemu emulator/qemu/build-linx/qemu-system-linx64 --append 'lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0 norandmaps' --timeout 180 --out-dir avs/qemu/out/musl-tp-preserve-debug-r2-20260628`
   Done means: a static musl payload observes a nonzero TP and the same TP value across `gettimeofday`, repeated `malloc`/`free`, and locale access, while QEMU can log user-to-kernel TP handoffs.
