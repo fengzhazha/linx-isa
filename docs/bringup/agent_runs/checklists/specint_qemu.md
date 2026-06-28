@@ -1,5 +1,51 @@
 # SPECint / QEMU Checklist
 
+## Live Blockers (2026-06-28)
+
+- [x] ID: SPEC-M01F Train-all gate shape exists.
+  Command: `SPECINT_TRAIN_ALL_TIMEOUT=900 python3 tools/bringup/run_specint_fast_gate.py --profile train --out-dir workloads/generated/specint-train-all-20260628-heartbeat --qemu emulator/qemu/build-linx/qemu-system-linx64 --append-extra norandmaps --guest-heartbeat-sec 0 --heartbeat-sec 30 --qemu-heartbeat-interval 1000000000 --no-progress-timeout 180 --continue-on-fail`
+  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260628-heartbeat/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/stage_b_summary.json`.
+  Status: suite wiring is present and covers `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, `557.xz_r`, and `999.specrand_ir`.
+
+- [x] ID: SPEC-QEMU-HB-001 BPC heartbeat switch exists.
+  Switches: `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL`; fast-gate option `--qemu-heartbeat-interval`.
+  Done means: qemu logs emit `LINX_HEARTBEAT` with count, delta, PC, BPC, TPC, branch state, selected argument registers, and `same_site`.
+  Evidence: `workloads/generated/specint-heartbeat-smoke-20260628/test-smoke/initramfs/999_specrand_ir/run_001/qemu.log` and train-all per-benchmark `qemu.log` files.
+
+- [x] ID: SPEC-M05-SMOKE `999.specrand_ir` train input passes under the all-train run.
+  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/999_specrand_ir/run_001/qemu.log` contains `LINX_SPEC_PASS 999.specrand_ir`.
+
+- [ ] ID: SPEC-M05-EXECVE-500 `500.perlbench_r` must exec its static PIE image.
+  Current blocker: `execve("./perlbench_r_base.mytest-m64")` returns `errno=2`.
+  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/500_perlbench_r/run_001/qemu.log`.
+  Next probe: use the init-wrapper pre-exec `stat/open/read` diagnostics; if those succeed, instrument Linux `binfmt_elf` for no-interpreter `ET_DYN` and path lookup.
+
+- [ ] ID: SPEC-M05-FD-502 `502.gcc_r` must read `200.c` correctly.
+  Current blocker: `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`.
+  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/502_gcc_r/run_001/qemu.log`.
+  Next probe: trace `openat/read/lseek/fstat/close` for `200.c` and validate fd table plus musl errno mapping.
+
+- [ ] ID: SPEC-M05-LIVE-SLOW The live slow train workloads need QEMU speedups or longer diagnostic budgets.
+  Current blockers: `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` timed out at 900s, but QEMU heartbeat counts and BPCs continued to advance.
+  Evidence:
+  - `505.mcf_r`: last heartbeat count `188000000001`, BPC `0x1555559c98`
+  - `531.deepsjeng_r`: last heartbeat count `142000000000`, BPC `0x1555565200`
+  - `557.xz_r`: last heartbeat count `154000000042`, BPC `0x1555576fac`
+  Next probe: profile with heartbeat off or coarse; target page-local BSTART decode caching, TB chaining, and remaining helper-probe overhead.
+
+- [ ] ID: SPEC-M05-CPP-TRAPS The C++ train workloads must stop trapping in userspace.
+  Current blockers:
+  - `520.omnetpp_r`: trap at `addr=0x27b010`, `a0=0x27b000`
+  - `523.xalancbmk_r`: trap at `addr=0x4f5010`, `a0=0x4f5000`
+  - `541.leela_r`: trap at `addr=0xffffffffffffffe8`
+  Evidence: train-all per-benchmark `qemu.log` files under `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/`.
+  Next probe: symbolize against the benchmark ELFs and inspect static C++ runtime relocations, constructors, TLS, exception/unwind setup, and call/return ABI state.
+
+- [ ] ID: SPEC-M05-PANIC-525 `525.x264_r` must boot far enough to execute userspace.
+  Current blocker: early `LINX_PANIC caller=0xffffffff80001648`.
+  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/525_x264_r/run_001/qemu.log`.
+  Next probe: reproduce with the same initramfs footprint and a tiny payload, then symbolize the panic caller and inspect early unpack/page-allocation paths.
+
 ## Live Blockers (2026-05-21)
 
 - [ ] BLOCK-SPEC-FG-001 Fast SPECint gate must run `test`/`train` before promotion.

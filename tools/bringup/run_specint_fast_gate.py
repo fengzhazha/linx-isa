@@ -38,6 +38,26 @@ class Suite:
     description: str
 
 
+SPECINT_STAGE_B_BENCHES = (
+    "500.perlbench_r",
+    "502.gcc_r",
+    "505.mcf_r",
+    "520.omnetpp_r",
+    "523.xalancbmk_r",
+    "525.x264_r",
+    "531.deepsjeng_r",
+    "541.leela_r",
+    "557.xz_r",
+    "999.specrand_ir",
+)
+
+SPECINT_TRAIN_PROMOTION_BENCHES = tuple(
+    bench
+    for bench in SPECINT_STAGE_B_BENCHES
+    if bench not in {"505.mcf_r", "531.deepsjeng_r", "999.specrand_ir"}
+)
+
+
 SUITES: dict[str, Suite] = {
     "test-smoke": Suite(
         name="test-smoke",
@@ -103,25 +123,28 @@ SUITES: dict[str, Suite] = {
         name="train-promotion",
         stage="b",
         input_set="train",
-        benches=(
-            "500.perlbench_r",
-            "502.gcc_r",
-            "520.omnetpp_r",
-            "523.xalancbmk_r",
-            "525.x264_r",
-            "541.leela_r",
-            "557.xz_r",
-        ),
+        benches=SPECINT_TRAIN_PROMOTION_BENCHES,
         transports="initramfs",
         timeout_env="SPECINT_TRAIN_PROMOTION_TIMEOUT",
         timeout_default=1800,
         description="nightly train-input SPECint promotion breadth",
+    ),
+    "train-all": Suite(
+        name="train-all",
+        stage="b",
+        input_set="train",
+        benches=SPECINT_STAGE_B_BENCHES,
+        transports="initramfs",
+        timeout_env="SPECINT_TRAIN_ALL_TIMEOUT",
+        timeout_default=1800,
+        description="all SPECint train-input breadth gate",
     ),
 }
 
 PROFILE_SUITES: dict[str, tuple[str, ...]] = {
     "smoke": ("test-smoke",),
     "pr": ("test-smoke", "train-smoke"),
+    "train": ("train-all",),
     "nightly": (
         "test-smoke",
         "train-smoke",
@@ -148,12 +171,29 @@ def _env_int(name: str, default: int) -> int:
         raise SystemExit(f"error: {name} must be an integer, got {value!r}") from exc
 
 
+def _env_float(name: str, default: float) -> float:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        return default
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise SystemExit(f"error: {name} must be a number, got {value!r}") from exc
+
+
 def _default_qemu() -> str:
     env = os.environ.get("QEMU", "").strip()
     if env:
         return str(Path(os.path.expanduser(env)).resolve())
     qemu = default_qemu_binary(REPO_ROOT)
     return str(qemu.resolve())
+
+
+def _runner_supports_option(runner: Path, option: str) -> bool:
+    try:
+        return option in runner.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
 
 
 def _select_suites(profile: str, requested: list[str]) -> list[Suite]:
@@ -193,6 +233,10 @@ def _suite_command(
     out_dir: Path,
     append_extra: str,
     heartbeat_sec: float,
+    qemu_heartbeat_interval: int,
+    no_progress_timeout: float,
+    forward_qemu_heartbeat: bool,
+    forward_no_progress: bool,
     guest_heartbeat_sec: int,
     dump_prefix_bytes: int,
     transports_override: str,
@@ -228,6 +272,10 @@ def _suite_command(
         "--out-dir",
         str(out_dir / suite.name),
     ]
+    if forward_qemu_heartbeat:
+        cmd.extend(["--qemu-heartbeat-interval", str(qemu_heartbeat_interval)])
+    if forward_no_progress:
+        cmd.extend(["--no-progress-timeout", str(no_progress_timeout)])
     for bench in suite.benches:
         cmd.extend(["--bench", bench])
     return cmd
@@ -276,6 +324,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out-dir", default=str(REPO_ROOT / "workloads" / "generated" / "specint-fast-gate"))
     parser.add_argument("--append-extra", default=os.environ.get("SPEC_APPEND_EXTRA", os.environ.get("LINX_SPEC_APPEND_EXTRA", "norandmaps")))
     parser.add_argument("--heartbeat-sec", type=float, default=float(os.environ.get("SPEC_HEARTBEAT_SEC", os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30"))))
+    parser.add_argument("--qemu-heartbeat-interval", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_INTERVAL", _env_int("LINX_SPEC_QEMU_HEARTBEAT_INTERVAL", 0)))
+    parser.add_argument("--no-progress-timeout", type=float, default=_env_float("SPEC_NO_PROGRESS_TIMEOUT", _env_float("LINX_SPEC_NO_PROGRESS_TIMEOUT", 0.0)))
     parser.add_argument("--guest-heartbeat-sec", type=int, default=_env_int("SPEC_GUEST_HEARTBEAT_SEC", _env_int("LINX_SPEC_GUEST_HEARTBEAT_SEC", 60)))
     parser.add_argument("--dump-prefix-bytes", type=int, default=_env_int("SPEC_DUMP_PREFIX_BYTES", _env_int("LINX_SPEC_DUMP_PREFIX_BYTES", 0)))
     parser.add_argument("--transports", default="", help="Override each suite transport list, e.g. initramfs or 9p,initramfs.")
@@ -285,6 +335,10 @@ def main(argv: list[str]) -> int:
 
     if args.heartbeat_sec < 0:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
+    if args.qemu_heartbeat_interval < 0:
+        raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.no_progress_timeout < 0:
+        raise SystemExit("error: --no-progress-timeout must be >= 0")
     if args.guest_heartbeat_sec < 0:
         raise SystemExit("error: --guest-heartbeat-sec must be >= 0")
     if args.dump_prefix_bytes < 0:
@@ -302,6 +356,21 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"error: missing SPEC dir: {spec_dir}")
     if not qemu.exists():
         raise SystemExit(f"error: missing QEMU binary: {qemu}")
+
+    runner_has_qemu_heartbeat = _runner_supports_option(runner, "--qemu-heartbeat-interval")
+    runner_has_no_progress = _runner_supports_option(runner, "--no-progress-timeout")
+    if args.qemu_heartbeat_interval and not runner_has_qemu_heartbeat:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--qemu-heartbeat-interval; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the heartbeat switch"
+        )
+    if args.no_progress_timeout and not runner_has_no_progress:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--no-progress-timeout; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the no-progress switch"
+        )
 
     suites = _select_suites(args.profile, args.suite)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -322,6 +391,10 @@ def main(argv: list[str]) -> int:
             out_dir=out_dir,
             append_extra=args.append_extra,
             heartbeat_sec=args.heartbeat_sec,
+            qemu_heartbeat_interval=args.qemu_heartbeat_interval,
+            no_progress_timeout=args.no_progress_timeout,
+            forward_qemu_heartbeat=runner_has_qemu_heartbeat,
+            forward_no_progress=runner_has_no_progress,
             guest_heartbeat_sec=args.guest_heartbeat_sec,
             dump_prefix_bytes=args.dump_prefix_bytes,
             transports_override=args.transports,
@@ -372,6 +445,8 @@ def main(argv: list[str]) -> int:
         "qemu": str(qemu),
         "sysroot": str(sysroot),
         "append_extra": args.append_extra,
+        "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
+        "no_progress_timeout": args.no_progress_timeout,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "suites": rows,
     }

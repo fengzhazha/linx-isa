@@ -196,6 +196,96 @@ disappears from the sampled CFI validation stack:
 | `linx_is_bstart_at_addr` | 350 | 198 |
 | `probe_access_flags` | 0 | 140 |
 
+## 2026-06-28 BPC Heartbeat And Train-All Triage
+
+QEMU commit `04224b301cea` adds an opt-in Linx heartbeat in the QEMU log.
+Set either `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL` to a
+nonzero instruction-count interval. When enabled, QEMU emits `LINX_HEARTBEAT`
+records with host time, instruction count, count delta, PC, BPC, body TPC,
+branch state, selected argument registers, and `same_site`. A high or growing
+`same_site` value means the same `(pc, bpc, tpc)` location is recurring at
+heartbeat boundaries; changing BPC/PC with increasing count means the guest is
+still executing and should be treated as slow, not deadlocked.
+
+The SPEC fast gate now has an explicit `train` profile, backed by a `train-all`
+suite covering all current Linx SPECint rate benchmarks:
+
+- `500.perlbench_r`
+- `502.gcc_r`
+- `505.mcf_r`
+- `520.omnetpp_r`
+- `523.xalancbmk_r`
+- `525.x264_r`
+- `531.deepsjeng_r`
+- `541.leela_r`
+- `557.xz_r`
+- `999.specrand_ir`
+
+Run command:
+
+```bash
+SPECINT_TRAIN_ALL_TIMEOUT=900 \
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile train \
+  --out-dir workloads/generated/specint-train-all-20260628-heartbeat \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --append-extra norandmaps \
+  --guest-heartbeat-sec 0 \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 1000000000 \
+  --no-progress-timeout 180 \
+  --continue-on-fail
+```
+
+Artifacts:
+
+- `workloads/generated/specint-train-all-20260628-heartbeat/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-heartbeat/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/stage_b_summary.json`
+
+Result: `999.specrand_ir` passed. The other nine benchmarks are now classified
+by first failing symptom:
+
+| Benchmark | Result | Evidence | Current classification |
+| --- | --- | --- | --- |
+| `500.perlbench_r` | fail | `LINX_SPEC_FAIL execve rc=1 errno=2` | `execve`/ELF loader path |
+| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | fd/syscall/libc file-I/O path |
+| `505.mcf_r` | timeout at 900s | last count `188000000001`, changing BPC | running too slowly, not deadlocked |
+| `520.omnetpp_r` | user trap | trap at `addr=0x27b010`, `a0=0x27b000` | C++ runtime/codegen/relocation path |
+| `523.xalancbmk_r` | user trap | trap at `addr=0x4f5010`, `a0=0x4f5000` | C++ runtime/codegen/relocation path |
+| `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648` | early kernel/initramfs path |
+| `531.deepsjeng_r` | timeout at 900s | last count `142000000000`, changing BPC | running too slowly, not deadlocked |
+| `541.leela_r` | user trap | trap at `addr=0xffffffffffffffe8` | C++/object pointer or call/return path |
+| `557.xz_r` | timeout at 900s | last count `154000000042`, changing BPC | running too slowly, not deadlocked |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir` | smoke sentinel closed |
+
+Proposed next fixes:
+
+1. Keep the QEMU heartbeat disabled by default, but enable it on long train
+   runs to distinguish live progress from deadlock. Use BPC/PC churn plus
+   `same_site` before increasing timeouts.
+2. Profile `505.mcf_r`, `531.deepsjeng_r`, and `557.xz_r` with heartbeat off
+   or at a very coarse interval. These workloads are live but too slow; the
+   next QEMU speedups should focus on page-local BSTART decode caching, TB
+   chaining, and avoiding helper probes in hot branch-validation paths.
+3. Rerun `500.perlbench_r` with the new init wrapper pre-exec probe. If guest
+   `stat/open/read` succeeds but `execve` still returns `ENOENT`, instrument
+   Linux `binfmt_elf` and path lookup around static PIE, no-interpreter
+   `ET_DYN` loading.
+4. Add a targeted syscall trace for `502.gcc_r` around
+   `openat/read/lseek/fstat/close` on `200.c`; validate fd-table state and
+   musl errno propagation before changing benchmark packaging.
+5. Symbolize the C++ traps in `520.omnetpp_r`, `523.xalancbmk_r`, and
+   `541.leela_r` against the static benchmark ELFs, then inspect static C++
+   runtime relocations, constructors, TLS, exception/unwind setup, and
+   call/return ABI state.
+6. Reproduce `525.x264_r` with the same initramfs footprint but a tiny payload,
+   symbolize `0xffffffff80001648`, and inspect early unpack/page-allocation
+   paths before treating it as an x264 userspace failure.
+7. Keep `train-all` opt-in through `--profile train`; the PR gate should stay
+   on cheap `999.specrand_ir` smoke while stress workloads run in isolated
+   nightly or diagnostic lanes.
+
 ## Next Speedups
 
 1. Add a page-local BSTART decode cache with explicit TB/text invalidation.
