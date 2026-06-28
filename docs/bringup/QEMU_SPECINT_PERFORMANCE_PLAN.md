@@ -198,11 +198,11 @@ disappears from the sampled CFI validation stack:
 
 ## 2026-06-28 BPC Heartbeat And Train-All Triage
 
-QEMU commit `04224b301cea` adds an opt-in Linx heartbeat in the QEMU log.
-Set either `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL` to a
-nonzero instruction-count interval. When enabled, QEMU emits `LINX_HEARTBEAT`
-records with host time, instruction count, count delta, PC, BPC, body TPC,
-branch state, selected argument registers, and `same_site`. A high or growing
+Current Linx QEMU adds an opt-in Linx heartbeat in the QEMU log. Set either
+`LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL` to a nonzero
+instruction-count interval. When enabled, QEMU emits `LINX_HEARTBEAT` records
+with host time, instruction count, count delta, PC, BPC, body TPC, branch
+state, selected argument registers, and `same_site`. A high or growing
 `same_site` value means the same `(pc, bpc, tpc)` location is recurring at
 heartbeat boundaries; changing BPC/PC with increasing count means the guest is
 still executing and should be treated as slow, not deadlocked.
@@ -234,8 +234,22 @@ Additional opt-in QEMU debug switches used during this pass:
   with syscall number, BPC/TPC, arguments, return value, and cstate. Narrow
   with `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_LIMIT`, and
   `LINX_SYSCALL_TRACE_PC_LO/HI`.
+- `LINX_SYSCALL_TRACE_STRINGS=1` augments syscall tracing with separate
+  `LINX_SYSCALL_ARGSTR` records for pathname arguments. Bound reads with
+  `LINX_SYSCALL_TRACE_STRING_MAX=<1..255>` so path/fd failures can be
+  diagnosed without enabling full memory traces.
 
-Run command:
+Static build command:
+
+```bash
+MODE=phase-b \
+bash tools/spec2017/build_int_rate_linx.sh \
+  --force-static \
+  --jobs 10 \
+  --emit-manifest workloads/generated/specint-train-all-20260628-static/build-manifest-v2.json
+```
+
+Static train-all run command:
 
 ```bash
 SPECINT_TRAIN_ALL_TIMEOUT=600 \
@@ -244,7 +258,7 @@ LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
 LINX_SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
-  --out-dir workloads/generated/specint-train-all-20260628-debug-v2 \
+  --out-dir workloads/generated/specint-train-all-20260628-static \
   --qemu emulator/qemu/build-linx/qemu-system-linx64 \
   --append-extra norandmaps \
   --guest-heartbeat-sec 0 \
@@ -256,29 +270,37 @@ python3 tools/bringup/run_specint_fast_gate.py \
 
 Artifacts:
 
-- `workloads/generated/specint-train-all-20260628-debug-v2/specint_fast_gate_summary.json`
-- `workloads/generated/specint-train-all-20260628-debug-v2/train-all/qemu_matrix_summary.json`
-- `workloads/generated/specint-train-all-20260628-debug-v2/train-all/initramfs/stage_b_summary.json`
-- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-505-train-debug-v2.sample.txt`
-- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-557-train-debug-v2.sample.txt`
-- `workloads/generated/specint-train-postdebug-classifier-20260628/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-static/build-manifest-v2.json`
+- `workloads/generated/specint-train-all-20260628-static/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-static/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-after-kstat/specint_fast_gate_summary.json`
+- `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
 
-Result: `999.specrand_ir` passed. The other nine train-input benchmarks are
-now classified by first failing symptom. Timeouts with changing BPC/count are
+Result: all ten train-input benchmarks build in the static phase-b gate.
+`999.specrand_ir` passes. The other nine train-input benchmarks are now
+classified by first failing symptom. Timeouts with changing BPC/count are
 live-slow results, not deadlocks:
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | timeout at 600s | last count `68000000001`, changing kernel BPC | running too slowly in fixed wrapper; focused run reaches Perl BigInt user code |
-| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | fd/syscall/libc file-I/O path |
-| `505.mcf_r` | timeout at 600s | last count `101000000009`, changing user BPC | running too slowly, not deadlocked |
+| `500.perlbench_r` | fail | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675` | Perl integer/range or compiler/libc conversion path |
+| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | static fd/syscall/libc file-I/O path |
+| `505.mcf_r` | timeout at 600s | last count `137000000002`, BPC `0x155555cbac` | running too slowly, not deadlocked |
 | `520.omnetpp_r` | user trap | trap at `addr=0x27b010`, `a0=0x27b000` | C++ runtime/codegen/relocation path |
 | `523.xalancbmk_r` | user trap | trap at `addr=0x4f5010`, `a0=0x4f5000` | C++ runtime/codegen/relocation path |
 | `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648` | early kernel/initramfs path |
-| `531.deepsjeng_r` | timeout at 600s | last count `77000000014`, changing user BPC | running too slowly, not deadlocked |
+| `531.deepsjeng_r` | timeout at 600s | last count `83000000021`, BPC `0x15555683b4` | running too slowly, not deadlocked |
 | `541.leela_r` | user trap | trap at `addr=0xffffffffffffffe8` | C++/object pointer or call/return path |
-| `557.xz_r` | timeout at 600s | last count `90000000005`, changing user BPC | running too slowly, not deadlocked |
+| `557.xz_r` | timeout at 600s | last count `105000000029`, BPC `0x15555712ca` | running too slowly, not deadlocked |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir` | smoke sentinel closed |
+
+The shared-runtime diagnostic run in
+`workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
+all ten benchmarks quickly, including `999.specrand_ir`. That route is useful
+for loader/libc diagnosis but is not the current SPEC correctness gate. The
+static phase-b route is the baseline for benchmark correctness while shared
+startup and C++ runtime packaging are being repaired.
 
 The SPEC loop now records bounded failure classes in both
 `stage_b_summary.json` and `qemu_matrix_summary.md`. A post-rebuild focused
@@ -300,8 +322,9 @@ Proposed next fixes:
    symptoms are now separated and fixed in the flow; the focused current stop
    is Perl BigInt range handling after file I/O succeeds.
 4. Add a targeted syscall trace for `502.gcc_r` around
-   `openat/read/lseek/fstat/close` on `200.c`; validate fd-table state and
-   musl errno propagation before changing benchmark packaging.
+   `openat/read/lseek/fstat/newfstatat/readlinkat/close` on `200.c`; validate
+   fd-table state, static `libc.a` rebuild state, `kstat` layout, and musl
+   errno propagation before changing benchmark packaging.
 5. Symbolize the C++ traps in `520.omnetpp_r`, `523.xalancbmk_r`, and
    `541.leela_r` against the static benchmark ELFs, then inspect static C++
    runtime relocations, constructors, TLS, exception/unwind setup, and
@@ -373,14 +396,21 @@ Next 500-specific solution path:
 
 ## Next Speedups
 
-Current train-all diagnostic profile:
+Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-505-train-debug-v2.sample.txt`
-  sampled the live `505.mcf_r` train run for five seconds.
-- `workloads/generated/specint-train-all-20260628-debug-v2/profile/qemu-557-train-debug-v2.sample.txt`
-  sampled the live `557.xz_r` train run for five seconds.
-- These pre-rebuild diagnostic samples include `helper_linx_scalar_read_reg`,
-  `helper_linx_tq_push`, `helper_linx_heartbeat`, `helper_linx_tile_commit`,
+- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/505_mcf_r/run_001/qemu.log`
+  last heartbeat: count `137000000002`, BPC `0x155555cbac`, PC
+  `0x155555cc4e`.
+- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
+  last heartbeat: count `83000000021`, BPC `0x15555683b4`, PC
+  `0x1555568408`.
+- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/557_xz_r/run_001/qemu.log`
+  last heartbeat: count `105000000029`, BPC `0x15555712ca`, PC
+  `0x15555713c6`.
+- Earlier diagnostic samples in
+  `workloads/generated/specint-train-all-20260628-debug-v2/profile/` included
+  `helper_linx_scalar_read_reg`, `helper_linx_tq_push`,
+  `helper_linx_heartbeat`, `helper_linx_tile_commit`,
   `helper_linx_template_step`, `helper_linx_uq_push`,
   `helper_linx_check_bstart_target`, and disabled trace initialization checks
   (`linx_cosim_init`, `linx_call_trace_init`, `linx_minst_trace_init`,
