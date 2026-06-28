@@ -19,6 +19,7 @@
   Command: `python3 avs/qemu/run_musl_smoke.py --mode phase-b --link both`
   Done means: summary json for static/shared reports `ok=true`.
   Status: ❌ FAIL (2026-06-28 local) - `python3 avs/qemu/run_musl_smoke.py --mode phase-b --link both --sample all --qemu emulator/qemu/build-linx/qemu-system-linx64 --timeout 90` reports `runtime_mode_failure` (`avs/qemu/out/musl-smoke/summary.json`). Static runtime passes `malloc_printf`, `hello`, `callret`, fork/exec samples, `printf_string_arg`, `file_stdio`, and `cpp17_smoke`, then times out in `ebarg_timer` after `SEBARG_INIT_START`. Shared runtime passes `malloc_printf`, `hello`, `callret`, and `fork_wait`, then times out in `fork_wait_raw_exit` with a kernel Oops before init is killed. Proposed solution: isolate `ebarg_timer` first with timer/EBARG heartbeat tracing, and isolate shared `fork_wait_raw_exit` with syscall/fork breadcrumbs plus kernel symbolization of `tpc=0xffffffff80174a4c` before treating SPEC shared-runtime failures as benchmark-local.
+  Focused pass: `python3 avs/qemu/run_musl_smoke.py --mode phase-b --link static --sample time_syscalls --qemu emulator/qemu/build-linx/qemu-system-linx64 --timeout 60 --out-dir avs/qemu/out/musl-time-syscalls-20260628` passes after the Linx `gettimeofday` copyout fix. This guards the legacy time syscall path that previously returned `-EFAULT` in `502.gcc_r`.
 
 - [x] ID: LIBC-004 Keep runtime status evidence updated in bring-up gate artifacts.
   Done means: gate report rows include evidence links for musl/glibc runtime checks.

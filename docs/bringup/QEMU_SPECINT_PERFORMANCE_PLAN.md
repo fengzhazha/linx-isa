@@ -268,14 +268,38 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --continue-on-fail
 ```
 
+Latest rerun after the Linx Linux `gettimeofday` copyout fix:
+
+```bash
+SPECINT_TRAIN_ALL_TIMEOUT=600 \
+LINX_SPEC_HEARTBEAT_SEC=30 \
+LINX_SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
+LINX_SPEC_NO_PROGRESS_TIMEOUT=180 \
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile train \
+  --out-dir workloads/generated/specint-train-all-20260628-after-gtod \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --append-extra norandmaps \
+  --guest-heartbeat-sec 0 \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 1000000000 \
+  --no-progress-timeout 180 \
+  --continue-on-fail
+```
+
 Artifacts:
 
 - `workloads/generated/specint-train-all-20260628-static/build-manifest-v2.json`
 - `workloads/generated/specint-train-all-20260628-static/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260628-static/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-after-gtod/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-after-gtod/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-train-all-20260628-after-kstat/specint_fast_gate_summary.json`
 - `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
+- `workloads/generated/specint-502-static-fulltrace-post-gtod-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
+- `avs/qemu/out/musl-time-syscalls-20260628/summary.json`
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
 `999.specrand_ir` passes. The other nine train-input benchmarks are now
@@ -285,14 +309,14 @@ live-slow results, not deadlocks:
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
 | `500.perlbench_r` | fail | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675` | Perl integer/range or compiler/libc conversion path |
-| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | static fd/syscall/libc file-I/O path |
-| `505.mcf_r` | timeout at 600s | last count `137000000002`, BPC `0x155555cbac` | running too slowly, not deadlocked |
+| `502.gcc_r` | fail | `fatal error: 200.c: Bad file number`; post-fix syscall trace has no `-EBADF` syscall return | static userspace errno/file-state corruption, not kernel fd-table failure |
+| `505.mcf_r` | timeout at 600s | last count `111000000000`, BPC `0x155555c8dc` | running too slowly, not deadlocked |
 | `520.omnetpp_r` | user trap | trap at `addr=0x27b010`, `a0=0x27b000` | C++ runtime/codegen/relocation path |
 | `523.xalancbmk_r` | user trap | trap at `addr=0x4f5010`, `a0=0x4f5000` | C++ runtime/codegen/relocation path |
 | `525.x264_r` | panic | `LINX_PANIC caller=0xffffffff80001648` | early kernel/initramfs path |
-| `531.deepsjeng_r` | timeout at 600s | last count `83000000021`, BPC `0x15555683b4` | running too slowly, not deadlocked |
+| `531.deepsjeng_r` | timeout at 600s | last count `80000000029`, BPC `0x155555b576` | running too slowly, not deadlocked |
 | `541.leela_r` | user trap | trap at `addr=0xffffffffffffffe8` | C++/object pointer or call/return path |
-| `557.xz_r` | timeout at 600s | last count `105000000029`, BPC `0x15555712ca` | running too slowly, not deadlocked |
+| `557.xz_r` | timeout at 600s | last count `106000000002`, BPC `0x15555710f0` | running too slowly, not deadlocked |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir` | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -321,10 +345,12 @@ Proposed next fixes:
    `errno=2`, usercopy Oops, null `filelock_cache`, and inherited-stdin
    symptoms are now separated and fixed in the flow; the focused current stop
    is Perl BigInt range handling after file I/O succeeds.
-4. Add a targeted syscall trace for `502.gcc_r` around
-   `openat/read/lseek/fstat/newfstatat/readlinkat/close` on `200.c`; validate
-   fd-table state, static `libc.a` rebuild state, `kstat` layout, and musl
-   errno propagation before changing benchmark packaging.
+4. Continue `502.gcc_r` from the post-`gettimeofday` trace. Syscall 169 now
+   returns `0`, `200.c` opens as fd 3, fd/procfd status checks succeed, and
+   the trace contains no `-EBADF` syscall return. The next target is
+   userspace state: symbolize/instrument `cpp_files.c:open_file` and
+   `open_file_failed`, then validate static musl errno/TLS and the compiler
+   codegen that stores `file->err_no`.
 5. Symbolize the C++ traps in `520.omnetpp_r`, `523.xalancbmk_r`, and
    `541.leela_r` against the static benchmark ELFs, then inspect static C++
    runtime relocations, constructors, TLS, exception/unwind setup, and
@@ -398,15 +424,15 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/505_mcf_r/run_001/qemu.log`
-  last heartbeat: count `137000000002`, BPC `0x155555cbac`, PC
-  `0x155555cc4e`.
-- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
-  last heartbeat: count `83000000021`, BPC `0x15555683b4`, PC
-  `0x1555568408`.
-- `workloads/generated/specint-train-all-20260628-static/train-all/initramfs/557_xz_r/run_001/qemu.log`
-  last heartbeat: count `105000000029`, BPC `0x15555712ca`, PC
-  `0x15555713c6`.
+- `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/505_mcf_r/run_001/qemu.log`
+  last heartbeat: count `111000000000`, BPC `0x155555c8dc`, PC
+  `0x155555c8ee`.
+- `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
+  last heartbeat: count `80000000029`, BPC `0x155555b576`, PC
+  `0x155555b60c`.
+- `workloads/generated/specint-train-all-20260628-after-gtod/train-all/initramfs/557_xz_r/run_001/qemu.log`
+  last heartbeat: count `106000000002`, BPC `0x15555710f0`, PC
+  `0x15555710f8`.
 - Earlier diagnostic samples in
   `workloads/generated/specint-train-all-20260628-debug-v2/profile/` included
   `helper_linx_scalar_read_reg`, `helper_linx_tq_push`,

@@ -72,6 +72,11 @@ SAMPLES: dict[str, dict[str, str]] = {
         "start": "MUSL_FILE_STDIO_START",
         "pass": "MUSL_FILE_STDIO_PASS",
     },
+    "time_syscalls": {
+        "src": "linux_musl_time_syscalls.c",
+        "start": "MUSL_TIME_SYSCALLS_START",
+        "pass": "MUSL_TIME_SYSCALLS_PASS",
+    },
     "cpp17_smoke": {
         "src": "linux_musl_cpp17_smoke.cpp",
         "start": "MUSL_CPP17_START",
