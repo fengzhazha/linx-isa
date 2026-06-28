@@ -248,7 +248,7 @@ by first failing symptom:
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | fail | `LINX_SPEC_FAIL execve rc=1 errno=2` | `execve`/ELF loader path |
+| `500.perlbench_r` | fail | pre-exec `stat/open/read` succeeds; later `kmem_cache_alloc_noprof` Oops | Linux exec/mm allocation path |
 | `502.gcc_r` | fail | `fatal error: 200.c: Bad file number` | fd/syscall/libc file-I/O path |
 | `505.mcf_r` | timeout at 900s | last count `188000000001`, changing BPC | running too slowly, not deadlocked |
 | `520.omnetpp_r` | user trap | trap at `addr=0x27b010`, `a0=0x27b000` | C++ runtime/codegen/relocation path |
@@ -268,10 +268,12 @@ Proposed next fixes:
    or at a very coarse interval. These workloads are live but too slow; the
    next QEMU speedups should focus on page-local BSTART decode caching, TB
    chaining, and avoiding helper probes in hot branch-validation paths.
-3. Rerun `500.perlbench_r` with the new init wrapper pre-exec probe. If guest
-   `stat/open/read` succeeds but `execve` still returns `ENOENT`, instrument
-   Linux `binfmt_elf` and path lookup around static PIE, no-interpreter
-   `ET_DYN` loading.
+3. Continue `500.perlbench_r` from the narrowed Linux exec/mm blocker. The
+   original `errno=2` symptom was a harness-side classification artifact:
+   guest pre-exec `stat/open/read` succeeds on the benchmark ELF. A Linx Linux
+   fixup parser update then moved the failure past the first usercopy Oops.
+   The current stop is a null cache pointer in `kmem_cache_alloc_noprof`
+   during `execve`.
 4. Add a targeted syscall trace for `502.gcc_r` around
    `openat/read/lseek/fstat/close` on `200.c`; validate fd-table state and
    musl errno propagation before changing benchmark packaging.
@@ -285,6 +287,44 @@ Proposed next fixes:
 7. Keep `train-all` opt-in through `--profile train`; the PR gate should stay
    on cheap `999.specrand_ir` smoke while stress workloads run in isolated
    nightly or diagnostic lanes.
+
+## 2026-06-28 500 Fixup Triage
+
+Focused `500.perlbench_r` runs separated the original loader-looking symptom
+from the real kernel failures:
+
+- `workloads/generated/specint-500-preexec-20260628/` proves the benchmark ELF
+  exists in the initramfs and is readable before `execve`
+  (`stat=0`, `open=6`, `read4=4`, ELF magic `0x7f454c46`).
+- The first focused failure was a Linux Oops in `sys_fcntl` usercopy with BPC
+  at `HL.BSTART.STD FALL<, fixup_label>`. The old Linux `fixup_exception`
+  path only recognized legacy 128-bit block headers with the fixup attribute.
+- `arch/linx/mm/extable.c` now recognizes the current v0.56 32-bit and
+  48-bit `BSTART.{STD,SYS,FP} FALL` fixup encodings before falling back to the
+  legacy header parser. Zero-offset FALL blocks are deliberately ignored so
+  ordinary fallthrough blocks are not converted into recovery handlers.
+- `workloads/generated/specint-500-fixup-20260628/` confirms that the first
+  usercopy fixup blocker moved: the failure now reaches
+  `kmem_cache_alloc_noprof` at `tpc=0xffffffff80102a96`,
+  `bpc=0xffffffff80102a74`, with `a0=0`, `a1=0`, and
+  `traparg0=0x24`.
+- `workloads/generated/specint-500-kmalloc-centered-trace-20260628/` records
+  the current QEMU `LINX_FAULT_TRACE` stop. The heartbeat count is still
+  advancing until the Oops, so this is a deterministic kernel fault rather
+  than a deadlock.
+
+Next 500-specific solution path:
+
+1. Add a kernel-side allocation caller breadcrumb or a QEMU fault-triggered
+   call-trace ring so the final caller of `kmem_cache_alloc_noprof(NULL, ...)`
+   is captured in the same failing run.
+2. Inspect exec/mm cache pointer initialization and relocation state around
+   `vm_area_cachep`, maple-tree node caches, anon-vma/rmap caches, and file
+   table caches. The observed trap is a null slab-cache dereference, not a
+   missing benchmark path.
+3. Keep the v0.56 fixup parser as a prerequisite for all uaccess-heavy SPEC
+   work; without it, normal faultable usercopy recovery is misclassified as an
+   unhandled kernel page fault.
 
 ## Next Speedups
 

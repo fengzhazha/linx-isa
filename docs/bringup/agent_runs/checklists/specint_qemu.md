@@ -15,10 +15,20 @@
 - [x] ID: SPEC-M05-SMOKE `999.specrand_ir` train input passes under the all-train run.
   Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/999_specrand_ir/run_001/qemu.log` contains `LINX_SPEC_PASS 999.specrand_ir`.
 
-- [ ] ID: SPEC-M05-EXECVE-500 `500.perlbench_r` must exec its static PIE image.
-  Current blocker: `execve("./perlbench_r_base.mytest-m64")` returns `errno=2`.
-  Evidence: `workloads/generated/specint-train-all-20260628-heartbeat/train-all/initramfs/500_perlbench_r/run_001/qemu.log`.
-  Next probe: use the init-wrapper pre-exec `stat/open/read` diagnostics; if those succeed, instrument Linux `binfmt_elf` for no-interpreter `ET_DYN` and path lookup.
+- [x] ID: SPEC-M05-EXECVE-500 `500.perlbench_r` static PIE is present and readable before `execve`.
+  Resolution: the original `errno=2` classification was narrowed by the init-wrapper pre-exec probe; the benchmark path is valid in the initramfs.
+  Evidence: `workloads/generated/specint-500-preexec-20260628/initramfs/500_perlbench_r/run_001/qemu.log` shows `stat=0`, `open=6`, `read4=4`, and ELF magic `0x7f454c46`.
+  Follow-up: `500.perlbench_r` remains blocked by later Linux exec/mm faults tracked below.
+
+- [x] ID: SPEC-M05-FIXUP-500 Linx Linux recognizes v0.56 faultable usercopy fixup blocks.
+  Resolution: `arch/linx/mm/extable.c` now accepts nonzero-offset 32-bit and 48-bit `BSTART.{STD,SYS,FP} FALL<, fixup_label>` fixup encodings before the legacy 128-bit block-header fallback.
+  Evidence: `workloads/generated/specint-500-fixup-20260628/initramfs/500_perlbench_r/run_001/qemu.log` no longer stops at the earlier `sys_fcntl` usercopy `HL.BSTART.STD FALL` Oops.
+  Verification: `run_linux_vmlinux_build_clean.sh --target vmlinux` rebuilt `kernel/linux/build-linx-fixed/vmlinux`; focused 500 rerun advanced to a different Oops.
+
+- [ ] ID: SPEC-M05-KMALLOC-500 `500.perlbench_r` must complete `execve` without null-cache allocation Oops.
+  Current blocker: `kmem_cache_alloc_noprof` faults at `tpc=0xffffffff80102a96`, `bpc=0xffffffff80102a74`, with `a0=0`, `a1=0`, and `traparg0=0x24`.
+  Evidence: `workloads/generated/specint-500-kmalloc-centered-trace-20260628/initramfs/500_perlbench_r/run_001/qemu.log` contains the current `LINX_FAULT_TRACE` and `LINX_DIE`; `workloads/generated/specint-500-fixup-20260628/initramfs/stage_b_summary.json` records the focused run shape.
+  Next probe: capture the final allocation caller with a kernel breadcrumb or QEMU fault-triggered call-trace ring, then inspect exec/mm slab cache pointer initialization and relocation state.
 
 - [ ] ID: SPEC-M05-FD-502 `502.gcc_r` must read `200.c` correctly.
   Current blocker: `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`.
