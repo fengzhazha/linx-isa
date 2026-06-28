@@ -367,7 +367,7 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
   --qemu emulator/qemu/build-linx/qemu-system-linx64 \
   --sysroot out/libc/musl/install/phase-b \
-  --out-dir workloads/generated/specint-train-all-20260628-qemu-context-r1 \
+  --out-dir workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1 \
   --append-extra norandmaps \
   --guest-heartbeat-sec 0 \
   --heartbeat-sec 30 \
@@ -409,6 +409,9 @@ Artifacts:
 - `workloads/generated/specint-train-all-20260628-qemu-context-r1/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-heartbeat-regs-smoke-20260628/qemu_matrix_summary.json`
 - `workloads/generated/specint-heartbeat-regs-smoke-20260628/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-pcwatch-regs-smoke-20260628-r1/qemu_matrix_summary.json`
@@ -434,16 +437,16 @@ the launcher raises `RLIMIT_STACK`.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | user range error | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; last heartbeat count `3350000000`, BPC `0x15555fd0a2`, `progress=site-change` | reaches Perl user code; continue from BigInt/runtime integer range behavior |
-| `502.gcc_r` | user trap | `addr=0x10`, `tpc=0x1556074e88`, `bpc=0x1556074e80`; last heartbeat count `5650000003`, BPC `0xffffffff801f349a`, `progress=site-change` | fd/stat-copyout symptom is resolved; continue from the allocator/VM overlap around `brk` frontier `0x1556273000` |
-| `505.mcf_r` | user trap | `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`; last heartbeat count `1300000000`, BPC `0xffffffff800fb862` | deterministic small-pointer userspace trap in `fflush`; focused fault regs show corrupted stdio/open-file state |
-| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000001`, BPC `0xffffffff803dde02`, `progress=same-site` | C++ object/callback path after allocator growth succeeds |
-| `523.xalancbmk_r` | live timeout at 180s | last heartbeat count `28900000000`, BPC `0xffffffff803dde02`, `progress=same-site`, recent unique sites `6`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget; first symbolize the recurring kernel loop |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `21150000007`, BPC `0xffffffff803e8f4c`, `progress=site-change`, recent unique sites `5`, `stalled=false` | latest run no longer reproduces the prior early panic; current owner is throughput/live-progress |
-| `531.deepsjeng_r` | user trap | branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`; last heartbeat count `6700000001`, BPC `0xffffffff800f5b30` | deterministic indirect-control/target-state userspace trap |
-| `541.leela_r` | live timeout at 180s | last heartbeat count `15550000002`, BPC `0xffffffff80048fae`, `progress=site-change`, recent unique sites `7`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget; first symbolize the recurring kernel breadcrumb if present |
-| `557.xz_r` | user trap | `addr=0x04000415794a241f`, `tpc=0x155557fae8`, `bpc=0x155557fada`; last heartbeat count `9050000004`, BPC `0xffffffff800f6112` | reaches later xz execution and fails by deterministic bad-address trap |
-| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `450000000`, BPC `0xffffffff803dde02` | smoke sentinel closed |
+| `500.perlbench_r` | user range error | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; last heartbeat count `3350000001`, BPC `0x15556ec224`, `progress=site-change` | reaches Perl user code; continue from BigInt/runtime integer range behavior |
+| `502.gcc_r` | user trap | `addr=0x10`, `tpc=0x1556074e88`, `bpc=0x1556074e80`; last heartbeat count `5650000001`, BPC `0xffffffff801f346c`, `progress=site-change` | fd/stat-copyout symptom is resolved; continue from the allocator/VM overlap around `brk` frontier `0x1556273000`; latest focused trace proves overlapping chunks at `0x1556276010/0x1556276030` |
+| `505.mcf_r` | user trap | `addr=0x19`, `tpc=0x155555b860`, `bpc=0x155555b85a`; last heartbeat count `1300000010`, BPC `0xffffffff800fb0ba` | deterministic small-pointer userspace trap in `fflush`; focused fault regs show corrupted stdio/open-file state |
+| `520.omnetpp_r` | user trap | `addr=0`, `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000003`, BPC `0xffffffff803dde02`, `progress=site-change` | C++ object/callback path after allocator growth succeeds |
+| `523.xalancbmk_r` | live timeout at 180s | last heartbeat count `27850000004`, BPC `0xffffffff80090c62`, `progress=site-change`, recent unique sites `6`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget; first symbolize the recurring kernel loop |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `24050000000`, BPC `0xffffffff803e8f46`, `progress=site-change`, recent unique sites `4`, `stalled=false` | latest run no longer reproduces the prior early panic; current owner is throughput/live-progress |
+| `531.deepsjeng_r` | user trap | branch target trap with `tpc=0`, `bpc=0`, `bpcn=0x1555576390`; last heartbeat count `6700000005`, BPC `0xffffffff800fc628` | deterministic indirect-control/target-state userspace trap |
+| `541.leela_r` | live timeout at 180s | last heartbeat count `11850000002`, BPC `0xffffffff80090e84`, `progress=site-change`, recent unique sites `8`, `stalled=false`, TP nonzero | running too slowly in the 180s diagnostic budget; first symbolize the recurring kernel breadcrumb if present |
+| `557.xz_r` | user trap | `addr=0x04000415794a241f`, `tpc=0x155557fae8`, `bpc=0x155557fada`; last heartbeat count `9050000000`, BPC `0xffffffff800fba2c` | reaches later xz execution and fails by deterministic bad-address trap |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `450000004`, BPC `0xffffffff803dde92` | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
 `workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
@@ -572,7 +575,7 @@ Next 500-specific solution path:
    prerequisites. The kernel Oops and false ENOENT/EBADF symptoms are now
    understood and should not be re-triaged as QEMU deadlocks.
 2. Continue from the current BigInt user-code stop captured by
-   `workloads/generated/specint-train-all-20260628-qemu-context-r1/`. The next loop
+   `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/`. The next loop
    should compare the Linx static musl/compiler path against host SPEC behavior
    around `Math::BigInt.pm:2675` and the range iterator inputs before changing
    kernel/QEMU liveness policy.
@@ -584,18 +587,18 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
-  last heartbeat: count `28900000000`, BPC `0xffffffff803dde02`,
-  `progress=same-site`, recent unique sites `6`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
-  last heartbeat: count `21150000007`, BPC `0xffffffff803e8f4c`,
-  `progress=site-change`, recent unique sites `5`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
-  last heartbeat: count `15550000002`, BPC `0xffffffff80048fae`,
-  `progress=site-change`, recent unique sites `7`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-context-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
+  last heartbeat: count `27850000004`, BPC `0xffffffff80090c62`,
+  `progress=site-change`, recent unique sites `6`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
+  last heartbeat: count `24050000000`, BPC `0xffffffff803e8f46`,
+  `progress=site-change`, recent unique sites `4`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
+  last heartbeat: count `11850000002`, BPC `0xffffffff80090e84`,
+  `progress=site-change`, recent unique sites `8`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
   no longer ends as a live timeout in the latest 180s loop. It reaches a
-  bad-address user trap after heartbeat count `9050000004`; treat it as a
+  bad-address user trap after heartbeat count `9050000000`; treat it as a
   correctness trap before spending more speedup budget on it.
 - Short macOS `sample` captures during the same train-all run are stored under
   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`
