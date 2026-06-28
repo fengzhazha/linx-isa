@@ -139,6 +139,12 @@ fields `heartbeat_running`, `heartbeat_site_progress`, `heartbeat_last_bpc`,
 and `heartbeat_last_progress` to decide whether a timeout is deadlock or live
 slow execution.
 
+Use `LINX_QEMU_HEARTBEAT_CODE_BYTES=<n>` only for focused PC/BPC byte
+snapshots after the summary identifies a narrow failure window. If a temporary
+workload or library instrumentation changes a deterministic failure into a live
+timeout, keep the original uninstrumented run as the canonical blocker and
+record the instrumented run as perturbation evidence.
+
 Use `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` with
 `LINX_SYSCALL_TRACE_NR=<nr>` for focused syscall copyout checks. Pair it with
 `LINX_SYSCALL_TRACE_DUMP_BYTES=<n>` to cap the returned buffer dump; leave the
