@@ -446,6 +446,35 @@ def _choose_init_static(transport: str, sysroot: Path) -> bool:
     return not (sysroot / "lib" / "libc.so").exists()
 
 
+def _spec_stack_limit_defines() -> list[str]:
+    raw = (
+        os.environ.get("LINX_SPEC_STACK_LIMIT_BYTES")
+        or os.environ.get("LINX_SPEC_STACK_LIMIT")
+        or ""
+    ).strip()
+    if not raw:
+        return []
+
+    lowered = raw.lower()
+    if lowered in {"unlimited", "infinity", "inf", "rlim_infinity"}:
+        return ["-DLINX_SPEC_STACK_LIMIT_UNLIMITED=1"]
+    if lowered in {"default", "finite"}:
+        return []
+
+    try:
+        limit = int(raw, 0)
+    except ValueError as exc:
+        raise SystemExit(
+            "error: LINX_SPEC_STACK_LIMIT_BYTES must be an integer byte count "
+            f"or 'unlimited' (got {raw!r})"
+        ) from exc
+    if limit <= 0:
+        raise SystemExit(
+            "error: LINX_SPEC_STACK_LIMIT_BYTES must be positive or 'unlimited'"
+        )
+    return [f"-DLINX_SPEC_STACK_LIMIT_BYTES={limit}ULL"]
+
+
 def _run_dir_requires_guest_shared_runtime(run_dir: Path, exe_names: list[str]) -> bool:
     for exe_name in exe_names:
         exe_path = run_dir / exe_name
@@ -1167,6 +1196,14 @@ def _build_init_for_run(
 #define LINX_SPEC_SELFTEST_FP 0
 #endif
 
+#ifndef LINX_SPEC_STACK_LIMIT_BYTES
+#define LINX_SPEC_STACK_LIMIT_BYTES (256ULL * 1024ULL * 1024ULL)
+#endif
+
+#ifndef LINX_SPEC_STACK_LIMIT_UNLIMITED
+#define LINX_SPEC_STACK_LIMIT_UNLIMITED 0
+#endif
+
 #ifndef LINX_SPEC_IOBUF_SIZE
 #define LINX_SPEC_IOBUF_SIZE 512
 #endif
@@ -1200,6 +1237,27 @@ static long linx_spec_raw_syscall3(long n, long a0, long a1, long a2) {{
       : "=r"(ret)
       : "r"(a0), "r"(a1), "r"(a2), "r"(n)
       : "a0", "a1", "a2", "a7",
+        "x0", "x1", "x2", "x3", "memory");
+
+  return ret;
+}}
+
+static long linx_spec_raw_syscall4(long n, long a0, long a1, long a2, long a3) {{
+  long ret;
+
+  __asm__ volatile(
+      "c.movr %1, ->a0\\n"
+      "c.movr %2, ->a1\\n"
+      "c.movr %3, ->a2\\n"
+      "c.movr %4, ->a3\\n"
+      "c.movr %5, ->a7\\n"
+      "acrc 1\\n"
+      "c.bstop\\n"
+      "C.BSTART\\n"
+      "c.movr a0, ->%0\\n"
+      : "=r"(ret)
+      : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(n)
+      : "a0", "a1", "a2", "a3", "a7",
         "x0", "x1", "x2", "x3", "memory");
 
   return ret;
@@ -1373,8 +1431,36 @@ static void write_log_s64_dec(long long v) {{
 
 static void set_spec_stack_limit(void) {{
   struct rlimit rl;
+#if LINX_SPEC_STACK_LIMIT_UNLIMITED
   rl.rlim_cur = RLIM_INFINITY;
   rl.rlim_max = RLIM_INFINITY;
+#else
+  rl.rlim_cur = (rlim_t)LINX_SPEC_STACK_LIMIT_BYTES;
+  rl.rlim_max = (rlim_t)LINX_SPEC_STACK_LIMIT_BYTES;
+#endif
+#ifdef SYS_prlimit64
+  long prlimit_ret = linx_spec_raw_syscall4(
+      SYS_prlimit64, 0, RLIMIT_STACK, (long)&rl, 0);
+  if (prlimit_ret == 0) {{
+#if LINX_SPEC_STACK_LIMIT_UNLIMITED
+    write_log_cstr("LINX_SPEC_DBG stack-limit=unlimited\\n");
+#else
+    write_log_cstr("LINX_SPEC_DBG stack-limit=");
+    write_log_u64_dec((unsigned long long)LINX_SPEC_STACK_LIMIT_BYTES);
+    write_log_cstr("\\n");
+#endif
+    return;
+  }}
+  if (prlimit_ret < 0 && prlimit_ret >= -4095) {{
+    write_log_cstr("LINX_SPEC_WARN raw-prlimit-stack errno=");
+    write_log_s64_dec((long long)-prlimit_ret);
+    write_log_cstr("\\n");
+  }} else {{
+    write_log_cstr("LINX_SPEC_WARN raw-prlimit-stack ret=");
+    write_log_s64_dec((long long)prlimit_ret);
+    write_log_cstr("\\n");
+  }}
+#endif
   errno = 0;
   if (setrlimit(RLIMIT_STACK, &rl) < 0) {{
     int err = errno;
@@ -1382,7 +1468,13 @@ static void set_spec_stack_limit(void) {{
     write_log_s64_dec((long long)err);
     write_log_cstr("\\n");
   }} else {{
+#if LINX_SPEC_STACK_LIMIT_UNLIMITED
     write_log_cstr("LINX_SPEC_DBG stack-limit=unlimited\\n");
+#else
+    write_log_cstr("LINX_SPEC_DBG stack-limit=");
+    write_log_u64_dec((unsigned long long)LINX_SPEC_STACK_LIMIT_BYTES);
+    write_log_cstr("\\n");
+#endif
   }}
 }}
 
@@ -1835,6 +1927,8 @@ int main(void) {{
         compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_WRITEV=1")
     if os.environ.get("LINX_SPEC_SELFTEST_FP", "").lower() in {"1", "true", "yes"}:
         compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_FP=1")
+    for define in _spec_stack_limit_defines():
+        compile_cmd.insert(4, define)
     if init_static:
         compile_cmd.insert(4, "-fPIE")
     proc = _run(compile_cmd)
@@ -2076,9 +2170,12 @@ def _run_qemu(
         b"Kernel panic - not syncing",
         b"LINX_PANIC",
         b"LINX_EXIT_INIT",
+        b"LINX_USER_TRAP",
+        b"[linx trap]",
     )
     start = time.monotonic()
     last_activity = start
+    terminal_failure_deadline: float | None = None
     next_heartbeat = start + heartbeat_sec if heartbeat_sec > 0 else float("inf")
 
     out_log.parent.mkdir(parents=True, exist_ok=True)
@@ -2087,6 +2184,8 @@ def _run_qemu(
     while fd >= 0:
         now = time.monotonic()
         elapsed = now - start
+        if terminal_failure_deadline is not None and now >= terminal_failure_deadline:
+            break
         if elapsed >= timeout:
             timed_out = True
             break
@@ -2101,6 +2200,8 @@ def _run_qemu(
             wait_for = min(wait_for, max(0.0, next_heartbeat - now))
         if no_progress_timeout > 0:
             wait_for = min(wait_for, max(0.0, no_progress_timeout - idle))
+        if terminal_failure_deadline is not None:
+            wait_for = min(wait_for, max(0.0, terminal_failure_deadline - now))
 
         readable, _, _ = select.select([fd], [], [], wait_for)
         if readable:
@@ -2117,8 +2218,17 @@ def _run_qemu(
                 bytes_seen += len(data)
                 last_activity = time.monotonic()
                 recent_output = (recent_output + data)[-4096:]
-                if any(marker in recent_output for marker in terminal_failure_markers):
+                for marker in terminal_failure_markers:
+                    marker_pos = recent_output.find(marker)
+                    if marker_pos < 0:
+                        continue
                     terminal_failure_seen = True
+                    if b"\n" in recent_output[marker_pos:]:
+                        terminal_failure_deadline = time.monotonic()
+                    elif terminal_failure_deadline is None:
+                        terminal_failure_deadline = time.monotonic() + 1.0
+                    break
+                if terminal_failure_deadline is not None and terminal_failure_deadline <= time.monotonic():
                     break
 
         now = time.monotonic()
@@ -2181,7 +2291,7 @@ def _run_qemu(
         "timed_out": timed_out,
         "stalled": stalled,
         "panic_seen": panic_seen,
-        "trap_seen": "[linx trap]" in text.lower(),
+        "trap_seen": "LINX_USER_TRAP" in text or "[linx trap]" in text.lower(),
         "pass_marker": f"LINX_SPEC_PASS {bench}" in text,
         "fail_marker": fail_marker,
         "failure_class": classification["class"],
@@ -2212,6 +2322,26 @@ def _classify_qemu_result(
     heartbeat = _heartbeat_summary(heartbeats)
     last_heartbeat = str(heartbeat["last"])
 
+    if panic_seen:
+        line = _first_matching_line(text, ("LINX_PANIC", "Kernel panic - not syncing", "LINX_EXIT_INIT"))
+        return {
+            "class": "kernel-panic",
+            "evidence": line,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
+        }
+
+    trap = _first_matching_line(text, ("LINX_USER_TRAP", "[linx trap]"))
+    if trap:
+        return {
+            "class": "user-trap",
+            "evidence": trap,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
+        }
+
     if stalled:
         return {
             "class": "no-progress-timeout",
@@ -2233,25 +2363,6 @@ def _classify_qemu_result(
         return {
             "class": cls,
             "evidence": evidence,
-            "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat["running"],
-            **_heartbeat_classification_fields(heartbeat),
-        }
-    if panic_seen:
-        line = _first_matching_line(text, ("LINX_PANIC", "Kernel panic - not syncing", "LINX_EXIT_INIT"))
-        return {
-            "class": "kernel-panic",
-            "evidence": line,
-            "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat["running"],
-            **_heartbeat_classification_fields(heartbeat),
-        }
-
-    trap = _first_matching_line(text, ("LINX_USER_TRAP", "[linx trap]"))
-    if trap:
-        return {
-            "class": "user-trap",
-            "evidence": trap,
             "last_heartbeat": last_heartbeat,
             "heartbeat_progress": heartbeat["running"],
             **_heartbeat_classification_fields(heartbeat),
@@ -2778,11 +2889,16 @@ def main(argv: list[str]) -> int:
                     # Do not gate on panic/timeout here: when /init execs a benchmark
                     # directly as PID1, Linux may terminate with "init exited" panic
                     # after the benchmark finishes. Host-side specdiff is authoritative.
-                    one_ok = (not qemu_info["fail_marker"]) and (not qemu_info.get("stalled", False))
+                    one_ok = (
+                        (not qemu_info["fail_marker"])
+                        and (not qemu_info.get("trap_seen", False))
+                        and (not qemu_info.get("stalled", False))
+                    )
                 else:
                     one_ok = (
                         (not qemu_info["fail_marker"])
                         and (not qemu_info["panic_seen"])
+                        and (not qemu_info.get("trap_seen", False))
                         and (not qemu_info["timed_out"])
                         and (not qemu_info.get("stalled", False))
                     )

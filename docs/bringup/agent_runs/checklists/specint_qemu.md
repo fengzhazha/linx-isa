@@ -1,6 +1,6 @@
 # SPECint / QEMU Checklist
 
-## Live Blockers (2026-06-28)
+## Live Blockers (2026-06-29)
 
 - [x] ID: SPEC-M01F Train-all gate shape exists and covers every current Linx SPECint rate benchmark.
   Static build command: `MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh && ./tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b && LINX_SPEC_FORCE_STATIC=1 bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --emit-manifest workloads/generated/specint-build-after-oldmalloc-20260628/build_manifest_final.json`
@@ -8,6 +8,29 @@
   Evidence: `workloads/generated/specint-build-after-oldmalloc-20260628/build_manifest_final.json`, `out/cpp-runtime/musl-cxx17-spec/summary_phase-b.json`, `avs/qemu/out/musl-static-oldmalloc-page-20260628/summary.json`, `workloads/generated/specint-train-all-20260628-after-oldmalloc/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260628-after-oldmalloc/train-all/initramfs/stage_b_summary.json`.
   Status: suite wiring covers `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, `557.xz_r`, and `999.specrand_ir`.
   Static build result: all ten selected C/C++ benchmarks built as Linx executables; source immutability check passed.
+
+- [x] ID: SPEC-M05-LATEST-TRAIN-ALL-20260629 Latest train-all failure ledger is current.
+  Command: `LINX_QEMU_HEARTBEAT_CODE_BYTES=0 SPEC_GUEST_HEARTBEAT_SEC=0 SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 SPEC_NO_PROGRESS_TIMEOUT=120 python3 tools/bringup/run_specint_fast_gate.py --profile train --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu emulator/qemu/build-linx/qemu-system-linx64 --sysroot out/libc/musl/install/phase-b --out-dir workloads/generated/specint-train-all-20260629-raw-prlimit-r1 --append-extra norandmaps --heartbeat-sec 30 --qemu-heartbeat-interval 50000000 --guest-heartbeat-sec 0 --no-progress-timeout 120 --transports initramfs --continue-on-fail`
+  Evidence: `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/specint_fast_gate_summary.json`, `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/train-all/qemu_matrix_summary.json`, and `workloads/generated/specint-train-all-20260629-raw-prlimit-r1/train-all/initramfs/stage_b_summary.json`.
+  Result: `ok=false`, elapsed `947.371s`; `999.specrand_ir` passes strict hash. Every failed benchmark has `heartbeat_running=true` and `heartbeat_site_progress=true`, so the current failures are not global QEMU deadlocks. The runner now preserves `LINX_USER_TRAP` as the primary failure class and installs the SPEC wrapper stack limit with raw `prlimit64` before falling back to libc `setrlimit()`.
+
+  | Benchmark | Status | Latest evidence | Proposed owner / next step |
+  | --- | --- | --- | --- |
+  | `500.perlbench_r` | `kernel-panic` | `LINX_DIE msg=Oops` followed by `LINX_EXIT_INIT code=0xb`, count `2250000005`, BPC `0xffffffff8006ba5c` | Regressed from the intermediate BigInt user-range class after raw-prlimit wrapper codegen; inspect the kernel Oops at `tpc=0xffffffff8013c3de` before returning to Perl BigInt. |
+  | `502.gcc_r` | `user-trap` | trap `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; focused raw-prlimit summary: `workloads/generated/specint-502-raw-prlimit-20260629-r1/qemu_matrix_summary.json` | The stack limit is now effective (`stack-limit=268435456`) but the same GCC user trap remains; continue with fault regs/code bytes around the new user BPC path and the brk/mmap allocator evidence. |
+  | `505.mcf_r` | `user-trap` | trap `addr=0x155557e018`, user `tpc=0x155555c7c6`, `bpc=0x155555c7a8`, count `10400000004`, BPC `0x155555c9b8` | Treat as current correctness again. Symbolize the user loop and compare with the older stdio/open-file corruption evidence. |
+  | `520.omnetpp_r` | `user-trap` | null trap at `tpc=0xeaea2`, `bpc=0xeae90`, count `750000001`, BPC `0xffffffff800f9e9e` | Continue as C++ object/callback correctness. Use fault regs plus call trace around the section/config path. |
+  | `523.xalancbmk_r` | `user-trap` | trap `addr=0x3feffffff8`, user `tpc=0x1555a6306a`, `bpc=0x1555a6306a`, count `10350000013`, BPC `0xffffffff8005e0c4` | Reclassify from live-slow to correctness under effective finite stack. Use fault regs/code bytes around the C++ user trap. |
+  | `525.x264_r` | `live-timeout` | count `23150000011`, BPC `0xffffffff803e8f4c`, `stalled=false` | Current owner is throughput/live progress; the older panic is historical unless it reappears. |
+  | `531.deepsjeng_r` | `live-timeout` | count `25000000005`, BPC `0x15555595ae`, `stalled=false` | Current train input is slow/live. Use a focused profile and compare against the earlier test-input pass profile to find remaining QEMU hot helpers. |
+  | `541.leela_r` | `live-timeout` | count `13400000003`, BPC `0xffffffff80048d36`, `stalled=false` | Back in live-slow under effective finite stack; profile/symbolize recurring kernel BPCs before extending budgets. |
+  | `557.xz_r` | `live-timeout` | count `26900000010`, BPC `0x155558d612`, `stalled=false` | Current train input is slow/live. Profile before pursuing older bad-pointer evidence. |
+  | `999.specrand_ir` | pass | strict hash `0x973dcfc2`, count `500000000`, BPC `0xffffffff803e2a80`; focused raw-prlimit smoke `workloads/generated/specint-999-raw-prlimit-20260629-r1/qemu_matrix_summary.json` also passes | Keep as the cheap QEMU debug sentinel. |
+
+- [x] ID: SPEC-M05-STACKLIMIT-SYSCALL SPEC wrapper stack-limit control bypasses the libc `setrlimit()` return bug.
+  Resolution: generated init wrappers use a raw Linx `prlimit64` syscall for `RLIMIT_STACK` before falling back to libc `setrlimit()`. `LINX_SPEC_STACK_LIMIT_BYTES=<n>` overrides the default 256 MiB value; `LINX_SPEC_STACK_LIMIT_BYTES=unlimited` preserves the old unlimited-stack reproduction mode.
+  Evidence: `workloads/generated/specint-999-prlimit-trace-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log` shows syscall `261` returning `0` while libc `setrlimit()` still warns `errno=21`. `workloads/generated/specint-999-raw-prlimit-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log` shows syscall `261` returning `0`, `LINX_SPEC_DBG stack-limit=268435456`, no `setrlimit-stack` warning, and strict hash pass. `workloads/generated/specint-502-raw-prlimit-20260629-r1/initramfs/502_gcc_r/run_001/qemu.log` also logs `stack-limit=268435456`.
+  Follow-up: keep a separate libc task for why musl `setrlimit()` reports `errno=21` after a successful `prlimit64`; the SPEC gate no longer depends on that wrapper for stack layout control.
 
 - [x] ID: SPEC-M05-LATEST-TRAIN-ALL-20260628 Latest train-all failure ledger is current.
   Command: `LINX_QEMU_HEARTBEAT_CODE_BYTES=0 SPECINT_TRAIN_ALL_TIMEOUT=180 SPEC_GUEST_HEARTBEAT_SEC=0 SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 SPEC_NO_PROGRESS_TIMEOUT=120 python3 tools/bringup/run_specint_fast_gate.py --profile train --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 --qemu emulator/qemu/build-linx/qemu-system-linx64 --sysroot out/libc/musl/install/phase-b --out-dir workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1 --append-extra norandmaps --continue-on-fail --heartbeat-sec 30 --qemu-heartbeat-interval 50000000 --guest-heartbeat-sec 0 --no-progress-timeout 120`
