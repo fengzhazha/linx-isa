@@ -288,6 +288,12 @@ Additional opt-in QEMU debug switches used during this pass:
   the single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path, and is useful when
   allocator or list corruption needs before/after chunk state from multiple
   registers in the same multi-billion-instruction run.
+- `LINX_DEBUG_PC_WATCH_PRINT=0` suppresses immediate `linx_pc_watch:` output
+  after the selected PC/count/hit/GPR filters pass. Pair it with
+  `LINX_DEBUG_PC_WATCH_RING=1` to record matching hits in a bounded ring and
+  dump them only when `LINX_FAULT_TRACE` reports a synchronous fault. Tune the
+  retained window with `LINX_DEBUG_PC_WATCH_RING_SIZE=<1..128>`. This is the
+  preferred path when synchronous PC-watch printing perturbs a SPEC failure.
 - `LINX_TP_TRACE=1` records user-to-kernel TP handoff points for service
   requests, synchronous traps, IRQ entry, and ACRE staging. Use
   `LINX_TP_TRACE_LIMIT=<n>` on full SPEC runs.
@@ -514,11 +520,11 @@ Proposed next fixes:
    the 180s train-all diagnostic loop; the next QEMU speedups should focus on
    page-local BSTART decode caching, TB-friendly template/queue fast paths,
    and avoiding helper probes in hot branch-validation paths.
-3. Continue `500.perlbench_r` from the current Perl BigInt user-code stop, not
-   from a deadlock hypothesis. The current train-all run reaches
-   `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`, so
-   the next loop should compare range iterator inputs and integer semantics
-   against host SPEC behavior.
+3. Continue `500.perlbench_r` from the current kernel dcache Oops, not from a
+   deadlock hypothesis. The latest raw-prlimit train-all run faults in
+   `__d_lookup_rcu` at `tpc=0xffffffff8013c3de`; the earlier Perl BigInt
+   `Range iterator outside integer range` failure remains the next known
+   blocker after the dentry/name corruption path is fixed.
 4. Continue `502.gcc_r` from the allocator/VM overlap. Syscall 169 now
    returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
    AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
@@ -559,6 +565,46 @@ Proposed next fixes:
 7. Keep `train-all` opt-in through `--profile train`; the PR gate should stay
    on cheap `999.specrand_ir` smoke while stress workloads run in isolated
    nightly or diagnostic lanes.
+
+## 2026-06-29 500 Dcache Oops Triage
+
+The latest raw-prlimit train-all gate regressed `500.perlbench_r` from the
+intermediate Perl BigInt user-range stop back into a kernel Oops in
+`__d_lookup_rcu`:
+
+- Baseline focused rerun:
+  `workloads/generated/specint-500-baseline-20260629-r1/stage_b_summary.json`.
+  It reproduces `LINX_DIE msg=Oops` at `tpc=0xffffffff8013c3de`,
+  `bpc=0xffffffff8013c3d4`, followed by `LINX_EXIT_INIT code=0xb`. Symbolizing
+  `kernel/linux/build-linx-fixed/vmlinux` maps the trap to the byte-compare loop
+  in `__d_lookup_rcu`.
+- Low-noise PC-watch filter:
+  `workloads/generated/specint-500-dlookup-pcwatch-match-a1-20260629-r1/`.
+  This reproduces the kernel panic while capturing the active lookup against
+  `a1=0xff60000004c02d88`; the compared bytes spell paths such as
+  `sec-run.linx_emptystdin`, and heartbeat still reports site progress.
+- Ring-only PC-watch:
+  `workloads/generated/specint-500-pcwatch-ring-a1-20260629-r1/`.
+  `LINX_DEBUG_PC_WATCH_PRINT=0` plus `LINX_DEBUG_PC_WATCH_RING=1` avoids the
+  synchronous print perturbation and dumps the last 64 watched hits when
+  `LINX_FAULT_TRACE` catches the data exception. The final ring entry before
+  the Oops records `pc=0xffffffff8013c3de`, `x1=0x1`,
+  `x2=0xff6000007dd40027`, `a0=0xff60000004c020c0`,
+  `a1=0xff60000004c02d88`, and `traparg0=0x1`. This proves the fault is a bad
+  dentry-name pointer reaching the compare loop, not a deadlocked QEMU.
+
+Proposed next solution path:
+
+1. Use a non-printing PC-watch ring plus a memory trace on the dentry name
+   pointer field loaded by `ldi [a1, 32], ->x1` to find the first store that
+   changes that field to `0x1` or otherwise corrupts the dentry.
+2. If the first corrupting store is guest code, move ownership to kernel/VFS or
+   libc path mutation. If the stored value is correct but QEMU later presents
+   `x1=0x1`, reduce to an AVS/QEMU register-transfer test around the
+   `ldi`/`lbui`/`addi` loop shape.
+3. Only after the dcache Oops is closed, resume the older Perl BigInt
+   `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`
+   investigation.
 
 ## 2026-06-28 500 Fixup Triage
 
