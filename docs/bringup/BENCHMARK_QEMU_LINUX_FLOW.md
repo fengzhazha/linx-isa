@@ -157,6 +157,11 @@ fault, heartbeat, or symbolization pass identifies a narrow PC window. This
 adds `LINX_PC_WATCH_REGS` full-register records without making the normal
 train-all loop noisy. Reserve `LINX_DEBUG_PC_WATCH_EXIT=1` for short smoke
 checks, not correctness runs.
+For long SPEC loops, bound focused watchpoints with
+`LINX_DEBUG_PC_WATCH_COUNT_LO=<insns>`, `LINX_DEBUG_PC_WATCH_COUNT_HI=<insns>`,
+and `LINX_DEBUG_PC_WATCH_HIT_LIMIT=<n>` so a hot symbol does not flood the QEMU
+log. A printed watch record includes both the raw hit count and the filtered
+`printed=` count.
 
 Run the promotion path only when the Linux path is green:
 
