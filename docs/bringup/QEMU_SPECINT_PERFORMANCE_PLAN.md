@@ -237,6 +237,30 @@ suite covering all current Linx SPECint rate benchmarks:
 - `557.xz_r`
 - `999.specrand_ir`
 
+The latest all-train diagnostic run is
+`workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1`. It proves
+the current failing rows are not global QEMU deadlocks: every failed benchmark
+has QEMU heartbeat progress and `999.specrand_ir` still passes strict hash.
+That run splits the work into three lanes:
+
+- Correctness traps: `500.perlbench_r`, `502.gcc_r`, `520.omnetpp_r`,
+  `523.xalancbmk_r`, and finite-stack `541.leela_r`.
+- Live-slow train rows: `505.mcf_r`, `525.x264_r`, `531.deepsjeng_r`, and
+  `557.xz_r`.
+- Stack-policy classifier: `523.xalancbmk_r` and `541.leela_r` share the
+  `addr=0x3feffffff8` stack-bottom shape. A focused
+  `LINX_SPEC_STACK_LIMIT=unlimited` rerun of `541.leela_r` under
+  `workloads/generated/specint-541-stack-unlimited-20260629-r1` reached
+  `count=40050000003` with changing BPCs and no `LINX_USER_TRAP`, so do the
+  stack-limit sweep before spending QEMU profiling time on those rows.
+
+For `502.gcc_r`, the focused ring run under
+`workloads/generated/specint-502-rtx-costs-pcwatch-20260629-r1` keeps the same
+trap and captures `ix86_rtx_costs` with `tq0=0x305910060a11b059` and
+`[sp+0x118]=0x1555b44aac`. Treat that as a corrupted RTL data pointer whose
+leading producer is still the brk/frontier and oldmalloc overlap; it is not a
+BSTART target validation or deadlock issue.
+
 Additional opt-in QEMU debug switches used during this pass:
 
 - `LINX_CALL_TRACE_RING=1` records recent call/return/ACRE events in a bounded
