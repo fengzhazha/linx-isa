@@ -238,17 +238,20 @@ suite covering all current Linx SPECint rate benchmarks:
 - `999.specrand_ir`
 
 The latest all-train diagnostic run is
-`workloads/generated/specint-train-all-20260629-stack2g-r1`. It proves
+`workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1`. It proves
 the current failing rows are not global QEMU deadlocks: every failed benchmark
 has QEMU heartbeat progress and `999.specrand_ir` still passes strict hash.
 That run splits the work into three lanes:
 
-- Correctness traps: `500.perlbench_r`, `502.gcc_r`, and `520.omnetpp_r`.
-- Live-slow train rows: `505.mcf_r`, `525.x264_r`, `531.deepsjeng_r`,
-  `523.xalancbmk_r`, `541.leela_r`, and `557.xz_r` under `--stack-limit 2G`.
-- Stack-policy classifier: `523.xalancbmk_r` and `541.leela_r` are no longer
-  deterministic stack traps in the stack-2G all-train loop. Keep `--stack-limit
-  2G` in train loops while profiling live-slow rows.
+- Correctness stops: `500.perlbench_r` fails in Perl BigInt range handling and
+  `502.gcc_r` traps on the current bad RTL/sub-RTL data pointer path.
+- Live-slow train rows: `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`,
+  `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` time out
+  under the 180s diagnostic budget with heartbeat site progress.
+- Stack/startup classifiers: `523.xalancbmk_r` and `541.leela_r` are no longer
+  deterministic stack traps under `--stack-limit 2G`, and `520.omnetpp_r` no
+  longer takes the earlier null static-constructor trap after the forced-static
+  C++ link path enters musl `_start`.
 
 For `502.gcc_r`, the focused ring run under
 `workloads/generated/specint-502-rtx-costs-pcwatch-20260629-r1` keeps the same
@@ -422,27 +425,28 @@ instructions. The SPEC runner treats `LINX_USER_TRAP` as terminal failure
 evidence and records it as the primary class even when the parent init process
 would otherwise keep polling until a timeout. The generated init wrapper also
 installs the SPEC stack limit with a raw `prlimit64` syscall before falling back
-to libc `setrlimit()`, which bypasses the current libc return-value bug.
+to libc `setrlimit()`, which bypasses the current libc return-value bug. The
+current run also uses a rebuilt `520.omnetpp_r` executable from
+`workloads/generated/specint-520-cxx-startup-fix-20260629-r1/build_manifest.json`;
+that manifest proves forced-static C++ now enters `_start` and has
+`__init_array_start/end` for musl constructor startup.
 
 ```bash
-LINX_QEMU_HEARTBEAT_CODE_BYTES=0 \
 SPEC_GUEST_HEARTBEAT_SEC=0 \
 SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 \
 SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
-  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --continue-on-fail \
   --qemu emulator/qemu/build-linx/qemu-system-linx64 \
   --sysroot out/libc/musl/install/phase-b \
-  --out-dir workloads/generated/specint-train-all-20260629-stack2g-r1 \
+  --out-dir workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1 \
   --append-extra norandmaps \
   --heartbeat-sec 30 \
   --qemu-heartbeat-interval 50000000 \
   --guest-heartbeat-sec 0 \
   --no-progress-timeout 180 \
-  --stack-limit 2G \
-  --transports initramfs \
-  --continue-on-fail
+  --stack-limit 2G
 ```
 
 Artifacts:
@@ -490,6 +494,12 @@ Artifacts:
 - `workloads/generated/specint-train-all-20260629-stack2g-r1/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-520-cxx-startup-fix-20260629-r1/build_manifest.json`
+- `workloads/generated/specint-520-cxx-startup-fix-20260629-r1/ctor-watch/stage_b_summary.json`
+- `workloads/generated/specint-520-cxx-startup-fix-20260629-r1/ctor-watch/520_omnetpp_r/run_001/qemu.log`
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-999-prlimit-trace-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-999-raw-prlimit-20260629-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-raw-prlimit-20260629-r1/qemu_matrix_summary.json`
@@ -518,8 +528,8 @@ Artifacts:
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
 `999.specrand_ir` passes by hash. The other nine train-input benchmarks are
-classified by first failing symptom. The latest post-PC-watch-offset QEMU run
-finished in `909.005s`; no failed benchmark was marked `stalled`, and every
+classified by first failing symptom. The latest post-520-startup-fix QEMU run
+finished in `1329.119s`; no failed benchmark was marked `stalled`, and every
 failed run has `heartbeat_running=true` plus `heartbeat_site_progress=true`, so
 the failures below are correctness or throughput stops rather than a global QEMU
 deadlock.
@@ -535,16 +545,16 @@ unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000002`, BPC `0x1555636756` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000005`, BPC `0xffffffff803dde02` | stack limit is effective; current symptom is a bad RTL data pointer path, while the older brk/mmap allocator overlap remains separate producer evidence |
-| `505.mcf_r` | live timeout at 180s | last heartbeat count `40600000002`, BPC `0x155555c40e`, `progress=site-change`, `stalled=false` | train input is now throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
-| `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000002`, BPC `0xffffffff803dde02` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
-| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `31450000000`, BPC `0xffffffff803dee68`, `progress=site-change`, `stalled=false`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `24550000008`, BPC `0xffffffff803e8f4c`, `progress=same-site`, `stalled=false` | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `27400000003`, BPC `0x155557db9e`, `progress=site-change`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `38000000000`, BPC `0xffffffff803dde02`, `progress=same-site`, `stalled=false`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `28050000000`, BPC `0x155558d63c`, `progress=site-change`, recent unique sites `8`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
-| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `500000035`, BPC `0xffffffff8006a1d0` | smoke sentinel closed |
+| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000004`, BPC `0x155570b638` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
+| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000010`, BPC `0x15559c2e2e` | stack limit is effective; current symptom is a bad RTL data pointer path, while the older brk/mmap allocator overlap remains separate producer evidence |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `34150000001`, BPC `0x155555cc60`, `progress=site-change`, recent unique sites `8`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | live timeout at 180s | rebuilt forced-static C++ image enters `_start`; constructor-watch stores nonzero `ExecuteOnStartup::head` values at `0x1555817478`; all-train last heartbeat count `31500000005`, BPC `0xffffffff8006b196`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
+| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `31350000001`, BPC `0xffffffff803dde02`, `progress=site-change`, recent unique sites `5`, `stalled=false`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `21450000011`, BPC `0xffffffff803e8f4c`, `progress=site-change`, recent unique sites `4`, `stalled=false` | current owner is throughput/live-progress; the older panic is historical unless it reappears |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `27450000000`, BPC `0x155555ba42`, `progress=site-change`, recent unique sites `8`, `stalled=false` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `28100000010`, BPC `0xffffffff803cdb50`, `progress=site-change`, recent unique sites `6`, `stalled=false`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `28800000001`, BPC `0x155558d462`, `progress=site-change`, recent unique sites `6`, `stalled=false` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches; last heartbeat count `500000007`, BPC `0xffffffff803deb86` | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
 `workloads/generated/specint-train-all-20260628-after-kstat/` currently fails
@@ -582,11 +592,12 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Profile `505.mcf_r`, `525.x264_r`, `531.deepsjeng_r`, and `557.xz_r` with
-   heartbeat off or at a very coarse interval. These workloads are live but too
-   slow in the 180s train-all diagnostic loop; the next QEMU speedups should
-   focus on page-local BSTART decode caching, TB-friendly template/queue fast
-   paths, and avoiding helper probes in hot branch-validation paths.
+2. Profile `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `525.x264_r`,
+   `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` with heartbeat off or at a
+   very coarse interval. These workloads are live but too slow in the 180s
+   train-all diagnostic loop; the next QEMU speedups should focus on page-local
+   BSTART decode caching, TB-friendly template/queue fast paths, and avoiding
+   helper probes in hot branch-validation paths.
 3. Continue `500.perlbench_r` from the Perl BigInt range failure, not from the
    now-closed dcache Oops. The same-ACR QEMU frame fix restores Linux's
    kernel-origin entry contract: live `x1=0`, current-bank ETEMP holds the
@@ -616,8 +627,8 @@ Proposed next fixes:
    syscall-trace proof, and prefer a kernel mmap base/window fix over a
    standalone oldmalloc hint if that mapping reproduces.
 5. Continue deterministic userspace traps separately from throughput work:
-   `502.gcc_r` traps at `0x305910060a11b059`, `520.omnetpp_r` traps on a null
-   object/callback path. Under `--stack-limit 2G`, `523.xalancbmk_r` and
+   `502.gcc_r` traps at `0x305910060a11b059`. Under the forced-static C++
+   startup fix and `--stack-limit 2G`, `520.omnetpp_r`, `523.xalancbmk_r`, and
    `541.leela_r` move to live timeout and belong in the profiling lane. Use
    `LINX_FAULT_TRACE_REGS=1`,
    `LINX_CALL_TRACE_RING=1`, and, when a specific PC is known,
@@ -805,24 +816,27 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/505_mcf_r/run_001/qemu.log`
-  last heartbeat: count `40600000002`, BPC `0x155555c40e`,
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/505_mcf_r/run_001/qemu.log`
+  last heartbeat: count `34150000001`, BPC `0x155555cc60`,
   `progress=site-change`, recent unique sites `8`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
-  last heartbeat: count `31450000000`, BPC `0xffffffff803dee68`,
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/520_omnetpp_r/run_001/qemu.log`
+  last heartbeat: count `31500000005`, BPC `0xffffffff8006b196`,
   `progress=site-change`, recent unique sites `5`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
-  last heartbeat: count `24550000008`, BPC `0xffffffff803e8f4c`,
-  `progress=same-site`, recent unique sites `3`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
-  last heartbeat: count `27400000003`, BPC `0x155557db9e`,
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
+  last heartbeat: count `31350000001`, BPC `0xffffffff803dde02`,
+  `progress=site-change`, recent unique sites `5`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
+  last heartbeat: count `21450000011`, BPC `0xffffffff803e8f4c`,
+  `progress=site-change`, recent unique sites `4`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
+  last heartbeat: count `27450000000`, BPC `0x155555ba42`,
   `progress=site-change`, recent unique sites `8`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
-  last heartbeat: count `38000000000`, BPC `0xffffffff803dde02`,
-  `progress=same-site`, recent unique sites `5`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-stack2g-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
-  last heartbeat: count `28050000000`, BPC `0x155558d63c`,
-  `progress=site-change`, recent unique sites `8`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
+  last heartbeat: count `28100000010`, BPC `0xffffffff803cdb50`,
+  `progress=site-change`, recent unique sites `6`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260629-cxx-startup-fix-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
+  last heartbeat: count `28800000001`, BPC `0x155558d462`,
+  `progress=site-change`, recent unique sites `6`, and `stalled=false`.
 - Short macOS `sample` captures during the same train-all run are stored under
   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`
   for `523.xalancbmk_r`, `531.deepsjeng_r`, and `557.xz_r`.

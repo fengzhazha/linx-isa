@@ -57,6 +57,10 @@ case "$LINK_MODE" in
     exit 2
     ;;
 esac
+if [[ "$FORCE_STATIC" == "1" && "$LINK_MODE" == "legacy" ]]; then
+  echo "error: LINX_SPEC_FORCE_STATIC=1 requires LINX_SPEC_LINK_MODE=default so crt startup runs .init_array" >&2
+  exit 2
+fi
 
 mkdir -p "$COMPAT_INCLUDE/linux"
 if [[ ! -f "$COMPAT_INCLUDE/linux/limits.h" ]]; then

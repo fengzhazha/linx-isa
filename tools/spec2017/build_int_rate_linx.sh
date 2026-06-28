@@ -127,10 +127,16 @@ chmod +x "$CC_WRAPPER" "$CXX_WRAPPER" "$ROOT/tools/spec2017/reextract_cpu2017.sh
 
 export LINX_SYSROOT="${LINX_SYSROOT:-$ROOT/out/libc/musl/install/$MODE}"
 export LINX_SPEC_COMPAT_INCLUDE="${LINX_SPEC_COMPAT_INCLUDE:-$ROOT/tools/spec2017/compat}"
-if [[ "$MODE" == "phase-c" ]]; then
+if [[ "$FORCE_STATIC" == "1" ]]; then
+  export LINX_SPEC_LINK_MODE="${LINX_SPEC_LINK_MODE:-default}"
+elif [[ "$MODE" == "phase-c" ]]; then
   export LINX_SPEC_LINK_MODE="${LINX_SPEC_LINK_MODE:-default}"
 else
   export LINX_SPEC_LINK_MODE="${LINX_SPEC_LINK_MODE:-legacy}"
+fi
+if [[ "$FORCE_STATIC" == "1" && "$LINX_SPEC_LINK_MODE" == "legacy" ]]; then
+  echo "error: --force-static requires LINX_SPEC_LINK_MODE=default so crt startup runs .init_array" >&2
+  exit 2
 fi
 export LINX_SPEC_FORCE_STATIC="$FORCE_STATIC"
 
