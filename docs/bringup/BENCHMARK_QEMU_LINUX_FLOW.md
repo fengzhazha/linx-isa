@@ -180,6 +180,11 @@ Use `LINX_DEBUG_PC_WATCH_DUMP_WIDTH=1|2|4|8` only for focused structure-field
 probes. The default remains 8-byte word dumps; narrower dumps are useful for
 32-bit Perl SV flags, C++ object fields, and stack slots where 64-bit grouping
 would hide the field boundary.
+Use `LINX_DEBUG_PC_WATCH_DUMP_PTR_OFFSETS=<off>[,<off>...]` with
+`LINX_DEBUG_PC_WATCH_DUMP_REGS=<reg>[,<reg>...]` when stack or object slots
+hold guest pointers that need one-hop dereference in the same long run. This
+keeps pointer provenance and pointee fields in one bounded PC-watch window; it
+is too noisy for routine train-all loops.
 
 Run the promotion path only when the Linux path is green:
 

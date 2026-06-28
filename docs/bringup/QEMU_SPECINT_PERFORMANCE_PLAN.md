@@ -292,6 +292,10 @@ Additional opt-in QEMU debug switches used during this pass:
   single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path. Use the offset list when
   allocator/list/frame corruption needs several slots from the same
   multi-billion-instruction run without rerunning the window.
+- `LINX_DEBUG_PC_WATCH_DUMP_PTR_OFFSETS=<off>[,<off>...]` reads a 64-bit guest
+  pointer from each selected source plus offset and dumps the pointee memory
+  with the same word count and width controls. Use it for stack frames or SV/C++
+  objects where the decisive state is one pointer hop away.
 - `LINX_DEBUG_PC_WATCH_DUMP_WIDTH=1|2|4|8` changes the unit size for focused
   PC-watch memory dumps. The default is still 8-byte words with the old log
   shape; set width 4 for 32-bit flag fields, width 2 for packed halfwords, and
@@ -475,8 +479,12 @@ Artifacts:
 - `workloads/generated/specint-pcwatch-dump-offsets-smoke-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-pcwatch-width-smoke-20260629-r2/qemu_matrix_summary.json`
 - `workloads/generated/specint-pcwatch-width-smoke-20260629-r2/initramfs/999_specrand_ir/run_001/qemu.log`
+- `workloads/generated/specint-pcwatch-ptr-offset-smoke-20260629-r2/qemu_matrix_summary.json`
+- `workloads/generated/specint-pcwatch-ptr-offset-smoke-20260629-r2/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-500-ppflop-offsets-20260629-r1/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/initramfs/500_perlbench_r/run_001/qemu.log`
+- `workloads/generated/specint-500-ppflop-branch-ptrslots-20260629-r1/initramfs/500_perlbench_r/run_001/qemu.log`
+- `workloads/generated/specint-500-ppflop-branch-countwin-20260629-r1/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-505-final-faultregs-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log`
 - `workloads/generated/specint-505-nestedcall-fix-20260628-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
@@ -538,6 +546,10 @@ slots without rerunning the billion-instruction window. The new
 `LINX_DEBUG_PC_WATCH_DUMP_WIDTH=4` sentinel also passes strict
 `999.specrand_ir` and emits `width=4` stack words, giving focused runs a
 field-width probe for 32-bit flags without changing default 8-byte logs.
+The new `LINX_DEBUG_PC_WATCH_DUMP_PTR_OFFSETS=0` sentinel also passes strict
+`999.specrand_ir` and emits one-hop pointer-slot dumps such as
+`sp+0x0->0x7ffff000`, so focused SPEC runs can keep source slots and pointee
+fields in one QEMU log.
 
 Proposed next fixes:
 
@@ -615,12 +627,24 @@ Focused PC-watch evidence:
 - `workloads/generated/specint-500-ppflop-width4-watch-20260629-r1/` uses the
   new 4-byte dump width to expose flag-sized lanes in the same deterministic
   failure window.
+- `workloads/generated/specint-500-ppflop-branch-ptrslots-20260629-r1/` uses
+  `LINX_DEBUG_PC_WATCH_DUMP_PTR_OFFSETS` to dereference selected `pp_flop`
+  frame/object slots in the same window. The final watched error-build block
+  records `pc=0x1555829792`, `a2=0x2`, and pointer slots such as
+  `sp+0x30->0x155588a9b0` plus `s0+0x10->0x1555847268`.
+- `workloads/generated/specint-500-ppflop-branch-countwin-20260629-r1/`
+  removes the per-PC hit filter and watches the final count window
+  `3069000000..3072000000`. It records repeated `0x1555829792` then
+  `0x15558297ae` pairs and no watched `0x15558297d4` continuation before the
+  `Range iterator outside integer range` exit.
 
-Next solution path: keep 500 out of the deadlock and dcache lanes. Symbolize
-the optimized `pp_flop` block around runtime `0x1555829716..0x15558297ae`,
-compare the post-helper branch inputs with host behavior, and use a selective
-compile/probe of `pp_ctl.c` before changing SPEC packaging or QEMU control-flow
-rules.
+Next solution path: keep 500 out of the deadlock and dcache lanes. The current
+blocker is an active `pp_flop` error-path decision: the optimized branch builds
+the croak message at runtime `0x1555829792` and enters `Perl_croak` at
+`0x15558297ae`, while the watched final window does not reach the post-croak
+continuation at `0x15558297d4`. Compare the Linx `pp_ctl.c` optimized
+conditions and SV slots against host behavior with a selective compile/probe
+before changing SPEC packaging or QEMU control-flow rules.
 
 ## 2026-06-29 500 Dcache Oops Triage
 
@@ -678,11 +702,12 @@ Next solution path:
    500 BigInt failures as dentry corruption unless the Oops reproduces.
 2. Resume the Perl BigInt `Range iterator outside integer range at
    lib/Math/BigInt.pm line 2675` investigation from
-   `workloads/generated/specint-500-ppflop-offsets-20260629-r1/` and
-   `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/`. Map the
-   captured `pp_flop` frame/register state to Perl SV flag/value fields, then
-   minimize a Linx-native scalar/range smoke before changing SPEC packaging or
-   QEMU control-flow rules.
+   `workloads/generated/specint-500-ppflop-offsets-20260629-r1/`,
+   `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/`, and
+   `workloads/generated/specint-500-ppflop-branch-countwin-20260629-r1/`. Map
+   the captured `pp_flop` frame/register state to Perl SV flag/value fields,
+   then minimize a Linx-native scalar/range smoke before changing SPEC
+   packaging or QEMU control-flow rules.
 
 ## 2026-06-28 500 Fixup Triage
 
