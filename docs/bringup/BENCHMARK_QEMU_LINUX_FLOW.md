@@ -117,7 +117,7 @@ classify every train workload rather than stop at PR smoke:
 SPECINT_TRAIN_ALL_TIMEOUT=180 \
 SPEC_GUEST_HEARTBEAT_SEC=0 \
 SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 \
-SPEC_NO_PROGRESS_TIMEOUT=120 \
+SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
   --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
@@ -125,6 +125,11 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --sysroot out/libc/musl/install/phase-b \
   --out-dir workloads/generated/specint-train-all-<date> \
   --append-extra norandmaps \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 50000000 \
+  --guest-heartbeat-sec 0 \
+  --no-progress-timeout 180 \
+  --transports initramfs \
   --continue-on-fail
 ```
 
@@ -171,6 +176,10 @@ log. A printed watch record includes both the raw hit count and the filtered
 use `LINX_DEBUG_PC_WATCH_DUMP_OFFSETS=<off>[,<off>...]` with
 `LINX_DEBUG_PC_WATCH_DUMP_REGS=<reg>[,<reg>...]` so one run captures all needed
 memory words.
+Use `LINX_DEBUG_PC_WATCH_DUMP_WIDTH=1|2|4|8` only for focused structure-field
+probes. The default remains 8-byte word dumps; narrower dumps are useful for
+32-bit Perl SV flags, C++ object fields, and stack slots where 64-bit grouping
+would hide the field boundary.
 
 Run the promotion path only when the Linux path is green:
 

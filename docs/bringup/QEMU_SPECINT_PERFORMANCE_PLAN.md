@@ -292,6 +292,10 @@ Additional opt-in QEMU debug switches used during this pass:
   single-source `LINX_DEBUG_PC_WATCH_DUMP_REG` path. Use the offset list when
   allocator/list/frame corruption needs several slots from the same
   multi-billion-instruction run without rerunning the window.
+- `LINX_DEBUG_PC_WATCH_DUMP_WIDTH=1|2|4|8` changes the unit size for focused
+  PC-watch memory dumps. The default is still 8-byte words with the old log
+  shape; set width 4 for 32-bit flag fields, width 2 for packed halfwords, and
+  width 1 for byte-level object or string fields.
 - `LINX_DEBUG_PC_WATCH_PRINT=0` suppresses immediate `linx_pc_watch:` output
   after the selected PC/count/hit/GPR filters pass. Pair it with
   `LINX_DEBUG_PC_WATCH_RING=1` to record matching hits in a bounded ring and
@@ -469,6 +473,8 @@ Artifacts:
 - `workloads/generated/specint-heartbeat-code-smoke-20260628-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-pcwatch-dump-offsets-smoke-20260629-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-pcwatch-dump-offsets-smoke-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
+- `workloads/generated/specint-pcwatch-width-smoke-20260629-r2/qemu_matrix_summary.json`
+- `workloads/generated/specint-pcwatch-width-smoke-20260629-r2/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-500-ppflop-offsets-20260629-r1/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-505-final-faultregs-20260628-r1/initramfs/505_mcf_r/run_001/qemu.log`
@@ -528,7 +534,10 @@ list traces can capture multiple pointer sources in one long run. The new
 `LINX_DEBUG_PC_WATCH_DUMP_OFFSETS=0,8` sentinel also passes
 `999.specrand_ir` and emits multiple offsets from one pointer source in a single
 hit; focused 500 runs use the same switch to capture several Perl range-frame
-slots without rerunning the billion-instruction window.
+slots without rerunning the billion-instruction window. The new
+`LINX_DEBUG_PC_WATCH_DUMP_WIDTH=4` sentinel also passes strict
+`999.specrand_ir` and emits `width=4` stack words, giving focused runs a
+field-width probe for 32-bit flags without changing default 8-byte logs.
 
 Proposed next fixes:
 
@@ -584,6 +593,34 @@ Proposed next fixes:
 7. Keep `train-all` opt-in through `--profile train`; the PR gate should stay
    on cheap `999.specrand_ir` smoke while stress workloads run in isolated
    nightly or diagnostic lanes.
+
+## 2026-06-29 500 BigInt Current Evidence
+
+`500.perlbench_r` now reaches Perl user code deterministically and fails in the
+`Math::BigInt` train input, not in Linux dentry lookup and not in SPEC input
+packaging. Host `/usr/bin/perl -I./lib perfect.pl b 3` passes in the same run
+directory. Ignored, temporary `Devel::Peek` instrumentation immediately before
+the failing `1 .. $count` range observed `$count` as a plain scalar with
+`FLAGS = (IOK,pIOK)` and `IV = 2`; the source line still dies with
+`Range iterator outside integer range`. A Linx C micro-smoke for the
+`SVf_IOK|SVf_IVisUV` guard compiles correctly at both `-O0` and `-O2`, so the
+visible `andiw 32` in the `pp_flop` window is not a standalone IVisUV mask bug.
+
+Focused PC-watch evidence:
+
+- `workloads/generated/specint-500-ppflop-offsets-20260629-r1/` proves
+  multi-offset frame snapshots preserve the same failure class.
+- `workloads/generated/specint-500-ppflop-sv-objects-20260629-r2/` captures
+  final `pp_flop` GPR and object-word state before the exception.
+- `workloads/generated/specint-500-ppflop-width4-watch-20260629-r1/` uses the
+  new 4-byte dump width to expose flag-sized lanes in the same deterministic
+  failure window.
+
+Next solution path: keep 500 out of the deadlock and dcache lanes. Symbolize
+the optimized `pp_flop` block around runtime `0x1555829716..0x15558297ae`,
+compare the post-helper branch inputs with host behavior, and use a selective
+compile/probe of `pp_ctl.c` before changing SPEC packaging or QEMU control-flow
+rules.
 
 ## 2026-06-29 500 Dcache Oops Triage
 
@@ -710,19 +747,21 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
-  last heartbeat: count `27850000004`, BPC `0xffffffff80090c62`,
-  `progress=site-change`, recent unique sites `6`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
-  last heartbeat: count `24050000000`, BPC `0xffffffff803e8f46`,
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/initramfs/505_mcf_r/run_001/qemu.log`
+  last heartbeat: count `34900000001`, BPC `0x155555c430`,
+  `progress=site-change`, recent unique sites `7`, and `stalled=false`.
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
+  last heartbeat: count `20800000000`, BPC `0xffffffff800019bc`,
   `progress=site-change`, recent unique sites `4`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
-  last heartbeat: count `11850000002`, BPC `0xffffffff80090e84`,
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
+  last heartbeat: count `30850000002`, BPC `0x1555560764`,
   `progress=site-change`, recent unique sites `8`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260628-qemu-dump-regs-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
-  no longer ends as a live timeout in the latest 180s loop. It reaches a
-  bad-address user trap after heartbeat count `9050000000`; treat it as a
-  correctness trap before spending more speedup budget on it.
+- `workloads/generated/specint-train-all-20260629-pcwatch-offsets-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
+  last heartbeat: count `30550000006`, BPC `0x155558d612`,
+  `progress=site-change`, recent unique sites `5`, and `stalled=false`.
+- `523.xalancbmk_r` and `541.leela_r` are no longer in the live-slow set in the
+  latest loop; both stop at the stack-edge user address `0x3feffffff8` and
+  belong to the deterministic correctness lane before profiling.
 - Short macOS `sample` captures during the same train-all run are stored under
   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`
   for `523.xalancbmk_r`, `531.deepsjeng_r`, and `557.xz_r`.
