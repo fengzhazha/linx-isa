@@ -133,6 +133,12 @@ diagnosis. Use `LINX_TP_TRACE_SSR=1` or `LINX_TP_TRACE_READS=1` only after a
 focused run identifies a TP handoff window; those switches are too noisy for
 routine train-all profiling.
 
+Use `LINX_QEMU_HEARTBEAT_REGS=1` only for focused register snapshots. The
+normal train-all loop should rely on `LINX_HEARTBEAT` plus the runner summary
+fields `heartbeat_running`, `heartbeat_site_progress`, `heartbeat_last_bpc`,
+and `heartbeat_last_progress` to decide whether a timeout is deadlock or live
+slow execution.
+
 Run the promotion path only when the Linux path is green:
 
 ```bash

@@ -239,6 +239,36 @@ def _matrix_failure_classes(matrix: dict[str, Any]) -> dict[str, str]:
     return classes
 
 
+def _matrix_failure_details(matrix: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    details: dict[str, dict[str, Any]] = {}
+    results = matrix.get("results", [])
+    if not isinstance(results, list):
+        return details
+    for row in results:
+        if not isinstance(row, dict):
+            continue
+        row_details = row.get("failure_details", {})
+        if not isinstance(row_details, dict):
+            continue
+        for bench, detail in row_details.items():
+            if isinstance(detail, dict):
+                details[str(bench)] = detail
+    return details
+
+
+def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
+    if not details:
+        return "-"
+    parts: list[str] = []
+    for bench, row in sorted(details.items()):
+        running = "running" if row.get("heartbeat_running") else "not-running"
+        site = "site-progress" if row.get("heartbeat_site_progress") else "same-site"
+        bpc = row.get("heartbeat_last_bpc") or "no-bpc"
+        progress = row.get("heartbeat_last_progress") or "no-progress-tag"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}")
+    return ", ".join(parts)
+
+
 def _suite_command(
     *,
     suite: Suite,
@@ -311,8 +341,8 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         "",
         "## Suites",
         "",
-        "| Suite | Input | Benches | OK | Return | Elapsed | Failure Classes | Summary |",
-        "|---|---|---|---:|---:|---:|---|---|",
+        "| Suite | Input | Benches | OK | Return | Elapsed | Failure Classes | Liveness | Summary |",
+        "|---|---|---|---:|---:|---:|---|---|---|",
     ]
     for row in summary["suites"]:
         benches = ", ".join(row["benches"])
@@ -323,6 +353,10 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
             )
         else:
             classes_text = "-"
+        failure_details = row.get("failure_details", {})
+        details_text = _format_failure_details(
+            failure_details if isinstance(failure_details, dict) else {}
+        )
         lines.append(
             "| "
             f"`{row['name']}` | "
@@ -332,6 +366,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
             f"`{row['returncode']}` | "
             f"`{row['elapsed_sec']}` | "
             f"`{classes_text}` | "
+            f"`{details_text}` | "
             f"`{row['matrix_summary']}` |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -435,6 +470,7 @@ def main(argv: list[str]) -> int:
             matrix = _read_matrix_summary(suite_out / "qemu_matrix_summary.json")
         row_ok = rc == 0 and bool(matrix.get("ok", False))
         failure_classes = _matrix_failure_classes(matrix)
+        failure_details = _matrix_failure_details(matrix)
         rows.append(
             {
                 "name": suite.name,
@@ -453,6 +489,7 @@ def main(argv: list[str]) -> int:
                 "matrix_loaded": bool(matrix.get("loaded", False)),
                 "matrix_ok": bool(matrix.get("ok", False)),
                 "failure_classes": failure_classes,
+                "failure_details": failure_details,
             }
         )
         overall_ok = overall_ok and row_ok

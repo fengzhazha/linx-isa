@@ -2188,6 +2188,14 @@ def _run_qemu(
         "failure_evidence": classification["evidence"],
         "last_heartbeat": classification["last_heartbeat"],
         "heartbeat_progress": classification["heartbeat_progress"],
+        "heartbeat_running": classification["heartbeat_running"],
+        "heartbeat_site_progress": classification["heartbeat_site_progress"],
+        "heartbeat_last_count": classification["heartbeat_last_count"],
+        "heartbeat_last_bpc": classification["heartbeat_last_bpc"],
+        "heartbeat_last_progress": classification["heartbeat_last_progress"],
+        "heartbeat_last_same_site": classification["heartbeat_last_same_site"],
+        "heartbeat_recent_unique_sites": classification["heartbeat_recent_unique_sites"],
+        "heartbeat_recent_count_delta": classification["heartbeat_recent_count_delta"],
         "log": str(out_log),
     }
 
@@ -2201,24 +2209,33 @@ def _classify_qemu_result(
     fail_marker: bool,
 ) -> dict[str, Any]:
     heartbeats = re.findall(r"^LINX_HEARTBEAT .*$", text, flags=re.MULTILINE)
-    last_heartbeat = heartbeats[-1] if heartbeats else ""
-    heartbeat_progress = _heartbeat_progress(heartbeats)
+    heartbeat = _heartbeat_summary(heartbeats)
+    last_heartbeat = str(heartbeat["last"])
 
     if stalled:
         return {
             "class": "no-progress-timeout",
             "evidence": "no QEMU output before no-progress timeout",
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
     if timed_out:
-        cls = "live-timeout" if heartbeat_progress else "timeout-no-bpc-progress"
+        if heartbeat["site_progress"]:
+            cls = "live-timeout"
+        elif heartbeat["running"]:
+            cls = "same-site-live-timeout"
+        elif heartbeat["seen"]:
+            cls = "timeout-no-bpc-progress"
+        else:
+            cls = "timeout-no-heartbeat"
         evidence = last_heartbeat or "timeout without LINX_HEARTBEAT evidence"
         return {
             "class": cls,
             "evidence": evidence,
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
     if panic_seen:
         line = _first_matching_line(text, ("LINX_PANIC", "Kernel panic - not syncing", "LINX_EXIT_INIT"))
@@ -2226,7 +2243,8 @@ def _classify_qemu_result(
             "class": "kernel-panic",
             "evidence": line,
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
 
     trap = _first_matching_line(text, ("LINX_USER_TRAP", "[linx trap]"))
@@ -2235,7 +2253,8 @@ def _classify_qemu_result(
             "class": "user-trap",
             "evidence": trap,
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
 
     if "Bad file number" in text:
@@ -2243,21 +2262,24 @@ def _classify_qemu_result(
             "class": "fd-io-bad-file-number",
             "evidence": _first_matching_line(text, ("Bad file number",)),
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
     if "Bad file descriptor" in text:
         return {
             "class": "fd-io-bad-file-descriptor",
             "evidence": _first_matching_line(text, ("Bad file descriptor",)),
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
     if "Range iterator outside integer range" in text:
         return {
             "class": "user-arithmetic-range",
             "evidence": _first_matching_line(text, ("Range iterator outside integer range",)),
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
 
     execve = _first_matching_line(text, ("LINX_SPEC_FAIL execve",))
@@ -2266,7 +2288,8 @@ def _classify_qemu_result(
             "class": "execve-failure",
             "evidence": execve,
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
 
     if fail_marker:
@@ -2274,14 +2297,16 @@ def _classify_qemu_result(
             "class": "spec-wrapper-fail",
             "evidence": _first_matching_line(text, ("LINX_SPEC_FAIL",)) or "LINX_SPEC_FAIL",
             "last_heartbeat": last_heartbeat,
-            "heartbeat_progress": heartbeat_progress,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
         }
 
     return {
         "class": "none",
         "evidence": "",
         "last_heartbeat": last_heartbeat,
-        "heartbeat_progress": heartbeat_progress,
+        "heartbeat_progress": heartbeat["running"],
+        **_heartbeat_classification_fields(heartbeat),
     }
 
 
@@ -2293,16 +2318,75 @@ def _first_matching_line(text: str, needles: tuple[str, ...]) -> str:
 
 
 def _heartbeat_progress(heartbeats: list[str]) -> bool:
+    return bool(_heartbeat_summary(heartbeats)["running"])
+
+
+def _heartbeat_classification_fields(heartbeat: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "heartbeat_running": bool(heartbeat["running"]),
+        "heartbeat_site_progress": bool(heartbeat["site_progress"]),
+        "heartbeat_last_count": heartbeat["last_count"],
+        "heartbeat_last_bpc": heartbeat["last_bpc"],
+        "heartbeat_last_progress": heartbeat["last_progress"],
+        "heartbeat_last_same_site": heartbeat["last_same_site"],
+        "heartbeat_recent_unique_sites": heartbeat["recent_unique_sites"],
+        "heartbeat_recent_count_delta": heartbeat["recent_count_delta"],
+    }
+
+
+def _heartbeat_summary(heartbeats: list[str]) -> dict[str, Any]:
+    if not heartbeats:
+        return {
+            "seen": False,
+            "running": False,
+            "site_progress": False,
+            "last": "",
+            "last_count": None,
+            "last_bpc": "",
+            "last_progress": "",
+            "last_same_site": None,
+            "recent_unique_sites": 0,
+            "recent_count_delta": 0,
+        }
+
     counts: list[int] = []
-    bpcs: list[str] = []
+    sites: list[tuple[str, str, str]] = []
+    entries: list[dict[str, str]] = []
     for line in heartbeats[-8:]:
-        count = re.search(r"\bcount=([0-9]+)", line)
-        bpc = re.search(r"\bbpc=(0x[0-9a-fA-F]+)", line)
-        if count:
-            counts.append(int(count.group(1)))
-        if bpc:
-            bpcs.append(bpc.group(1).lower())
-    return len(set(counts)) > 1 or len(set(bpcs)) > 1
+        fields = _heartbeat_fields(line)
+        entries.append(fields)
+        count = fields.get("count", "")
+        if count.isdecimal():
+            counts.append(int(count))
+        site = (
+            fields.get("pc", "").lower(),
+            fields.get("bpc", "").lower(),
+            fields.get("tpc", "").lower(),
+        )
+        if any(site):
+            sites.append(site)
+
+    last = entries[-1] if entries else {}
+    recent_count_delta = counts[-1] - counts[0] if len(counts) >= 2 else 0
+    return {
+        "seen": True,
+        "running": len(counts) >= 2 and recent_count_delta > 0,
+        "site_progress": len(set(sites)) > 1,
+        "last": heartbeats[-1],
+        "last_count": int(last["count"]) if last.get("count", "").isdecimal() else None,
+        "last_bpc": last.get("bpc", "").lower(),
+        "last_progress": last.get("progress", ""),
+        "last_same_site": int(last["same_site"]) if last.get("same_site", "").isdecimal() else None,
+        "recent_unique_sites": len(set(sites)),
+        "recent_count_delta": recent_count_delta,
+    }
+
+
+def _heartbeat_fields(line: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for match in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)=([^ \n]+)", line):
+        fields[match.group(1)] = match.group(2)
+    return fields
 
 
 def _collect_outputs_from_log(qemu_log: Path, run_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:

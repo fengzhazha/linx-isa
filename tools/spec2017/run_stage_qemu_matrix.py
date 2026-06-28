@@ -125,6 +125,58 @@ def _transport_failure_classes(summary_obj: dict[str, Any]) -> dict[str, str]:
     return classes
 
 
+def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    results = summary_obj.get("results", {})
+    if not isinstance(results, dict):
+        return {}
+
+    details: dict[str, dict[str, Any]] = {}
+    for bench, bench_result in sorted(results.items()):
+        if not isinstance(bench_result, dict) or bool(bench_result.get("ok", False)):
+            continue
+        qemu_runs = bench_result.get("qemu", [])
+        if not isinstance(qemu_runs, list) or not qemu_runs:
+            if bench_result.get("error"):
+                details[str(bench)] = {
+                    "failure_class": "runner-error",
+                    "failure_evidence": str(bench_result.get("error", ""))[:512],
+                    "heartbeat_running": False,
+                    "heartbeat_site_progress": False,
+                }
+            continue
+        first_run = qemu_runs[0]
+        if not isinstance(first_run, dict):
+            continue
+        details[str(bench)] = {
+            "failure_class": str(first_run.get("failure_class") or "unclassified"),
+            "failure_evidence": str(first_run.get("failure_evidence") or "")[:512],
+            "heartbeat_running": bool(first_run.get("heartbeat_running", False)),
+            "heartbeat_site_progress": bool(first_run.get("heartbeat_site_progress", False)),
+            "heartbeat_last_count": first_run.get("heartbeat_last_count"),
+            "heartbeat_last_bpc": str(first_run.get("heartbeat_last_bpc") or ""),
+            "heartbeat_last_progress": str(first_run.get("heartbeat_last_progress") or ""),
+            "heartbeat_last_same_site": first_run.get("heartbeat_last_same_site"),
+            "heartbeat_recent_unique_sites": first_run.get("heartbeat_recent_unique_sites"),
+            "heartbeat_recent_count_delta": first_run.get("heartbeat_recent_count_delta"),
+            "last_heartbeat": str(first_run.get("last_heartbeat") or "")[:512],
+            "log": str(first_run.get("log") or ""),
+        }
+    return details
+
+
+def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
+    if not details:
+        return "-"
+    parts: list[str] = []
+    for bench, row in sorted(details.items()):
+        running = "running" if row.get("heartbeat_running") else "not-running"
+        site = "site-progress" if row.get("heartbeat_site_progress") else "same-site"
+        bpc = row.get("heartbeat_last_bpc") or "no-bpc"
+        progress = row.get("heartbeat_last_progress") or "no-progress-tag"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}")
+    return ", ".join(parts)
+
+
 def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines: list[str] = []
     lines.append("# SPEC QEMU Matrix Summary")
@@ -146,8 +198,8 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append("")
     lines.append("## Transport Results")
     lines.append("")
-    lines.append("| Transport | OK | Return | Failed Benches | Failure Classes | Summary | Log |")
-    lines.append("|---|---:|---:|---|---|---|---|")
+    lines.append("| Transport | OK | Return | Failed Benches | Failure Classes | Liveness | Summary | Log |")
+    lines.append("|---|---:|---:|---|---|---|---|---|")
 
     for row in summary.get("results", []):
         failed_benches = row.get("failed_benches", [])
@@ -159,6 +211,8 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
             )
         else:
             classes_text = "-"
+        details = row.get("failure_details", {})
+        details_text = _format_failure_details(details if isinstance(details, dict) else {})
         lines.append(
             "| "
             f"`{row.get('transport', '')}` | "
@@ -166,6 +220,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
             f"`{row.get('returncode', 'n/a')}` | "
             f"`{failed_text}` | "
             f"`{classes_text}` | "
+            f"`{details_text}` | "
             f"`{row.get('summary_json', '')}` | "
             f"`{row.get('log', '')}` |"
         )
@@ -345,6 +400,7 @@ def main(argv: list[str]) -> int:
 
         failed_benches = _transport_failed_benches(summary_obj) if summary_loaded else []
         failure_classes = _transport_failure_classes(summary_obj) if summary_loaded else {}
+        failure_details = _transport_failure_details(summary_obj) if summary_loaded else {}
         transport_ok = bool(summary_obj.get("ok", False)) if summary_loaded else False
 
         row = {
@@ -358,6 +414,7 @@ def main(argv: list[str]) -> int:
             "out_dir": str(transport_out),
             "failed_benches": failed_benches,
             "failure_classes": failure_classes,
+            "failure_details": failure_details,
         }
         results.append(row)
         if not row["ok"]:
