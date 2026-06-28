@@ -139,6 +139,13 @@ fields `heartbeat_running`, `heartbeat_site_progress`, `heartbeat_last_bpc`,
 and `heartbeat_last_progress` to decide whether a timeout is deadlock or live
 slow execution.
 
+Use `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` with
+`LINX_SYSCALL_TRACE_NR=<nr>` for focused syscall copyout checks. Pair it with
+`LINX_SYSCALL_TRACE_DUMP_BYTES=<n>` to cap the returned buffer dump; leave the
+variable unset for normal train-all runs. This is the preferred next step when
+the symptom is `errno`/fd/path corruption but `LINX_SYSCALL_RETURN` does not
+show the reported errno.
+
 Use `LINX_DEBUG_PC_WATCH=<pc>[,<pc>...] LINX_DEBUG_PC_WATCH_REGS=1` after a
 fault, heartbeat, or symbolization pass identifies a narrow PC window. This
 adds `LINX_PC_WATCH_REGS` full-register records without making the normal

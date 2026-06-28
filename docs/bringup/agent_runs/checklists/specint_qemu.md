@@ -66,8 +66,8 @@
 
 - [ ] ID: SPEC-M05-FD-502 `502.gcc_r` must read `200.c` correctly.
   Current blocker: `cpugcc_r_base.mytest-m64: fatal error: 200.c: Bad file number`.
-  Evidence: `workloads/generated/specint-502-static-fulltrace-post-gtod-20260628/run/initramfs/502_gcc_r/run_001/qemu.log` shows `openat("200.c") -> 3`, `fstat(3) -> 0`, `fcntl(3, F_GETFD) -> 0`, `newfstatat(3, "", ..., AT_EMPTY_PATH) -> 0`, `/proc/self/fd/3 -> 0`, and `close(3) -> 0`; the same trace has no syscall return of `-EBADF`.
-  Proposed solution: stop treating this as a kernel fd-table failure. Instrument or symbolize `502.gcc_r` around `cpp_files.c:open_file/open_file_failed`, validate the compiled `errno`/`file->err_no` store path, and compare static musl errno/TLS plus compiler codegen before changing QEMU or SPEC packaging.
+  Evidence: `workloads/generated/specint-502-fstat-argdump-20260628-r2/502_gcc_r/run_001/qemu.log` shows `newfstatat(3, "", stat=0x3ffffff758, AT_EMPTY_PATH) -> 0`, and `LINX_SYSCALL_ARGDUMP` decodes with `st_mode=0x81a4` at stat offset 16. `workloads/generated/specint-502-static-fulltrace-post-gtod-20260628/run/initramfs/502_gcc_r/run_001/qemu.log` also shows `openat("200.c") -> 3`, `fstat(3) -> 0`, `fcntl(3, F_GETFD) -> 0`, and no syscall return of `-EBADF`.
+  Proposed solution: stop treating this as a kernel fd-table/stat-copyout failure. Instrument or symbolize `502.gcc_r` around `cpp_files.c:open_file/open_file_failed`, validate the compiled `errno`/`file->err_no` store path, and compare static musl errno/TLS plus compiler codegen before changing QEMU or SPEC packaging.
 
 - [ ] ID: SPEC-M05-LIVE-SLOW The live slow train workloads need QEMU speedups or longer diagnostic budgets.
   Current blockers: `500.perlbench_r`, `523.xalancbmk_r`, and `541.leela_r` timed out at the faster 180s train-all diagnostic budget, but QEMU heartbeat counts and BPCs continued to advance and `stalled=false`.

@@ -254,6 +254,11 @@ Additional opt-in QEMU debug switches used during this pass:
   `LINX_SYSCALL_ARGSTR` records for pathname arguments. Bound reads with
   `LINX_SYSCALL_TRACE_STRING_MAX=<1..255>` so path/fd failures can be
   diagnosed without enabling full memory traces.
+- `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` dumps one syscall argument buffer on
+  `LINX_SYSCALL_RETURN` as `LINX_SYSCALL_ARGDUMP`. Bound the read with
+  `LINX_SYSCALL_TRACE_DUMP_BYTES=<1..256>`; the default is 64 bytes when an
+  argument is selected. This is the low-noise copyout check for stat, ioctl,
+  and similar output-buffer paths.
 - `LINX_SYSCALL_TRACE_REGS=1` prints a `LINX_SYSCALL_REGS` record for each
   traced syscall entry and return with the full Linx GPR file. This is useful
   when return-value clobbering, TLS state, or caller-save handling is suspect.
@@ -398,6 +403,7 @@ Artifacts:
 - `workloads/generated/specint-505-nestedcall-fix-20260628-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-syscall-argstr-smoke-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
 - `workloads/generated/specint-502-static-fulltrace-post-gtod-20260628/run/initramfs/502_gcc_r/run_001/qemu.log`
+- `workloads/generated/specint-502-fstat-argdump-20260628-r2/502_gcc_r/run_001/qemu.log`
 - `avs/qemu/out/musl-time-syscalls-20260628/summary.json`
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
@@ -455,12 +461,16 @@ Proposed next fixes:
    BigInt user-code stop, but the current train-all run times out after a
    `LINX_DIE msg=Oops`; symbolize that kernel stop first, then rerun to see
    whether the BigInt path is again the first user-visible failure.
-4. Continue `502.gcc_r` from the post-`gettimeofday` trace. Syscall 169 now
-   returns `0`, `200.c` opens as fd 3, fd/procfd status checks succeed, and
-   the trace contains no `-EBADF` syscall return. The next target is
-   userspace state: symbolize/instrument `cpp_files.c:open_file` and
-   `open_file_failed`, then validate static musl errno/TLS and the compiler
-   codegen that stores `file->err_no`.
+4. Continue `502.gcc_r` from the syscall-copyout trace. Syscall 169 now
+   returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
+   AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
+   `stat=0x3ffffff758` decodes with `st_mode=0x81a4` at offset 16, a regular
+   file. The later `/proc/self/fd/3` probe can return `-ENOENT`, but the
+   primary `fstat` copyout is already correct and no syscall returns
+   `-EBADF`. The next target is userspace state/control flow: symbolize or
+   instrument `cpp_files.c:open_file` and `open_file_failed`, then validate
+   static musl errno/TLS and the compiler codegen that stores
+   `file->err_no`.
 5. Continue deterministic userspace traps separately from throughput work:
    `505.mcf_r` traps at small address `0x19`, `520.omnetpp_r` traps on a null
    object/callback path, and `531.deepsjeng_r` traps through a zero branch
