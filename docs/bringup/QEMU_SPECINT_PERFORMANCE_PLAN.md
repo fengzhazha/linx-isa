@@ -536,7 +536,7 @@ unlimited-stack mmap layout failures.
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
 | `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3350000002`, BPC `0x1555636756` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000005`, BPC `0xffffffff803dde02` | stack limit is effective; continue with fault regs/code bytes around the new GCC user BPC path and preserve the brk/mmap allocator evidence |
+| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa04`, `bpc=0x15559ba9fc`, `orig_tpc=0x1556076d02`, `orig_bpc=0x1556076ce4`; last heartbeat count `5700000005`, BPC `0xffffffff803dde02` | stack limit is effective; current symptom is a bad RTL data pointer path, while the older brk/mmap allocator overlap remains separate producer evidence |
 | `505.mcf_r` | live timeout at 180s | last heartbeat count `40600000002`, BPC `0x155555c40e`, `progress=site-change`, `stalled=false` | train input is now throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
 | `520.omnetpp_r` | user trap | null trap at `tpc=0xeaea2`, `bpc=0xeae90`; last heartbeat count `750000002`, BPC `0xffffffff803dde02` | C++ object/callback correctness path; use fault regs plus call trace around the section/config path |
 | `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `31450000000`, BPC `0xffffffff803dee68`, `progress=site-change`, `stalled=false`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
@@ -592,23 +592,29 @@ Proposed next fixes:
    kernel-origin entry contract: live `x1=0`, current-bank ETEMP holds the
    interrupted `x1`, and the dentry-name memory remains valid across the
    compare loop.
-4. Continue `502.gcc_r` from the allocator/VM overlap. Syscall 169 now
+4. Continue `502.gcc_r` from the current bad RTL-pointer trap while preserving
+   the earlier allocator/VM evidence. Syscall 169 now
    returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
    AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
    `stat=0x3ffffff758` decodes with `st_mode=0x81a4` at offset 16, a regular
-   file. The remaining failure is a later oldmalloc trap: `brk` stalls at
-   `0x1556273000`, anonymous `mmap` returns at the same address, and a rejected
+   file. The earlier oldmalloc lane showed `brk` stalling at
+   `0x1556273000`, anonymous `mmap` returning at the same address, and a rejected
    one-page kernel guard only moves the symptom to `memset(0x1556273000, 0,
    0x1800)`. The latest `LINX_DEBUG_PC_WATCH_DUMP_REGS` trace proves the
    overlap mechanism: oldmalloc trims and bins both `0x1556272ff0` and
    `0x1556273010`, creating overlapping free chunks at `0x1556276010` and
    `0x1556276030`; a later allocation returns payload `0x1556276020`, and
    normal GCC GGC writes corrupt the still-binned `0x1556276030` node before
-   the final `unbin` trap. The next fix should separate normal anonymous mmap
-   placement from brk-frontier heap-extension mmap. Either keep non-heap
-   anonymous mappings away from `mm->brk` in the Linx kernel mmap policy, or
-   add a Linx oldmalloc large-mmap hint outside the heap-extension window while
-   preserving fallback heap mmap at `end` when brk growth is exhausted.
+   the final `unbin` trap. A 2026-06-29 Linx oldmalloc direct-large-mmap hint
+   experiment was rebuilt and tested under
+   `workloads/generated/specint-502-large-mmap-hint-20260629/focused/stage_b_summary.json`;
+   it reproduced the same stack-2G trap at `addr=0x305910060a11b059`, so that
+   libc-only hint was backed out and `502.gcc_r` was relinked again under
+   `workloads/generated/specint-502-restored-20260629/build_manifest.json`.
+   The next 502 step should probe the `ix86_rtx_costs`/RTL object state with
+   fault regs/code bytes. Return to brk-frontier mmap policy only with fresh
+   syscall-trace proof, and prefer a kernel mmap base/window fix over a
+   standalone oldmalloc hint if that mapping reproduces.
 5. Continue deterministic userspace traps separately from throughput work:
    `502.gcc_r` traps at `0x305910060a11b059`, `520.omnetpp_r` traps on a null
    object/callback path. Under `--stack-limit 2G`, `523.xalancbmk_r` and
