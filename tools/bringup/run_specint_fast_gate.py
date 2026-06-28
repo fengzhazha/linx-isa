@@ -283,6 +283,8 @@ def _suite_command(
     no_progress_timeout: float,
     forward_qemu_heartbeat: bool,
     forward_no_progress: bool,
+    forward_stack_limit: bool,
+    stack_limit: str,
     guest_heartbeat_sec: int,
     dump_prefix_bytes: int,
     transports_override: str,
@@ -322,6 +324,8 @@ def _suite_command(
         cmd.extend(["--qemu-heartbeat-interval", str(qemu_heartbeat_interval)])
     if forward_no_progress:
         cmd.extend(["--no-progress-timeout", str(no_progress_timeout)])
+    if stack_limit.strip() and forward_stack_limit:
+        cmd.extend(["--stack-limit", stack_limit.strip()])
     for bench in suite.benches:
         cmd.extend(["--bench", bench])
     return cmd
@@ -338,6 +342,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         f"- elapsed_sec: `{summary['elapsed_sec']}`",
         f"- qemu: `{summary['qemu']}`",
         f"- spec_dir: `{summary['spec_dir']}`",
+        f"- stack_limit: `{summary['stack_limit']}`",
         "",
         "## Suites",
         "",
@@ -385,6 +390,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--heartbeat-sec", type=float, default=float(os.environ.get("SPEC_HEARTBEAT_SEC", os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30"))))
     parser.add_argument("--qemu-heartbeat-interval", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_INTERVAL", _env_int("LINX_SPEC_QEMU_HEARTBEAT_INTERVAL", 0)))
     parser.add_argument("--no-progress-timeout", type=float, default=_env_float("SPEC_NO_PROGRESS_TIMEOUT", _env_float("LINX_SPEC_NO_PROGRESS_TIMEOUT", 0.0)))
+    parser.add_argument(
+        "--stack-limit",
+        default=os.environ.get(
+            "SPEC_STACK_LIMIT",
+            os.environ.get("LINX_SPEC_STACK_LIMIT_BYTES", os.environ.get("LINX_SPEC_STACK_LIMIT", "")),
+        ),
+        help="SPEC init wrapper stack limit passed through to the matrix runner.",
+    )
     parser.add_argument("--guest-heartbeat-sec", type=int, default=_env_int("SPEC_GUEST_HEARTBEAT_SEC", _env_int("LINX_SPEC_GUEST_HEARTBEAT_SEC", 60)))
     parser.add_argument("--dump-prefix-bytes", type=int, default=_env_int("SPEC_DUMP_PREFIX_BYTES", _env_int("LINX_SPEC_DUMP_PREFIX_BYTES", 0)))
     parser.add_argument("--transports", default="", help="Override each suite transport list, e.g. initramfs or 9p,initramfs.")
@@ -418,6 +431,7 @@ def main(argv: list[str]) -> int:
 
     runner_has_qemu_heartbeat = _runner_supports_option(runner, "--qemu-heartbeat-interval")
     runner_has_no_progress = _runner_supports_option(runner, "--no-progress-timeout")
+    runner_has_stack_limit = _runner_supports_option(runner, "--stack-limit")
     if args.qemu_heartbeat_interval and not runner_has_qemu_heartbeat:
         raise SystemExit(
             "error: local SPEC matrix runner does not support "
@@ -429,6 +443,12 @@ def main(argv: list[str]) -> int:
             "error: local SPEC matrix runner does not support "
             "--no-progress-timeout; update tools/spec2017/run_stage_qemu_matrix.py "
             "or rerun without the no-progress switch"
+        )
+    if args.stack_limit.strip() and not runner_has_stack_limit:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--stack-limit; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the stack-limit switch"
         )
 
     suites = _select_suites(args.profile, args.suite)
@@ -454,6 +474,8 @@ def main(argv: list[str]) -> int:
             no_progress_timeout=args.no_progress_timeout,
             forward_qemu_heartbeat=runner_has_qemu_heartbeat,
             forward_no_progress=runner_has_no_progress,
+            forward_stack_limit=runner_has_stack_limit,
+            stack_limit=args.stack_limit,
             guest_heartbeat_sec=args.guest_heartbeat_sec,
             dump_prefix_bytes=args.dump_prefix_bytes,
             transports_override=args.transports,
@@ -508,6 +530,7 @@ def main(argv: list[str]) -> int:
         "qemu": str(qemu),
         "sysroot": str(sysroot),
         "append_extra": args.append_extra,
+        "stack_limit": args.stack_limit.strip() or "default",
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
         "no_progress_timeout": args.no_progress_timeout,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,

@@ -188,6 +188,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- strict: `{str(summary['strict']).lower()}`")
     lines.append(f"- transports: `{', '.join(summary['transports'])}`")
     lines.append(f"- timeout_sec: `{summary['timeout_sec']}`")
+    lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
     lines.append(f"- guest_heartbeat_sec: `{summary['guest_heartbeat_sec']}`")
     if summary.get("bench_override"):
@@ -265,6 +266,14 @@ def main(argv: list[str]) -> int:
         type=int,
         default=_env_int("LINX_SPEC_QEMU_TIMEOUT", 1200),
         help="Per-transport runner timeout in seconds (default: LINX_SPEC_QEMU_TIMEOUT or 1200).",
+    )
+    ap.add_argument(
+        "--stack-limit",
+        default=os.environ.get(
+            "SPEC_STACK_LIMIT",
+            os.environ.get("LINX_SPEC_STACK_LIMIT_BYTES", os.environ.get("LINX_SPEC_STACK_LIMIT", "")),
+        ),
+        help="SPEC init wrapper stack limit passed through to the per-transport runner.",
     )
     ap.add_argument(
         "--heartbeat-sec",
@@ -378,6 +387,8 @@ def main(argv: list[str]) -> int:
             "--dump-prefix-bytes",
             str(args.dump_prefix_bytes),
         ]
+        if args.stack_limit.strip():
+            cmd.extend(["--stack-limit", args.stack_limit.strip()])
         for bench in benches:
             cmd.extend(["--bench", bench])
 
@@ -429,6 +440,7 @@ def main(argv: list[str]) -> int:
         "spec_dir": str(spec_dir),
         "transports": transports,
         "timeout_sec": int(args.timeout),
+        "stack_limit": args.stack_limit.strip() or "default",
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
         "no_progress_timeout": float(args.no_progress_timeout),

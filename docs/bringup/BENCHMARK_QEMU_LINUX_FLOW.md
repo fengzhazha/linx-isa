@@ -129,6 +129,7 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --qemu-heartbeat-interval 50000000 \
   --guest-heartbeat-sec 0 \
   --no-progress-timeout 180 \
+  --stack-limit 2G \
   --transports initramfs \
   --continue-on-fail
 ```
@@ -188,13 +189,14 @@ is too noisy for routine train-all loops.
 
 For user traps at `addr = sp - 8` or at the current stack bottom, run a bounded
 stack-limit classifier before treating the failure as a C++ runtime, atomic, or
-QEMU memory bug. Use `LINX_SPEC_STACK_LIMIT=<bytes>` or
-`LINX_SPEC_STACK_LIMIT=unlimited` with a focused `run_int_rate_qemu.py` command
-and an explicit `--timeout`; if the failure changes from `user-trap` to
-heartbeat-visible live progress, record it as stack policy first. The current
-`541.leela_r` evidence follows this shape: the finite 256 MiB run traps at
-`addr=0x3feffffff8`, while `LINX_SPEC_STACK_LIMIT=unlimited` reaches
-`count=40050000003` with changing BPCs and no `LINX_USER_TRAP`.
+QEMU memory bug. Use `--stack-limit <bytes|512M|1G|2G|unlimited>` on
+`run_int_rate_qemu.py`, `run_stage_qemu_matrix.py`, or
+`run_specint_fast_gate.py`, and keep an explicit `--timeout`; if the failure
+changes from `user-trap` to heartbeat-visible live progress, record it as stack
+policy first. The current `541.leela_r` evidence follows this shape: `512M`
+traps at `addr=0x3fdffffff8`, `1G` traps at `addr=0x3fbffffff8`, and `2G`
+reaches a 240s live timeout with count `41550000002`, changing BPCs, and no
+`LINX_USER_TRAP`.
 
 Run the promotion path only when the Linux path is green:
 

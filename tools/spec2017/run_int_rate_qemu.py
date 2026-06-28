@@ -446,12 +446,53 @@ def _choose_init_static(transport: str, sysroot: Path) -> bool:
     return not (sysroot / "lib" / "libc.so").exists()
 
 
-def _spec_stack_limit_defines() -> list[str]:
-    raw = (
+def _spec_stack_limit_raw() -> str:
+    return (
         os.environ.get("LINX_SPEC_STACK_LIMIT_BYTES")
         or os.environ.get("LINX_SPEC_STACK_LIMIT")
         or ""
     ).strip()
+
+
+def _parse_stack_limit_bytes(raw: str) -> int:
+    value = raw.strip().replace("_", "")
+    match = re.fullmatch(r"(0[xX][0-9a-fA-F]+|[0-9]+)([a-zA-Z]*)", value)
+    if not match:
+        raise SystemExit(
+            "error: LINX_SPEC_STACK_LIMIT_BYTES must be an integer byte count, "
+            f"a K/M/G/T byte size, or 'unlimited' (got {raw!r})"
+        )
+
+    number = int(match.group(1), 0)
+    suffix = match.group(2).lower()
+    multipliers = {
+        "": 1,
+        "b": 1,
+        "k": 1024,
+        "kb": 1024,
+        "kib": 1024,
+        "m": 1024**2,
+        "mb": 1024**2,
+        "mib": 1024**2,
+        "g": 1024**3,
+        "gb": 1024**3,
+        "gib": 1024**3,
+        "t": 1024**4,
+        "tb": 1024**4,
+        "tib": 1024**4,
+    }
+    if suffix not in multipliers:
+        raise SystemExit(
+            "error: LINX_SPEC_STACK_LIMIT_BYTES suffix must be one of "
+            "K, M, G, T, KiB, MiB, GiB, or TiB "
+            f"(got {raw!r})"
+        )
+
+    return number * multipliers[suffix]
+
+
+def _spec_stack_limit_defines() -> list[str]:
+    raw = _spec_stack_limit_raw()
     if not raw:
         return []
 
@@ -461,13 +502,7 @@ def _spec_stack_limit_defines() -> list[str]:
     if lowered in {"default", "finite"}:
         return []
 
-    try:
-        limit = int(raw, 0)
-    except ValueError as exc:
-        raise SystemExit(
-            "error: LINX_SPEC_STACK_LIMIT_BYTES must be an integer byte count "
-            f"or 'unlimited' (got {raw!r})"
-        ) from exc
+    limit = _parse_stack_limit_bytes(raw)
     if limit <= 0:
         raise SystemExit(
             "error: LINX_SPEC_STACK_LIMIT_BYTES must be positive or 'unlimited'"
@@ -2677,6 +2712,15 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--memory-mb", type=int, default=2048)
     parser.add_argument(
+        "--stack-limit",
+        default="",
+        help=(
+            "Set the SPEC init wrapper stack limit. Accepts bytes, K/M/G/T suffixes, "
+            "'unlimited', or 'default' (default: LINX_SPEC_STACK_LIMIT_BYTES/"
+            "LINX_SPEC_STACK_LIMIT env or built-in 256M)."
+        ),
+    )
+    parser.add_argument(
         "--heartbeat-sec",
         type=float,
         default=float(os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30")),
@@ -2739,6 +2783,8 @@ def main(argv: list[str]) -> int:
         help="Directory for logs/json (default: <spec-dir>/tmp/linx-qemu-results).",
     )
     args = parser.parse_args(argv)
+    if args.stack_limit.strip():
+        os.environ["LINX_SPEC_STACK_LIMIT_BYTES"] = args.stack_limit.strip()
     if args.timeout <= 0:
         raise SystemExit("error: --timeout must be > 0")
     if args.heartbeat_sec < 0:
@@ -2784,6 +2830,9 @@ def main(argv: list[str]) -> int:
         "qemu": str(qemu),
         "kernel": str(kernel),
         "sysroot": str(sysroot),
+        "memory_mb": args.memory_mb,
+        "stack_limit": _spec_stack_limit_raw() or "default",
+        "stack_limit_defines": _spec_stack_limit_defines(),
         "heartbeat_sec": args.heartbeat_sec,
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
