@@ -72,6 +72,14 @@ case "$PWD" in
 esac
 
 case "$PWD" in
+  *"/502.gcc_r/"*)
+    BENCH_FLAGS+=(
+      -DSPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND
+    )
+    ;;
+esac
+
+case "$PWD" in
   *"/520.omnetpp_r/"*)
     BENCH_FLAGS+=(
       -Dstat64=stat

@@ -238,38 +238,49 @@ suite covering all current Linx SPECint rate benchmarks:
 - `999.specrand_ir`
 
 The latest all-train diagnostic run is
-`workloads/generated/specint-train-all-f64-extload-fix-20260629-r1`. It uses
-the mallocng-default phase-b musl sysroot, the refreshed spec C++ runtime
-overlay, and the Linx LLVM f64 extload fix. It proves the current failing rows
-are not global QEMU deadlocks: every failed benchmark has QEMU heartbeat
-progress and `999.specrand_ir` still passes strict hash. That run splits the
-work into three lanes:
+`workloads/generated/specint-train-all-icall-varfn-fix-20260629-r1/train-all`.
+Its build manifest is
+`workloads/generated/specint-train-all-icall-varfn-fix-20260629-r1/build_manifest.json`.
+It uses the mallocng-default phase-b musl sysroot, the refreshed spec C++
+runtime overlay, the Linx LLVM f64 extload fix, the indirect-call target-register
+constraint, and the `502.gcc_r` variadic-function-table workaround. It proves
+the current failing rows are not global QEMU deadlocks: every failed benchmark
+has QEMU heartbeat progress and `999.specrand_ir` still passes strict hash. That
+run splits the work into three lanes:
 
-- Correctness stop: `502.gcc_r` traps on the current bad RTL/sub-RTL data
-  pointer path.
+- Correctness stop: `502.gcc_r` moved past the bad RTL/function-pointer path and
+  now traps later in the allocator/VM boundary after `mremap`, in musl
+  `realloc`.
 - Live-slow train rows: `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`,
   `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
   `557.xz_r` time out under the 180s diagnostic budget with heartbeat site
   progress.
+- Closed compiler/SPEC lane: the earlier 502 bad RTL pointer path is closed by
+  keeping indirect call targets out of ABI argument registers and by compiling
+  502 with SPEC's existing `SPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND`.
 - Stack/startup classifiers: `523.xalancbmk_r` and `541.leela_r` are no longer
   deterministic stack traps under `--stack-limit 2G`, and `520.omnetpp_r` no
   longer takes the earlier null static-constructor trap after the forced-static
   C++ link path enters musl `_start`.
 
-For `502.gcc_r`, the focused ring run under
-`workloads/generated/specint-502-pcwatch-ring-final-20260629-r1` keeps the same
-trap and captures the final `ix86_rtx_costs` block. Static PIE slide
-`0x1515555000` maps the final user `tpc=0x15559baa6c` to
-`i386.c:.LBB282_30` in `ix86_rtx_costs`; the caller return site
-`0x1555dd9e46` maps to the indirect target-hook call in `rtx_cost`
-(`rtlanal.c:.LBB82_38`). The final ring entries show `[sp+0x118]` and `a0`
-hold `0x1555b44b14`, which maps to `gen_movsi` text at static
-`0x405efb14`, not to an RTL object. The callee then loads from `[a0+16]`,
-placing code bytes in `tq0=0x305910060a11b059`, and faults when using that as a
-data pointer. Treat this as a current bad call-argument/object-state path, not a
-BSTART target validation issue or a QEMU deadlock. Keep the older brk/frontier
-and oldmalloc overlap evidence as a separate producer lane until a fresh syscall
-trace ties it to this mallocng-era failure.
+For `502.gcc_r`, the focused runs under
+`workloads/generated/specint-502-icall-target-fix-20260629-r1` and
+`workloads/generated/specint-502-icall-target-varfn-fix-20260629-r1` split the
+root cause. The first run proves the indirect call target was no longer
+allocated in `a0`, but the generated GCC table still called fixed-argument
+`gen_*` functions through a variadic function-pointer type, conflicting with
+Linx's stack-passed real-vararg policy. The 502-only SPEC workaround changes
+that table to unprototyped calls, so `gen_movsi` receives operands in `a0/a1`
+and the earlier `ix86_rtx_costs`/code-pointer trap is closed. The current
+focused and train-all stop is later: runtime `tpc=0x1556074e1a` maps, with the
+static PIE slide, to musl `realloc.c` at static `0x40b1fe1a`, immediately after
+the `mremap.c` return body around static `0x40b2040a`. The trap writes
+`sbi a3, [a1, -4]` with `a1=0x3f7e729000`, faulting at `addr=0x3f7e728ffc`.
+Treat this as the active allocator/VM mapping-boundary lane, not a BSTART target
+validation issue, a QEMU deadlock, or the now-closed GCC RTL call-lowering path.
+Keep the older brk/frontier and oldmalloc overlap evidence as historical
+producer material until a fresh syscall trace ties it to the current
+mallocng-era `realloc`/`mremap` failure.
 
 Additional opt-in QEMU debug switches used during this pass:
 
@@ -481,8 +492,10 @@ passes strict hash `0x973dcfc2`; `500.perlbench_r` no longer reports the
 BigInt arithmetic-range failure and now times out live at BPC `0x15556e7dfc`;
 `502.gcc_r` remains a `LINX_USER_TRAP` at `addr=0x305910060a11b059`; `505`,
 `520`, `523`, `525`, `531`, `541`, and `557` are also live-timeouts with BPC
-heartbeat site progress. Therefore the current debug split is data/object
-correctness for `502` and QEMU throughput/profiling for the live train rows.
+heartbeat site progress. That run's debug split was data/object correctness for
+`502` and QEMU throughput/profiling for the live train rows; the later
+ICALL/502-workaround run supersedes the 502 call-argument diagnosis with the
+allocator/VM `realloc`/`mremap` stop recorded above.
 
 Focused `500.perlbench_r` rerun after adding the scalar FP-compare trace in
 QEMU commit `b5e90c7db5f`:
@@ -630,15 +643,15 @@ unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | live timeout at 180s | last heartbeat count `18000000000`, BPC `0x15556e7dfc`, `progress=site-change`, no arithmetic-range stop | f64 constant-load compiler bug is closed; current owner is throughput/live-progress profiling |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa6c`, `bpc=0x15559baa64`, `orig_tpc=0x1556077212`, `orig_bpc=0x15560771f4`; last heartbeat count `5000000001` | current symptom is a bad RTL data pointer path; mallocng default and the f64 fix did not close it, while the older brk/mmap oldmalloc overlap remains separate producer evidence |
-| `505.mcf_r` | live timeout at 180s | last heartbeat count `33000000004`, BPC `0x155555cc96`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
-| `520.omnetpp_r` | live timeout at 180s | all-train last heartbeat count `30000000002`, BPC `0xffffffff803def26`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
-| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `29000000012`, BPC `0xffffffff8006ba9c`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `23000000002`, BPC `0xffffffff800019bc`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `26000000000`, BPC `0x155556899e`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `30000000012`, BPC `0xffffffff8006d174`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `27000000000`, BPC `0x155558d680`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `500.perlbench_r` | live timeout at 180s | last heartbeat count `23000000000`, BPC `0x15556724ce`, `progress=site-change`, no arithmetic-range stop | f64 constant-load compiler bug is closed; current owner is throughput/live-progress profiling |
+| `502.gcc_r` | user trap | `addr=0x3f7e728ffc`, user `tpc=0x1556074e1a`, `bpc=0x1556074e00`, `orig_tpc=0x155607540a`, `orig_bpc=0x15560753e6`; last heartbeat count `12000000002` | bad RTL/function-pointer lane is closed; current owner is the musl `realloc`/`mremap` allocator/VM mapping boundary |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `40000000000`, BPC `0x155555cca0`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | live timeout at 180s | all-train last heartbeat count `31000000000`, BPC `0xffffffff803def2a`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
+| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `33000000004`, BPC `0xffffffff803df13e`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `19000000003`, BPC `0xffffffff800019bc`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `31000000001`, BPC `0x155555931c`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `31000000004`, BPC `0xffffffff8006be94`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `31000000004`, BPC `0xffffffff803dde02`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -693,40 +706,25 @@ Proposed next fixes:
    as historical root-cause material, and reopen 500 correctness only if a fresh
    focused run reproduces a trap or wrong-answer signature after the fixed
    compiler rebuild.
-4. Continue `502.gcc_r` from the current bad RTL-pointer trap while preserving
-   the earlier allocator/VM evidence. Syscall 169 now
-   returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,
-   AT_EMPTY_PATH)` returns `0`; and the `LINX_SYSCALL_ARGDUMP` buffer at
-   `stat=0x3ffffff758` decodes with `st_mode=0x81a4` at offset 16, a regular
-   file. The earlier oldmalloc lane showed `brk` stalling at
-   `0x1556273000`, anonymous `mmap` returning at the same address, and a rejected
-   one-page kernel guard only moves the symptom to `memset(0x1556273000, 0,
-   0x1800)`. The latest `LINX_DEBUG_PC_WATCH_DUMP_REGS` trace proves the
-   overlap mechanism: oldmalloc trims and bins both `0x1556272ff0` and
-   `0x1556273010`, creating overlapping free chunks at `0x1556276010` and
-   `0x1556276030`; a later allocation returns payload `0x1556276020`, and
-   normal GCC GGC writes corrupt the still-binned `0x1556276030` node before
-   the final `unbin` trap. A 2026-06-29 Linx oldmalloc direct-large-mmap hint
-   experiment was rebuilt and tested under
-   `workloads/generated/specint-502-large-mmap-hint-20260629/focused/stage_b_summary.json`;
-   it reproduced the same stack-2G trap at `addr=0x305910060a11b059`, so that
-   libc-only hint was backed out and `502.gcc_r` was relinked again under
-   `workloads/generated/specint-502-restored-20260629/build_manifest.json`.
-   The later exact-PC ring run
-   `workloads/generated/specint-502-pcwatch-ring-final-20260629-r1` narrows the
-   current mallocng-era symptom: `rtx_cost` indirectly calls the target hook
-   that returns to `0x1555dd9e46`, but `ix86_rtx_costs` receives
-   `a0=0x1555b44b14`, a pointer into `gen_movsi` code, as its first RTL
-   argument. The next 502 step should trace the `rtx_cost` target-hook call
-   inputs and the object that should feed `a0`, then compare compiler call
-   lowering/table state before changing QEMU control-flow rules. Return to
-   brk-frontier mmap policy only with fresh syscall-trace proof, and prefer a
-   kernel mmap base/window fix over a standalone oldmalloc hint if that mapping
-   reproduces.
+4. Continue `502.gcc_r` from the current allocator/VM trap, not from the closed
+   bad RTL-pointer trap. Syscall 169 now returns `0`; `200.c` opens as fd 3;
+   `newfstatat(3, "", stat, AT_EMPTY_PATH)` returns `0`; the previous
+   indirect-call target-in-`a0` path is fixed in Linx LLVM; and the SPEC
+   generated `gen_*` table is compiled with its existing
+   `SPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND`. The active residual is
+   now musl `realloc` after `mremap`: `mremap.c` returns around static
+   `0x40b2040a`, then `realloc.c` faults at static `0x40b1fe1a` on
+   `sbi a3, [a1, -4]` with `a1=0x3f7e729000` and
+   `addr=0x3f7e728ffc`. Next trace `mremap`, `mmap`, and `brk` return ranges,
+   page permissions, and the allocator's end-page metadata assumptions under
+   the current mallocng/default build. Keep the older brk-frontier oldmalloc
+   overlap evidence as historical producer material until reproduced under the
+   current run shape; do not change QEMU control-flow rules for this residual.
 5. Continue deterministic userspace traps separately from throughput work:
-   `502.gcc_r` traps at `0x305910060a11b059`. Under the forced-static C++
-   startup fix and `--stack-limit 2G`, `520.omnetpp_r`, `523.xalancbmk_r`, and
-   `541.leela_r` move to live timeout and belong in the profiling lane. Use
+   `502.gcc_r` traps at `0x3f7e728ffc` in the allocator/VM lane. Under the
+   forced-static C++ startup fix and `--stack-limit 2G`, `520.omnetpp_r`,
+   `523.xalancbmk_r`, and `541.leela_r` move to live timeout and belong in the
+   profiling lane. Use
    `LINX_FAULT_TRACE_REGS=1`,
    `LINX_CALL_TRACE_RING=1`, and, when a specific PC is known,
    `LINX_DEBUG_PC_WATCH_REGS=1` plus symbolization before changing QEMU
@@ -913,15 +911,15 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-f64-extload-fix-20260629-r1/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-all-icall-varfn-fix-20260629-r1/train-all/initramfs/stage_b_summary.json`
   is the current all-train ledger. The live timeout rows are `500`, `505`,
   `520`, `523`, `525`, `531`, `541`, and `557`; all have
   `heartbeat_running=true`, `heartbeat_site_progress=true`, and
-  `stalled=false`. Representative last BPCs are `500=0x15556e7dfc`,
-  `505=0x155555cc96`, `520=0xffffffff803def26`,
-  `523=0xffffffff8006ba9c`, `525=0xffffffff800019bc`,
-  `531=0x155556899e`, `541=0xffffffff8006d174`, and
-  `557=0x155558d680`.
+  `stalled=false`. Representative last BPCs are `500=0x15556724ce`,
+  `505=0x155555cca0`, `520=0xffffffff803def2a`,
+  `523=0xffffffff803df13e`, `525=0xffffffff800019bc`,
+  `531=0x155555931c`, `541=0xffffffff8006be94`, and
+  `557=0xffffffff803dde02`.
 - Fresh heartbeat-off macOS sample:
   `workloads/generated/specint-profile-500-f64-fix-20260629-r1/profile/qemu-500-f64-fix.sample.txt`.
   It sampled post-fix `500.perlbench_r` train input for 20 seconds while

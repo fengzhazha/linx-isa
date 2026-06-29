@@ -116,7 +116,7 @@ classify every train workload rather than stop at PR smoke:
 ```bash
 SPECINT_TRAIN_ALL_TIMEOUT=180 \
 SPEC_GUEST_HEARTBEAT_SEC=0 \
-SPEC_QEMU_HEARTBEAT_INTERVAL=50000000 \
+SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
 SPEC_NO_PROGRESS_TIMEOUT=180 \
 python3 tools/bringup/run_specint_fast_gate.py \
   --profile train \
@@ -126,7 +126,7 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --out-dir workloads/generated/specint-train-all-<date> \
   --append-extra norandmaps \
   --heartbeat-sec 30 \
-  --qemu-heartbeat-interval 50000000 \
+  --qemu-heartbeat-interval 1000000000 \
   --guest-heartbeat-sec 0 \
   --no-progress-timeout 180 \
   --stack-limit 2G \
