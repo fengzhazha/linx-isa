@@ -226,6 +226,14 @@ for SRC in "$SRC_DIR"/*.c; do
       exit 1
     fi
   fi
+
+  case "$BASE" in
+    20_floating_point)
+      python3 "$ROOT/check_fp_extloads.py" \
+        --asm "$OUT/$BASE.s" \
+        --label "$BASE"
+      ;;
+  esac
 done
 
 if [[ $FAILED -ne 0 ]]; then

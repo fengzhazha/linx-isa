@@ -238,18 +238,19 @@ suite covering all current Linx SPECint rate benchmarks:
 - `999.specrand_ir`
 
 The latest all-train diagnostic run is
-`workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1`.
-It uses the mallocng-default phase-b musl sysroot plus a refreshed spec C++
-runtime overlay. It proves the current failing rows are not global QEMU
-deadlocks: every failed benchmark has QEMU heartbeat progress and
-`999.specrand_ir` still passes strict hash. That run splits the work into
-three lanes:
+`workloads/generated/specint-train-all-f64-extload-fix-20260629-r1`. It uses
+the mallocng-default phase-b musl sysroot, the refreshed spec C++ runtime
+overlay, and the Linx LLVM f64 extload fix. It proves the current failing rows
+are not global QEMU deadlocks: every failed benchmark has QEMU heartbeat
+progress and `999.specrand_ir` still passes strict hash. That run splits the
+work into three lanes:
 
-- Correctness stops: `500.perlbench_r` fails in Perl BigInt range handling and
-  `502.gcc_r` traps on the current bad RTL/sub-RTL data pointer path.
-- Live-slow train rows: `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`,
-  `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` time out
-  under the 180s diagnostic budget with heartbeat site progress.
+- Correctness stop: `502.gcc_r` traps on the current bad RTL/sub-RTL data
+  pointer path.
+- Live-slow train rows: `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`,
+  `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
+  `557.xz_r` time out under the 180s diagnostic budget with heartbeat site
+  progress.
 - Stack/startup classifiers: `523.xalancbmk_r` and `541.leela_r` are no longer
   deterministic stack traps under `--stack-limit 2G`, and `520.omnetpp_r` no
   longer takes the earlier null static-constructor trap after the forced-static
@@ -460,13 +461,13 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --stack-limit 2G
 ```
 
-The refreshed run reports `ok=false` after `1340.388s`: `999.specrand_ir`
-passes strict hash `0x973dcfc2`; `500.perlbench_r` remains
-`user-arithmetic-range`; `502.gcc_r` remains a `LINX_USER_TRAP` at
-`addr=0x305910060a11b059`; `505`, `520`, `523`, `525`, `531`, `541`, and `557`
-are live-timeouts with BPC heartbeat site progress. Therefore the current
-debug split is compiler/codegen correctness for `500`, data/object correctness
-for `502`, and QEMU throughput/profiling for the other train rows.
+The refreshed run reports `ok=false` after `1490.775s`: `999.specrand_ir`
+passes strict hash `0x973dcfc2`; `500.perlbench_r` no longer reports the
+BigInt arithmetic-range failure and now times out live at BPC `0x15556e7dfc`;
+`502.gcc_r` remains a `LINX_USER_TRAP` at `addr=0x305910060a11b059`; `505`,
+`520`, `523`, `525`, `531`, `541`, and `557` are also live-timeouts with BPC
+heartbeat site progress. Therefore the current debug split is data/object
+correctness for `502` and QEMU throughput/profiling for the live train rows.
 
 Focused `500.perlbench_r` rerun after adding the scalar FP-compare trace in
 QEMU commit `b5e90c7db5f`:
@@ -499,14 +500,16 @@ python3 tools/spec2017/run_stage_qemu_matrix.py \
 ```
 
 Result: `workloads/generated/specint-500-fcmp-trace-20260629-r2` reproduces
-the `user-arithmetic-range` stop in `27.38s`. The QEMU log records
+the old `user-arithmetic-range` stop in `27.38s`. The QEMU log records
 `LINX_FCMP_TRACE` lines for `S_outside_integer`: `fge.fd`/`flt.fd` compare
 `1.0` against raw operands `0xdf000000`, `0x0`, and `0x5f800000`. Static
 objdump confirms those operands come from `hl.lwu.pcr` immediately before
 `.fd` compares, so 32-bit float bound constants are being interpreted as
-64-bit doubles. Treat `500` as a Linx LLVM constant-pool/load-width bug for
-double compare constants; add an AVS regression around `f64` compares to
-`IV_MIN`/`IV_MAX`-style bounds before changing QEMU FP helper semantics.
+64-bit doubles. That classified `500` as a Linx LLVM constant-pool/load-width
+bug for double compare constants, not a QEMU FP helper issue. The follow-up
+Linx LLVM fix adds a codegen regression and an AVS assembly gate, rebuilds all
+SPECint binaries, and moves `500` to the live-timeout lane in
+`workloads/generated/specint-train-all-f64-extload-fix-20260629-r1`.
 The matrix summary now lifts this evidence into `fcmp_trace_seen`,
 `fcmp_trace_count`, `fcmp_trace_last`, and bounded `fcmp_trace_samples` fields.
 
@@ -612,15 +615,15 @@ unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | user arithmetic range | `Range iterator outside integer range at lib/Math/BigInt.pm line 2675`; no panic/trap; last heartbeat count `3000000003`, BPC `0xffffffff803dde02` | dlookup Oops is closed; resume Perl BigInt scalar/range correctness |
-| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa4c`, `bpc=0x15559baa44`, `orig_tpc=0x15560771ea`, `orig_bpc=0x15560771cc`; last heartbeat count `5000000002`, BPC `0xffffffff800f5e5e` | current symptom is a bad RTL data pointer path; mallocng default did not close it, while the older brk/mmap oldmalloc overlap remains separate producer evidence |
-| `505.mcf_r` | live timeout at 180s | last heartbeat count `34000000000`, BPC `0x155555cbb6`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
-| `520.omnetpp_r` | live timeout at 180s | rebuilt forced-static C++ image enters `_start`; constructor-watch stores nonzero `ExecuteOnStartup::head` values at `0x1555817478`; all-train last heartbeat count `32000000001`, BPC `0xffffffff803dde02`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
-| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `30000000001`, BPC `0xffffffff803dde02`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `22000000011`, BPC `0xffffffff803e8f4c`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `30000000002`, BPC `0x155555bbd0`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `37000000001`, BPC `0xffffffff803dde02`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `31000000004`, BPC `0xffffffff803dde02`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `500.perlbench_r` | live timeout at 180s | last heartbeat count `18000000000`, BPC `0x15556e7dfc`, `progress=site-change`, no arithmetic-range stop | f64 constant-load compiler bug is closed; current owner is throughput/live-progress profiling |
+| `502.gcc_r` | user trap | `addr=0x305910060a11b059`, user `tpc=0x15559baa6c`, `bpc=0x15559baa64`, `orig_tpc=0x1556077212`, `orig_bpc=0x15560771f4`; last heartbeat count `5000000001` | current symptom is a bad RTL data pointer path; mallocng default and the f64 fix did not close it, while the older brk/mmap oldmalloc overlap remains separate producer evidence |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `33000000004`, BPC `0x155555cc96`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | live timeout at 180s | all-train last heartbeat count `30000000002`, BPC `0xffffffff803def26`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
+| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `29000000012`, BPC `0xffffffff8006ba9c`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `23000000002`, BPC `0xffffffff800019bc`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `26000000000`, BPC `0x155556899e`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `30000000012`, BPC `0xffffffff8006d174`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `27000000000`, BPC `0x155558d680`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -659,17 +662,18 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Profile `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `525.x264_r`,
-   `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` with heartbeat off or at a
-   very coarse interval. These workloads are live but too slow in the 180s
-   train-all diagnostic loop; the next QEMU speedups should focus on page-local
-   BSTART decode caching, TB-friendly template/queue fast paths, and avoiding
-   helper probes in hot branch-validation paths.
-3. Continue `500.perlbench_r` from the Perl BigInt range failure, not from the
-   now-closed dcache Oops. The same-ACR QEMU frame fix restores Linux's
-   kernel-origin entry contract: live `x1=0`, current-bank ETEMP holds the
-   interrupted `x1`, and the dentry-name memory remains valid across the
-   compare loop.
+2. Profile `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`,
+   `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
+   `557.xz_r` with heartbeat off or at a very coarse interval. These workloads
+   are live but too slow in the 180s train-all diagnostic loop; the next QEMU
+   speedups should focus on page-local BSTART decode caching, TB-friendly
+   template/queue fast paths, and avoiding helper probes in hot
+   branch-validation paths.
+3. Treat the old `500.perlbench_r` Perl BigInt range failure as closed by the
+   Linx LLVM f64 extload fix. Keep the same-ACR/dcache and FCMP trace evidence
+   as historical root-cause material, and reopen 500 correctness only if a fresh
+   focused run reproduces a trap or wrong-answer signature after the fixed
+   compiler rebuild.
 4. Continue `502.gcc_r` from the current bad RTL-pointer trap while preserving
    the earlier allocator/VM evidence. Syscall 169 now
    returns `0`; `200.c` opens as fd 3; `newfstatat(3, "", stat,

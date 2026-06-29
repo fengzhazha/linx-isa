@@ -31,6 +31,12 @@ int cmp_f64(double a, double b) {
   return 0;
 }
 
+int cmp_f64_constant_bounds(double a) {
+  if (a <= (double)(-9223372036854775807LL - 1LL)) return -1;
+  if (a > (double)9223372036854775807LL) return 1;
+  return 0;
+}
+
 // Floating-point conversions
 int f32_to_i32(float f) { return (int)f; }
 
