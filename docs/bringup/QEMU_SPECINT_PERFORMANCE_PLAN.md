@@ -248,9 +248,10 @@ the current failing rows are not global QEMU deadlocks: every failed benchmark
 has QEMU heartbeat progress and `999.specrand_ir` still passes strict hash. That
 run splits the work into three lanes:
 
-- Correctness stop: `502.gcc_r` moved past the bad RTL/function-pointer path and
-  now traps later in the allocator/VM boundary after `mremap`, in musl
-  `realloc`.
+- Closed correctness stop: `502.gcc_r` moved past the bad RTL/function-pointer
+  path, then exposed a later allocator/VM `mremap` end-page trap in musl
+  `realloc`. The Linx Linux mremap workaround and `mremap_end` AVS smoke now
+  close that trap; focused and all-train reruns classify 502 as live-slow.
 - Live-slow train rows: `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`,
   `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
   `557.xz_r` time out under the 180s diagnostic budget with heartbeat site
@@ -271,16 +272,17 @@ allocated in `a0`, but the generated GCC table still called fixed-argument
 `gen_*` functions through a variadic function-pointer type, conflicting with
 Linx's stack-passed real-vararg policy. The 502-only SPEC workaround changes
 that table to unprototyped calls, so `gen_movsi` receives operands in `a0/a1`
-and the earlier `ix86_rtx_costs`/code-pointer trap is closed. The current
-focused and train-all stop is later: runtime `tpc=0x1556074e1a` maps, with the
-static PIE slide, to musl `realloc.c` at static `0x40b1fe1a`, immediately after
-the `mremap.c` return body around static `0x40b2040a`. The trap writes
+and the earlier `ix86_rtx_costs`/code-pointer trap is closed. The next stop was
+the allocator/VM boundary: runtime `tpc=0x1556074e1a` mapped, with the static PIE
+slide, to musl `realloc.c` at static `0x40b1fe1a`, immediately after the
+`mremap.c` return body around static `0x40b2040a`. The trap wrote
 `sbi a3, [a1, -4]` with `a1=0x3f7e729000`, faulting at `addr=0x3f7e728ffc`.
-Treat this as the active allocator/VM mapping-boundary lane, not a BSTART target
-validation issue, a QEMU deadlock, or the now-closed GCC RTL call-lowering path.
-Keep the older brk/frontier and oldmalloc overlap evidence as historical
-producer material until a fresh syscall trace ties it to the current
-mallocng-era `realloc`/`mremap` failure.
+That allocator/VM lane is now closed by the Linx Linux mremap workaround:
+`avs/qemu/out/mremap-end-smoke-r3/summary.json` passes the isolated end-page
+store, and `workloads/generated/specint-train-all-mremap-fix-20260629-r1/`
+classifies 502 as heartbeat-backed live timeout. Keep the older brk/frontier
+and oldmalloc overlap evidence as historical producer material until a fresh
+syscall trace ties it to a current mallocng-era failure.
 
 Additional opt-in QEMU debug switches used during this pass:
 
@@ -643,15 +645,15 @@ unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | live timeout at 180s | last heartbeat count `23000000000`, BPC `0x15556724ce`, `progress=site-change`, no arithmetic-range stop | f64 constant-load compiler bug is closed; current owner is throughput/live-progress profiling |
-| `502.gcc_r` | user trap | `addr=0x3f7e728ffc`, user `tpc=0x1556074e1a`, `bpc=0x1556074e00`, `orig_tpc=0x155607540a`, `orig_bpc=0x15560753e6`; last heartbeat count `12000000002` | bad RTL/function-pointer lane is closed; current owner is the musl `realloc`/`mremap` allocator/VM mapping boundary |
-| `505.mcf_r` | live timeout at 180s | last heartbeat count `40000000000`, BPC `0x155555cca0`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
-| `520.omnetpp_r` | live timeout at 180s | all-train last heartbeat count `31000000000`, BPC `0xffffffff803def2a`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
-| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `33000000004`, BPC `0xffffffff803df13e`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
-| `525.x264_r` | live timeout at 180s | last heartbeat count `19000000003`, BPC `0xffffffff800019bc`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
-| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `31000000001`, BPC `0x155555931c`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
-| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `31000000004`, BPC `0xffffffff8006be94`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
-| `557.xz_r` | live timeout at 180s | last heartbeat count `31000000004`, BPC `0xffffffff803dde02`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
+| `500.perlbench_r` | live timeout at 180s | last heartbeat count `20000000000`, BPC `0x1555674a64`, `progress=site-change`, no arithmetic-range stop | f64 constant-load compiler bug is closed; current owner is throughput/live-progress profiling |
+| `502.gcc_r` | live timeout at 180s | focused 300s run and all-train run have no `LINX_USER_TRAP`; all-train count `20000000001`, BPC `0x1555f61932`, `progress=site-change` | bad RTL/function-pointer and musl `realloc`/`mremap` lanes are closed; current owner is throughput/live-progress profiling |
+| `505.mcf_r` | live timeout at 180s | last heartbeat count `35000000000`, BPC `0x155555c4b8`, `progress=site-change`, `stalled=false` | train input is throughput/live-progress under the diagnostic budget; the older user trap is historical unless it reproduces |
+| `520.omnetpp_r` | live timeout at 180s | all-train last heartbeat count `31000000005`, BPC `0xffffffff803df402`, `progress=site-change` | previous null constructor/callback trap is closed; current owner is throughput/live-progress profiling |
+| `523.xalancbmk_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `37000000000`, BPC `0xffffffff803dd766`, `progress=site-change`, no `LINX_USER_TRAP` | stack-2G reclassifies the old finite-stack trap; profile before debugging C++ atomics |
+| `525.x264_r` | live timeout at 180s | last heartbeat count `24000000005`, BPC `0xffffffff803e88b0`, `progress=site-change`, no panic | current owner is throughput/live-progress; the older panic is historical unless it reappears |
+| `531.deepsjeng_r` | live timeout at 180s | last heartbeat count `28000000005`, BPC `0x155556839e`, `progress=site-change` | current train input is slow/live; profile against the earlier test-input pass profile |
+| `541.leela_r` | live timeout at 180s with `--stack-limit 2G` | last heartbeat count `30000000001`, BPC `0xffffffff803de88e`, `progress=site-change`, no `LINX_USER_TRAP` | run train loops with `--stack-limit 2G`; remaining owner is throughput/live progress unless a larger input later proves another correctness trap |
+| `557.xz_r` | live timeout at 180s | last heartbeat count `30000000000`, BPC `0x155558d430`, `progress=site-change`, no `LINX_USER_TRAP` | current train input is slow/live; profile before pursuing older bad-pointer evidence |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -690,7 +692,7 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Profile `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`,
+2. Profile `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`,
    `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
    `557.xz_r` with heartbeat off or at a very coarse interval. These workloads
    are live but too slow in the 180s train-all diagnostic loop; the next QEMU
@@ -706,25 +708,21 @@ Proposed next fixes:
    as historical root-cause material, and reopen 500 correctness only if a fresh
    focused run reproduces a trap or wrong-answer signature after the fixed
    compiler rebuild.
-4. Continue `502.gcc_r` from the current allocator/VM trap, not from the closed
-   bad RTL-pointer trap. Syscall 169 now returns `0`; `200.c` opens as fd 3;
+4. Treat the closed `502.gcc_r` allocator/VM trap as a regression guard, not the
+   active owner. Syscall 169 now returns `0`; `200.c` opens as fd 3;
    `newfstatat(3, "", stat, AT_EMPTY_PATH)` returns `0`; the previous
-   indirect-call target-in-`a0` path is fixed in Linx LLVM; and the SPEC
-   generated `gen_*` table is compiled with its existing
-   `SPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND`. The active residual is
-   now musl `realloc` after `mremap`: `mremap.c` returns around static
-   `0x40b2040a`, then `realloc.c` faults at static `0x40b1fe1a` on
-   `sbi a3, [a1, -4]` with `a1=0x3f7e729000` and
-   `addr=0x3f7e728ffc`. Next trace `mremap`, `mmap`, and `brk` return ranges,
-   page permissions, and the allocator's end-page metadata assumptions under
-   the current mallocng/default build. Keep the older brk-frontier oldmalloc
-   overlap evidence as historical producer material until reproduced under the
-   current run shape; do not change QEMU control-flow rules for this residual.
-5. Continue deterministic userspace traps separately from throughput work:
-   `502.gcc_r` traps at `0x3f7e728ffc` in the allocator/VM lane. Under the
-   forced-static C++ startup fix and `--stack-limit 2G`, `520.omnetpp_r`,
-   `523.xalancbmk_r`, and `541.leela_r` move to live timeout and belong in the
-   profiling lane. Use
+   indirect-call target-in-`a0` path is fixed in Linx LLVM; the SPEC generated
+   `gen_*` table is compiled with its existing
+   `SPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND`; and
+   `avs/qemu/out/mremap-end-smoke-r3/summary.json` proves the isolated
+   `mremap(old_len=0x21000,new_len=0x41000,MREMAP_MAYMOVE)` end-page store now
+   passes after the Linx Linux mremap workaround. Keep the older brk-frontier
+   oldmalloc overlap evidence as historical producer material until reproduced
+   under the current run shape.
+5. Continue deterministic userspace traps separately from throughput work. Under
+   the forced-static C++ startup fix and `--stack-limit 2G`, `502.gcc_r`,
+   `520.omnetpp_r`, `523.xalancbmk_r`, and `541.leela_r` move to live timeout
+   and belong in the profiling lane. Use
    `LINX_FAULT_TRACE_REGS=1`,
    `LINX_CALL_TRACE_RING=1`, and, when a specific PC is known,
    `LINX_DEBUG_PC_WATCH_REGS=1` plus symbolization before changing QEMU

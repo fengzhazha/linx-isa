@@ -77,6 +77,11 @@ SAMPLES: dict[str, dict[str, str]] = {
         "start": "MUSL_TIME_SYSCALLS_START",
         "pass": "MUSL_TIME_SYSCALLS_PASS",
     },
+    "mremap_end": {
+        "src": "linux_musl_mremap_end.c",
+        "start": "MUSL_MREMAP_END_START",
+        "pass": "MUSL_MREMAP_END_PASS",
+    },
     "tp_preserve": {
         "src": "linux_musl_tp_preserve.c",
         "start": "MUSL_TP_PRESERVE_START",
@@ -1050,7 +1055,7 @@ def main(argv: list[str]) -> int:
             qemu_log.write_text(text, encoding="utf-8")
 
             panic_seen = "Kernel panic - not syncing" in text
-            trap_seen = "[linx trap]" in text.lower()
+            trap_seen = "[linx trap]" in text.lower() or "LINX_USER_TRAP" in text
             start_seen = sample_meta["start"] in text
             pass_seen = sample_meta["pass"] in text
             if timed_out and start_seen and pass_seen:
