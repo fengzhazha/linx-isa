@@ -33,7 +33,9 @@ Evidence:
   child-exit rows. The earlier `500.perlbench_r` bad branch target is closed by
   the LLVM Blockify ABI call-argument fix, and the earlier `502.gcc_r`
   allocator/VM trap is closed by the Linx Linux mremap workaround plus
-  `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
+  `avs/qemu/out/mremap-end-smoke-r3/summary.json`. Focused 502 PC-watch evidence
+  now points at Linx LLVM aggregate/by-value argument lowering rather than QEMU
+  deadlock or the closed allocator/VM lane.
 
 Inference:
 
@@ -173,6 +175,10 @@ stores come from the same guest address space. Pair it with
 `LINX_MEM_TRACE_ACR=2` for focused userspace heap/list traces; leave both unset
 for normal train-all runs because context printing belongs in narrow triage
 windows.
+For late SPEC faults, also set `LINX_MEM_TRACE_COUNT_LO=<insns>` and
+`LINX_MEM_TRACE_COUNT_HI=<insns>` with the address/PC/ACR filters. Without a
+count window, repeated stack-slot reuse can spend `LINX_MEM_TRACE_LIMIT` long
+before the final producer.
 
 Use `LINX_DEBUG_PC_WATCH=<pc>[,<pc>...] LINX_DEBUG_PC_WATCH_REGS=1` after a
 fault, heartbeat, or symbolization pass identifies a narrow PC window. This
@@ -200,6 +206,11 @@ Use `LINX_DEBUG_PC_WATCH_DUMP_PTR_OFFSETS=<off>[,<off>...]` with
 hold guest pointers that need one-hop dereference in the same long run. This
 keeps pointer provenance and pointee fields in one bounded PC-watch window; it
 is too noisy for routine train-all loops.
+
+When a fault-trace run is expected to dump a late PC-watch ring, pair
+`LINX_FAULT_TRACE_PC_LO/HI` with `LINX_FAULT_TRACE_COUNT_LO/HI`. Early boot
+faults and unrelated user faults otherwise consume `LINX_FAULT_TRACE_LIMIT`
+before QEMU reaches the final SPEC window.
 
 For user traps at `addr = sp - 8` or at the current stack bottom, run a bounded
 stack-limit classifier before treating the failure as a C++ runtime, atomic, or

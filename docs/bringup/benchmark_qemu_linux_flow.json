@@ -196,6 +196,11 @@
         "specint_fast_gate_summary.json",
         "qemu_matrix_summary.json",
         "stage_b_summary.json with heartbeat_running, heartbeat_site_progress, heartbeat_last_bpc, and heartbeat_last_progress"
+      ],
+      "diagnostic_rules": [
+        "Use LINX_QEMU_HEARTBEAT_INTERVAL on long SPEC train runs to classify live progress vs deadlock by BPC/PC/count churn.",
+        "For late user traps, pair LINX_FAULT_TRACE_PC_LO/HI with LINX_FAULT_TRACE_COUNT_LO/HI before enabling LINX_DEBUG_PC_WATCH_RING.",
+        "For late stack or heap producer traces, pair LINX_MEM_TRACE_ADDR/SIZE/ACCESS/ACR with LINX_MEM_TRACE_COUNT_LO/HI so early stack-slot reuse does not consume LINX_MEM_TRACE_LIMIT."
       ]
     },
     {
