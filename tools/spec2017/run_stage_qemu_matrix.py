@@ -105,6 +105,20 @@ def _transport_failed_benches(summary_obj: dict[str, Any]) -> list[str]:
     return failed
 
 
+def _first_failure_run(qemu_runs: Any) -> dict[str, Any] | None:
+    if not isinstance(qemu_runs, list) or not qemu_runs:
+        return None
+    return next(
+        (
+            run
+            for run in qemu_runs
+            if isinstance(run, dict)
+            and str(run.get("failure_class") or "none") != "none"
+        ),
+        next((run for run in qemu_runs if isinstance(run, dict)), None),
+    )
+
+
 def _transport_failure_classes(summary_obj: dict[str, Any]) -> dict[str, str]:
     results = summary_obj.get("results", {})
     if not isinstance(results, dict):
@@ -119,9 +133,9 @@ def _transport_failure_classes(summary_obj: dict[str, Any]) -> dict[str, str]:
             if bench_result.get("error"):
                 classes[str(bench)] = "runner-error"
             continue
-        first_run = qemu_runs[0]
-        if isinstance(first_run, dict):
-            classes[str(bench)] = str(first_run.get("failure_class") or "unclassified")
+        failed_run = _first_failure_run(qemu_runs)
+        if isinstance(failed_run, dict):
+            classes[str(bench)] = str(failed_run.get("failure_class") or "unclassified")
     return classes
 
 
@@ -144,26 +158,26 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
                     "heartbeat_site_progress": False,
                 }
             continue
-        first_run = qemu_runs[0]
-        if not isinstance(first_run, dict):
+        failed_run = _first_failure_run(qemu_runs)
+        if not isinstance(failed_run, dict):
             continue
         details[str(bench)] = {
-            "failure_class": str(first_run.get("failure_class") or "unclassified"),
-            "failure_evidence": str(first_run.get("failure_evidence") or "")[:512],
-            "heartbeat_running": bool(first_run.get("heartbeat_running", False)),
-            "heartbeat_site_progress": bool(first_run.get("heartbeat_site_progress", False)),
-            "heartbeat_last_count": first_run.get("heartbeat_last_count"),
-            "heartbeat_last_bpc": str(first_run.get("heartbeat_last_bpc") or ""),
-            "heartbeat_last_progress": str(first_run.get("heartbeat_last_progress") or ""),
-            "heartbeat_last_same_site": first_run.get("heartbeat_last_same_site"),
-            "heartbeat_recent_unique_sites": first_run.get("heartbeat_recent_unique_sites"),
-            "heartbeat_recent_count_delta": first_run.get("heartbeat_recent_count_delta"),
-            "last_heartbeat": str(first_run.get("last_heartbeat") or "")[:512],
-            "fcmp_trace_seen": bool(first_run.get("fcmp_trace_seen", False)),
-            "fcmp_trace_count": first_run.get("fcmp_trace_count"),
-            "fcmp_trace_last": str(first_run.get("fcmp_trace_last") or "")[:512],
-            "fcmp_trace_samples": first_run.get("fcmp_trace_samples") or [],
-            "log": str(first_run.get("log") or ""),
+            "failure_class": str(failed_run.get("failure_class") or "unclassified"),
+            "failure_evidence": str(failed_run.get("failure_evidence") or "")[:512],
+            "heartbeat_running": bool(failed_run.get("heartbeat_running", False)),
+            "heartbeat_site_progress": bool(failed_run.get("heartbeat_site_progress", False)),
+            "heartbeat_last_count": failed_run.get("heartbeat_last_count"),
+            "heartbeat_last_bpc": str(failed_run.get("heartbeat_last_bpc") or ""),
+            "heartbeat_last_progress": str(failed_run.get("heartbeat_last_progress") or ""),
+            "heartbeat_last_same_site": failed_run.get("heartbeat_last_same_site"),
+            "heartbeat_recent_unique_sites": failed_run.get("heartbeat_recent_unique_sites"),
+            "heartbeat_recent_count_delta": failed_run.get("heartbeat_recent_count_delta"),
+            "last_heartbeat": str(failed_run.get("last_heartbeat") or "")[:512],
+            "fcmp_trace_seen": bool(failed_run.get("fcmp_trace_seen", False)),
+            "fcmp_trace_count": failed_run.get("fcmp_trace_count"),
+            "fcmp_trace_last": str(failed_run.get("fcmp_trace_last") or "")[:512],
+            "fcmp_trace_samples": failed_run.get("fcmp_trace_samples") or [],
+            "log": str(failed_run.get("log") or ""),
         }
     return details
 

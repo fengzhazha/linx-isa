@@ -24,11 +24,13 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-train-all-mremap-fix-20260629-r1/` is the
-  current all-SPECint train diagnostic ledger: `999.specrand_ir` passes, and
-  the other train rows are live timeouts with BPC/site progress. The earlier
-  `502.gcc_r` allocator/VM trap is closed by the Linx Linux mremap workaround
-  and `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
+- `workloads/generated/specint-train-all-queue-inline-hbguard-20260629-r1/`
+  is the current all-SPECint train diagnostic ledger: `999.specrand_ir`
+  passes; `500.perlbench_r` run_001 passes `perfect.b.3.out` by hash and
+  run_002 traps at a bad user branch target; `502`, `505`, `520`, `523`,
+  `525`, `531`, `541`, and `557` are live timeouts with BPC/site progress. The
+  earlier `502.gcc_r` allocator/VM trap is closed by the Linx Linux mremap
+  workaround and `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
 
 Inference:
 
