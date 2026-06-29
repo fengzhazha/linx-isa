@@ -257,7 +257,11 @@ five lanes:
   for ABI register `a2` before `Perl_repeatcpy`, corrupting Perl op pointers.
 - Current 502 correctness stop: `502.gcc_r` now traps at `addr=0x8` with
   `tpc=0x1555f26c0e`, `bpc=0x1555f26c02`, and `orig_tpc=0x1556075fe2`.
-  Symbolize this fresh path before relating it to the older allocator/VM lanes.
+  With slide `0x1515555000`, the trap PC maps to `gsi_prev` in
+  `tree-ssa-dse.c`, specifically the second list-link load after loading
+  `[a0]`; the origin PC maps to the musl `mmap.c` return block. The next
+  focused run should watch `0x409d1bfe..0x409d1c12` and the indirect caller near
+  `0x40ab37d4` before relating this to the older allocator/VM lanes.
 - Live-slow train rows: `500.perlbench_r` run_002, `505.mcf_r`, `525.x264_r`,
   `531.deepsjeng_r`, and `557.xz_r` time out under the 300s diagnostic budget
   with heartbeat site progress.
