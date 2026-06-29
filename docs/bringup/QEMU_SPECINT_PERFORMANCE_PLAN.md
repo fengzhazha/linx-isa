@@ -887,45 +887,32 @@ Next 500-specific solution path:
 
 Current train-all live-progress evidence:
 
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/505_mcf_r/run_001/qemu.log`
-  last heartbeat: count `34000000000`, BPC `0x155555cbb6`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/520_omnetpp_r/run_001/qemu.log`
-  last heartbeat: count `32000000001`, BPC `0xffffffff803dde02`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
-  last heartbeat: count `30000000001`, BPC `0xffffffff803dde02`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/525_x264_r/run_001/qemu.log`
-  last heartbeat: count `22000000011`, BPC `0xffffffff803e8f4c`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/531_deepsjeng_r/run_001/qemu.log`
-  last heartbeat: count `30000000002`, BPC `0x155555bbd0`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/541_leela_r/run_001/qemu.log`
-  last heartbeat: count `37000000001`, BPC `0xffffffff803dde02`,
-  `progress=site-change`, and `stalled=false`.
-- `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/557_xz_r/run_001/qemu.log`
-  last heartbeat: count `31000000004`, BPC `0xffffffff803dde02`,
-  `progress=site-change`, and `stalled=false`.
-- Short macOS `sample` captures during the same train-all run are stored under
+- `workloads/generated/specint-train-all-f64-extload-fix-20260629-r1/initramfs/stage_b_summary.json`
+  is the current all-train ledger. The live timeout rows are `500`, `505`,
+  `520`, `523`, `525`, `531`, `541`, and `557`; all have
+  `heartbeat_running=true`, `heartbeat_site_progress=true`, and
+  `stalled=false`. Representative last BPCs are `500=0x15556e7dfc`,
+  `505=0x155555cc96`, `520=0xffffffff803def26`,
+  `523=0xffffffff8006ba9c`, `525=0xffffffff800019bc`,
+  `531=0x155556899e`, `541=0xffffffff8006d174`, and
+  `557=0x155558d680`.
+- Fresh heartbeat-off macOS sample:
+  `workloads/generated/specint-profile-500-f64-fix-20260629-r1/profile/qemu-500-f64-fix.sample.txt`.
+  It sampled post-fix `500.perlbench_r` train input for 20 seconds while
+  `LINX_QEMU_HEARTBEAT_INTERVAL=0`. Top Linx/QEMU frames by top-of-stack count
+  were `helper_linx_scalar_read_reg` `2799`, `helper_linx_tq_push` `2211`,
+  `helper_linx_tile_set_attr` `1440`, `helper_linx_tile_commit` `1079`,
+  `helper_linx_tile_reset_block` `928`, `helper_linx_uq_push` `481`,
+  `helper_linx_template_step` `331`, `probe_access_internal` `278`,
+  `helper_linx_check_bstart_target` `252`, `mmu_lookup1` `156`,
+  `linx_is_bstart_at_addr` `114`, `probe_access_flags` `98`, and
+  `linx_trace_wb` `75`.
+- Older macOS `sample` captures under
   `workloads/generated/specint-train-all-20260628-heartbeat-stacklimit/profile/`
-  for `523.xalancbmk_r`, `531.deepsjeng_r`, and `557.xz_r`.
-- Earlier diagnostic samples in
-  `workloads/generated/specint-train-all-20260628-debug-v2/profile/` included
-  `helper_linx_scalar_read_reg`, `helper_linx_tq_push`,
-  `helper_linx_heartbeat`, `helper_linx_tile_commit`,
-  `helper_linx_template_step`, `helper_linx_uq_push`,
-  `helper_linx_check_bstart_target`, and disabled trace initialization checks
-  (`linx_cosim_init`, `linx_call_trace_init`, `linx_minst_trace_init`,
-  `linx_commit_trace_init`).
-- The latest liveness run did not collect fresh host samples. The current
-  samples still show visible time in `helper_linx_scalar_read_reg`,
-  `helper_linx_tq_push`, `helper_linx_tile_commit`,
-  `helper_linx_template_step`, `helper_linx_check_bstart_target`, MMU
-  lookup/probe paths, and `helper_linx_heartbeat`. Because this run
-  deliberately enabled heartbeat, treat `helper_linx_heartbeat` as
-  instrumentation cost.
+  for `523.xalancbmk_r`, `531.deepsjeng_r`, and `557.xz_r` show the same broad
+  helper families. The latest heartbeat-off sample removes
+  `helper_linx_heartbeat` as an explanation for the hot path; remaining cost is
+  template/queue/scalar helper traffic plus BSTART/probe/TLB work.
 
 Prioritized QEMU speedups:
 
