@@ -2446,7 +2446,7 @@ def _classify_qemu_result(
     if fail_marker:
         return {
             "class": "spec-wrapper-fail",
-            "evidence": _first_matching_line(text, ("LINX_SPEC_FAIL",)) or "LINX_SPEC_FAIL",
+            "evidence": _spec_wrapper_failure_evidence(text),
             "last_heartbeat": last_heartbeat,
             "heartbeat_progress": heartbeat["running"],
             **_heartbeat_classification_fields(heartbeat),
@@ -2466,6 +2466,16 @@ def _first_matching_line(text: str, needles: tuple[str, ...]) -> str:
         if any(needle in line for needle in needles):
             return line[:512]
     return ""
+
+
+def _spec_wrapper_failure_evidence(text: str) -> str:
+    fail = _first_matching_line(text, ("LINX_SPEC_FAIL",)) or "LINX_SPEC_FAIL"
+    if "child-exit" not in fail:
+        return fail
+    wait = _first_matching_line(text, ("LINX_SPEC_DBG wait",))
+    if not wait:
+        return fail
+    return f"{fail}; {wait}"[:512]
 
 
 def _heartbeat_progress(heartbeats: list[str]) -> bool:

@@ -24,13 +24,16 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-train-all-queue-inline-hbguard-20260629-r1/`
-  is the current all-SPECint train diagnostic ledger: `999.specrand_ir`
+- `workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`
+  is the current all-SPECint static train diagnostic ledger: `999.specrand_ir`
   passes; `500.perlbench_r` run_001 passes `perfect.b.3.out` by hash and
-  run_002 traps at a bad user branch target; `502`, `505`, `520`, `523`,
-  `525`, `531`, `541`, and `557` are live timeouts with BPC/site progress. The
-  earlier `502.gcc_r` allocator/VM trap is closed by the Linx Linux mremap
-  workaround and `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
+  run_002 now runs until the live-timeout budget; `502.gcc_r` is the current
+  userspace trap at `addr=0x8`; `505`, `525`, `531`, and `557` are live
+  timeouts with BPC/site progress; `520`, `523`, and `541` are wrapper
+  child-exit rows. The earlier `500.perlbench_r` bad branch target is closed by
+  the LLVM Blockify ABI call-argument fix, and the earlier `502.gcc_r`
+  allocator/VM trap is closed by the Linx Linux mremap workaround plus
+  `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
 
 Inference:
 
@@ -121,7 +124,7 @@ Run the current all-SPECint train diagnostic loop directly when the goal is to
 classify every train workload rather than stop at PR smoke:
 
 ```bash
-SPECINT_TRAIN_ALL_TIMEOUT=180 \
+SPECINT_TRAIN_ALL_TIMEOUT=300 \
 SPEC_GUEST_HEARTBEAT_SEC=0 \
 SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
 SPEC_NO_PROGRESS_TIMEOUT=180 \

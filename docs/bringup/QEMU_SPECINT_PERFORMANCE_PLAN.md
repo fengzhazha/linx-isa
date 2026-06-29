@@ -196,7 +196,7 @@ disappears from the sampled CFI validation stack:
 | `linx_is_bstart_at_addr` | 350 | 198 |
 | `probe_access_flags` | 0 | 140 |
 
-## 2026-06-28 BPC Heartbeat And Train-All Triage
+## 2026-06-29 BPC Heartbeat And Train-All Triage
 
 Current Linx QEMU adds an opt-in Linx heartbeat in the QEMU log. Set either
 `LINX_HEARTBEAT_INTERVAL` or `LINX_QEMU_HEARTBEAT_INTERVAL` to a nonzero
@@ -237,36 +237,43 @@ suite covering all current Linx SPECint rate benchmarks:
 - `557.xz_r`
 - `999.specrand_ir`
 
-The latest all-train diagnostic run is
-`workloads/generated/specint-train-all-queue-inline-hbguard-20260629-r1/`.
-Its build manifest remains
-`workloads/generated/specint-train-all-icall-varfn-fix-20260629-r1/build_manifest.json`.
+The latest all-train static diagnostic run is
+`workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`.
+Its build manifest is
+`workloads/generated/specint-build-all-static-after-machinecheck-fix-20260629/phaseb_build_manifest.json`.
 It uses the mallocng-default phase-b musl sysroot, the refreshed spec C++
 runtime overlay, the Linx LLVM f64 extload fix, the indirect-call target-register
 constraint, the `502.gcc_r` variadic-function-table workaround, the QEMU scalar
-queue fast path, and the QEMU heartbeat guard. It proves the current failed rows
-are not global QEMU deadlocks: every failed benchmark has QEMU heartbeat progress
+queue fast path, the QEMU heartbeat guard, and the LLVM Blockify ABI call-arg
+fix in `compiler/llvm` commit `82776bf21f5ec`. It proves the current timeout
+rows are not global QEMU deadlocks: timeout rows have QEMU heartbeat progress
 and `999.specrand_ir` still passes strict hash. That run splits the work into
-four lanes:
+five lanes:
 
-- Closed correctness stop: `502.gcc_r` moved past the bad RTL/function-pointer
-  path, then exposed a later allocator/VM `mremap` end-page trap in musl
-  `realloc`. The Linx Linux mremap workaround and `mremap_end` AVS smoke now
-  close that trap; focused and all-train reruns classify 502 as live-slow.
-- Current 500 correctness stop: `500.perlbench_r` run_001 passes
-  `perfect.b.3.out` by hash, while run_002 traps at bad target
-  `0x003f7fee56880000` after the origin PCs in musl `__syscall_cp_c` / `sccp`.
-- Live-slow train rows: `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`,
-  `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`, and
-  `557.xz_r` time out under the 180s diagnostic budget with heartbeat site
-  progress.
-- Closed compiler/SPEC lane: the earlier 502 bad RTL pointer path is closed by
+- Closed 500 correctness stop: `500.perlbench_r` run_001 passes
+  `perfect.b.3.out` by hash `0xc69c7085`; run_002 no longer traps at the old
+  bad target `0x003f7fee56880000` and is now heartbeat-backed live-slow. The
+  root cause was compiler-side: Blockify erased the shifted byte-count producer
+  for ABI register `a2` before `Perl_repeatcpy`, corrupting Perl op pointers.
+- Current 502 correctness stop: `502.gcc_r` now traps at `addr=0x8` with
+  `tpc=0x1555f26c0e`, `bpc=0x1555f26c02`, and `orig_tpc=0x1556075fe2`.
+  Symbolize this fresh path before relating it to the older allocator/VM lanes.
+- Live-slow train rows: `500.perlbench_r` run_002, `505.mcf_r`, `525.x264_r`,
+  `531.deepsjeng_r`, and `557.xz_r` time out under the 300s diagnostic budget
+  with heartbeat site progress.
+- Wrapper child-exit rows: `520.omnetpp_r`, `523.xalancbmk_r`, and
+  `541.leela_r` emit `LINX_SPEC_FAIL child-exit`. The runner now appends the
+  wrapper `LINX_SPEC_DBG wait ... status/code/sig` line to `spec-wrapper-fail`
+  evidence, so the next rerun should identify whether each child exited
+  nonzero or died by signal before treating these as C++ runtime or QEMU
+  throughput failures.
+- Closed historical lanes: the earlier 502 bad RTL pointer path is closed by
   keeping indirect call targets out of ABI argument registers and by compiling
   502 with SPEC's existing `SPEC_GCC_VARIADIC_FUNCTIONS_MISMATCH_WORKAROUND`.
-- Stack/startup classifiers: `523.xalancbmk_r` and `541.leela_r` are no longer
-  deterministic stack traps under `--stack-limit 2G`, and `520.omnetpp_r` no
-  longer takes the earlier null static-constructor trap after the forced-static
-  C++ link path enters musl `_start`.
+  The later 502 allocator/VM `mremap` end-page trap is closed by the Linx Linux
+  mremap workaround and `avs/qemu/out/mremap-end-smoke-r3/summary.json`.
+  Historical stack/startup traps for `520`, `523`, and `541` are not reproduced
+  under the current `--stack-limit 2G` static train loop.
 
 For `502.gcc_r`, the focused runs under
 `workloads/generated/specint-502-icall-target-fix-20260629-r1` and

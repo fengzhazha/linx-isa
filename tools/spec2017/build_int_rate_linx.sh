@@ -399,7 +399,9 @@ build_benchmark() {
       echo "error: missing expected executable for $bench: $exe_dir/$exe" >>"$log_file"
       return 1
     fi
-    if ! "$LLVM_READELF" -h "$exe_dir/$exe" | rg -q 'Machine:\s+Linx'; then
+    machine_line="$("$LLVM_READELF" -h "$exe_dir/$exe" 2>/dev/null \
+      | awk -F'Machine:' '/Machine:/ { print $2; exit }')"
+    if [[ "$machine_line" != *Linx* && "$machine_line" != *EM_LINXISA* ]]; then
       echo "error: non-Linx executable for $bench: $exe_dir/$exe" >>"$log_file"
       "$LLVM_READELF" -h "$exe_dir/$exe" >>"$log_file" 2>&1 || true
       return 1
