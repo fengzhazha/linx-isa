@@ -172,8 +172,12 @@ checks, not correctness runs.
 For long SPEC loops, bound focused watchpoints with
 `LINX_DEBUG_PC_WATCH_COUNT_LO=<insns>`, `LINX_DEBUG_PC_WATCH_COUNT_HI=<insns>`,
 and `LINX_DEBUG_PC_WATCH_HIT_LIMIT=<n>` so a hot symbol does not flood the QEMU
-log. A printed watch record includes both the raw hit count and the filtered
-`printed=` count. When a single PC window needs several frame or object slots,
+log. The count window is an arming gate before PC matching, so late user faults
+can be watched without paying a full reset-to-userspace PC-scan cost. A printed
+watch record includes both the count-window hit count and the filtered
+`printed=` count. The translator emits the host debug hook only for exact
+`LINX_DEBUG_PC_WATCH` PCs; broad per-instruction hooks are reserved for co-sim
+and work-grab debug modes. When a single PC window needs several frame or object slots,
 use `LINX_DEBUG_PC_WATCH_DUMP_OFFSETS=<off>[,<off>...]` with
 `LINX_DEBUG_PC_WATCH_DUMP_REGS=<reg>[,<reg>...]` so one run captures all needed
 memory words.

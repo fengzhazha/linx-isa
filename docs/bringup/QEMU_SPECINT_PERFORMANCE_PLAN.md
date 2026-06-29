@@ -257,11 +257,19 @@ work into three lanes:
   C++ link path enters musl `_start`.
 
 For `502.gcc_r`, the focused ring run under
-`workloads/generated/specint-502-rtx-costs-pcwatch-20260629-r1` keeps the same
-trap and captures `ix86_rtx_costs` with `tq0=0x305910060a11b059` and
-`[sp+0x118]=0x1555b44aac`. Treat that as a corrupted RTL data pointer whose
-leading producer is still the brk/frontier and oldmalloc overlap; it is not a
-BSTART target validation or deadlock issue.
+`workloads/generated/specint-502-pcwatch-ring-final-20260629-r1` keeps the same
+trap and captures the final `ix86_rtx_costs` block. Static PIE slide
+`0x1515555000` maps the final user `tpc=0x15559baa6c` to
+`i386.c:.LBB282_30` in `ix86_rtx_costs`; the caller return site
+`0x1555dd9e46` maps to the indirect target-hook call in `rtx_cost`
+(`rtlanal.c:.LBB82_38`). The final ring entries show `[sp+0x118]` and `a0`
+hold `0x1555b44b14`, which maps to `gen_movsi` text at static
+`0x405efb14`, not to an RTL object. The callee then loads from `[a0+16]`,
+placing code bytes in `tq0=0x305910060a11b059`, and faults when using that as a
+data pointer. Treat this as a current bad call-argument/object-state path, not a
+BSTART target validation issue or a QEMU deadlock. Keep the older brk/frontier
+and oldmalloc overlap evidence as a separate producer lane until a fresh syscall
+trace ties it to this mallocng-era failure.
 
 Additional opt-in QEMU debug switches used during this pass:
 
@@ -334,6 +342,13 @@ Additional opt-in QEMU debug switches used during this pass:
   PC-watch memory dumps. The default is still 8-byte words with the old log
   shape; set width 4 for 32-bit flag fields, width 2 for packed halfwords, and
   width 1 for byte-level object or string fields.
+- `LINX_DEBUG_PC_WATCH_COUNT_LO=<insns>` and
+  `LINX_DEBUG_PC_WATCH_COUNT_HI=<insns>` arm PC matching only inside the chosen
+  instruction-count window. Use this for late SPEC user faults after a
+  fault-trace run has found the failing count; the PC-watch hit counter is then
+  local to the armed window. The translator emits the host debug hook only for
+  exact watched PCs, so PC-watch does not globally instrument reset-to-userspace
+  execution.
 - `LINX_DEBUG_PC_WATCH_PRINT=0` suppresses immediate `linx_pc_watch:` output
   after the selected PC/count/hit/GPR filters pass. Pair it with
   `LINX_DEBUG_PC_WATCH_RING=1` to record matching hits in a bounded ring and
@@ -668,7 +683,11 @@ Proposed next fixes:
    are live but too slow in the 180s train-all diagnostic loop; the next QEMU
    speedups should focus on page-local BSTART decode caching, TB-friendly
    template/queue fast paths, and avoiding helper probes in hot
-   branch-validation paths.
+   branch-validation paths. The post-f64-fix sample in
+   `workloads/generated/specint-profile-500-f64-fix-20260629-r1/profile/qemu-500-f64-fix.sample.txt`
+   is consistent with that: hot samples concentrate in scalar register reads,
+   TQ/UQ pushes, tile attribute/commit/reset helpers, MMU probes, and
+   `linx_is_bstart_at_addr` / `helper_linx_check_bstart_target`.
 3. Treat the old `500.perlbench_r` Perl BigInt range failure as closed by the
    Linx LLVM f64 extload fix. Keep the same-ACR/dcache and FCMP trace evidence
    as historical root-cause material, and reopen 500 correctness only if a fresh
@@ -693,10 +712,17 @@ Proposed next fixes:
    it reproduced the same stack-2G trap at `addr=0x305910060a11b059`, so that
    libc-only hint was backed out and `502.gcc_r` was relinked again under
    `workloads/generated/specint-502-restored-20260629/build_manifest.json`.
-   The next 502 step should probe the `ix86_rtx_costs`/RTL object state with
-   fault regs/code bytes. Return to brk-frontier mmap policy only with fresh
-   syscall-trace proof, and prefer a kernel mmap base/window fix over a
-   standalone oldmalloc hint if that mapping reproduces.
+   The later exact-PC ring run
+   `workloads/generated/specint-502-pcwatch-ring-final-20260629-r1` narrows the
+   current mallocng-era symptom: `rtx_cost` indirectly calls the target hook
+   that returns to `0x1555dd9e46`, but `ix86_rtx_costs` receives
+   `a0=0x1555b44b14`, a pointer into `gen_movsi` code, as its first RTL
+   argument. The next 502 step should trace the `rtx_cost` target-hook call
+   inputs and the object that should feed `a0`, then compare compiler call
+   lowering/table state before changing QEMU control-flow rules. Return to
+   brk-frontier mmap policy only with fresh syscall-trace proof, and prefer a
+   kernel mmap base/window fix over a standalone oldmalloc hint if that mapping
+   reproduces.
 5. Continue deterministic userspace traps separately from throughput work:
    `502.gcc_r` traps at `0x305910060a11b059`. Under the forced-static C++
    startup fix and `--stack-limit 2G`, `520.omnetpp_r`, `523.xalancbmk_r`, and
