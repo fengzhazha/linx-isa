@@ -303,6 +303,14 @@ Additional opt-in QEMU debug switches used during this pass:
   prints `LINX_HEARTBEAT_CODE` companion records with code bytes at PC and BPC.
   This is useful when runtime mapping is ambiguous and guest `/proc/<pid>/maps`
   is unavailable.
+- `LINX_FCMP_TRACE=1` or `LINX_FP_TRACE=1` records scalar FP compare helpers
+  without enabling a full instruction trace. Narrow with
+  `LINX_FCMP_TRACE_PC_LO/HI`, `LINX_FCMP_TRACE_COUNT_LO/HI`,
+  `LINX_FCMP_TRACE_LIMIT`, and `LINX_FCMP_TRACE_OP=feq,flt,fge`; matching
+  `LINX_FP_TRACE_*` aliases are accepted. Records include op, instruction
+  count, PC, BPC, TPC, source type, raw operands, interpreted `f64`/`f32`
+  values, result, and FCSR. Use this first for range/arithmetic failures where
+  scalar compare operands or materialized FP constants are suspect.
 - `LINX_DEBUG_PC_WATCH=<pc>[,<pc>...]` prints focused architectural state when
   translation reaches specific PCs. Add `LINX_DEBUG_PC_WATCH_REGS=1` to emit
   `LINX_PC_WATCH_REGS` full-GPR companion records; `LINX_TRACE_REGS=1` also
@@ -457,8 +465,50 @@ passes strict hash `0x973dcfc2`; `500.perlbench_r` remains
 `user-arithmetic-range`; `502.gcc_r` remains a `LINX_USER_TRAP` at
 `addr=0x305910060a11b059`; `505`, `520`, `523`, `525`, `531`, `541`, and `557`
 are live-timeouts with BPC heartbeat site progress. Therefore the current
-debug split is correctness for `500`/`502`, and QEMU throughput/profiling for
-the other train rows.
+debug split is compiler/codegen correctness for `500`, data/object correctness
+for `502`, and QEMU throughput/profiling for the other train rows.
+
+Focused `500.perlbench_r` rerun after adding the scalar FP-compare trace in
+QEMU commit `b5e90c7db5f`:
+
+```bash
+LINX_FCMP_TRACE=1 \
+LINX_FCMP_TRACE_PC_LO=0x15556613ba \
+LINX_FCMP_TRACE_PC_HI=0x15556614e0 \
+LINX_FCMP_TRACE_OP=flt,fge \
+LINX_FCMP_TRACE_LIMIT=128 \
+LINX_SPEC_DUMP_PREFIX_BYTES=256 \
+python3 tools/spec2017/run_stage_qemu_matrix.py \
+  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --stage b \
+  --input-set train \
+  --transports initramfs \
+  --sysroot out/libc/musl/install/phase-b \
+  --timeout 180 \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 1000000000 \
+  --no-progress-timeout 180 \
+  --guest-heartbeat-sec 0 \
+  --append-extra norandmaps \
+  --dump-prefix-bytes 256 \
+  --stack-limit 2G \
+  --strict \
+  --out-dir workloads/generated/specint-500-fcmp-trace-20260629-r2 \
+  --bench 500.perlbench_r
+```
+
+Result: `workloads/generated/specint-500-fcmp-trace-20260629-r2` reproduces
+the `user-arithmetic-range` stop in `27.38s`. The QEMU log records
+`LINX_FCMP_TRACE` lines for `S_outside_integer`: `fge.fd`/`flt.fd` compare
+`1.0` against raw operands `0xdf000000`, `0x0`, and `0x5f800000`. Static
+objdump confirms those operands come from `hl.lwu.pcr` immediately before
+`.fd` compares, so 32-bit float bound constants are being interpreted as
+64-bit doubles. Treat `500` as a Linx LLVM constant-pool/load-width bug for
+double compare constants; add an AVS regression around `f64` compares to
+`IV_MIN`/`IV_MAX`-style bounds before changing QEMU FP helper semantics.
+The matrix summary now lifts this evidence into `fcmp_trace_seen`,
+`fcmp_trace_count`, `fcmp_trace_last`, and bounded `fcmp_trace_samples` fields.
 
 Artifacts:
 
@@ -515,6 +565,8 @@ Artifacts:
 - `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/specint_fast_gate_summary.json`
 - `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/qemu_matrix_summary.json`
 - `workloads/generated/specint-train-all-20260629-mallocng-cxx-refresh-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-500-fcmp-trace-20260629-r2/qemu_matrix_summary.json`
+- `workloads/generated/specint-500-fcmp-trace-20260629-r2/initramfs/500_perlbench_r/run_001/qemu.log`
 - `workloads/generated/specint-999-prlimit-trace-20260629-r1/initramfs/999_specrand_ir/run_001/qemu.log`
 - `workloads/generated/specint-999-raw-prlimit-20260629-r1/qemu_matrix_summary.json`
 - `workloads/generated/specint-502-raw-prlimit-20260629-r1/qemu_matrix_summary.json`

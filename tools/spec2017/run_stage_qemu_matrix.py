@@ -159,6 +159,10 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
             "heartbeat_recent_unique_sites": first_run.get("heartbeat_recent_unique_sites"),
             "heartbeat_recent_count_delta": first_run.get("heartbeat_recent_count_delta"),
             "last_heartbeat": str(first_run.get("last_heartbeat") or "")[:512],
+            "fcmp_trace_seen": bool(first_run.get("fcmp_trace_seen", False)),
+            "fcmp_trace_count": first_run.get("fcmp_trace_count"),
+            "fcmp_trace_last": str(first_run.get("fcmp_trace_last") or "")[:512],
+            "fcmp_trace_samples": first_run.get("fcmp_trace_samples") or [],
             "log": str(first_run.get("log") or ""),
         }
     return details
@@ -173,7 +177,10 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         site = "site-progress" if row.get("heartbeat_site_progress") else "same-site"
         bpc = row.get("heartbeat_last_bpc") or "no-bpc"
         progress = row.get("heartbeat_last_progress") or "no-progress-tag"
-        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}")
+        fcmp = ""
+        if row.get("fcmp_trace_seen"):
+            fcmp = f" fcmp-trace={row.get('fcmp_trace_count')}"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{fcmp}")
     return ", ".join(parts)
 
 

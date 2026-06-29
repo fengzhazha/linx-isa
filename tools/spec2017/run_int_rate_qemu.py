@@ -2319,6 +2319,7 @@ def _run_qemu(
         panic_seen=panic_seen,
         fail_marker=fail_marker,
     )
+    fcmp_trace = _fcmp_trace_summary(text)
 
     return {
         "command": cmd,
@@ -2341,6 +2342,10 @@ def _run_qemu(
         "heartbeat_last_same_site": classification["heartbeat_last_same_site"],
         "heartbeat_recent_unique_sites": classification["heartbeat_recent_unique_sites"],
         "heartbeat_recent_count_delta": classification["heartbeat_recent_count_delta"],
+        "fcmp_trace_seen": fcmp_trace["seen"],
+        "fcmp_trace_count": fcmp_trace["count"],
+        "fcmp_trace_last": fcmp_trace["last"],
+        "fcmp_trace_samples": fcmp_trace["samples"],
         "log": str(out_log),
     }
 
@@ -2533,6 +2538,44 @@ def _heartbeat_fields(line: str) -> dict[str, str]:
     for match in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)=([^ \n]+)", line):
         fields[match.group(1)] = match.group(2)
     return fields
+
+
+def _decimal_or_none(value: str | None) -> int | None:
+    if value and value.isdecimal():
+        return int(value)
+    return None
+
+
+def _fcmp_trace_summary(text: str) -> dict[str, Any]:
+    lines = re.findall(r"^LINX_FCMP_TRACE .*$", text, flags=re.MULTILINE)
+    samples: list[dict[str, Any]] = []
+    for line in lines[-8:]:
+        fields = _heartbeat_fields(line)
+        samples.append(
+            {
+                "line": line[:512],
+                "op": fields.get("op", ""),
+                "count": _decimal_or_none(fields.get("count")),
+                "pc": fields.get("pc", "").lower(),
+                "bpc": fields.get("bpc", "").lower(),
+                "tpc": fields.get("tpc", "").lower(),
+                "type": fields.get("type", ""),
+                "lhs": fields.get("lhs", "").lower(),
+                "rhs": fields.get("rhs", "").lower(),
+                "result": _decimal_or_none(fields.get("result")),
+                "fcsr": fields.get("fcsr", "").lower(),
+                "lhs_f64": fields.get("lhs_f64", ""),
+                "rhs_f64": fields.get("rhs_f64", ""),
+                "lhs_f32": fields.get("lhs_f32", ""),
+                "rhs_f32": fields.get("rhs_f32", ""),
+            }
+        )
+    return {
+        "seen": bool(lines),
+        "count": len(lines),
+        "last": lines[-1][:512] if lines else "",
+        "samples": samples,
+    }
 
 
 def _collect_outputs_from_log(qemu_log: Path, run_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
