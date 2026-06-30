@@ -18,6 +18,16 @@ The gate uses initramfs by default to avoid 9p overhead while debugging QEMU
 and Linux correctness. Use `--transports 9p,initramfs` only when transport
 coverage is the point of the run.
 
+For bounded 9p transport coverage, use `run_stage_qemu_matrix.py
+--fail-9p-timeout` with train input. That mode treats a per-run 9p timeout as a
+fast-gate failure and stops the current benchmark instead of continuing every
+train invocation for full host-visible specdiff. The 2026-06-30 all-row 9p run
+under `workloads/generated/specint-train-all-9p-failtimeout-20260630-r1/`
+covers all ten supported SPECint rows and classifies every row as
+heartbeat-backed `live-timeout`; this proves the current 9p suite state is
+running, not deadlocked, but it is not a full correctness substitute for the
+initramfs strict-hash sentinel or a long 9p specdiff run.
+
 ## Initial Profile
 
 Command shape:
@@ -546,21 +556,21 @@ child-exit rows with `sig=9`; and `525.x264_r` is classified as
 closed and routes remaining work to throughput profiling, wrapper/kill cause
 capture, and a focused kernel panic-path probe.
 
-Focused `525.x264_r` follow-up splits that panic-path probe into transport
-work. The initramfs train lane builds a 1.6 GiB CPIO and never reaches
+Focused `525.x264_r` follow-up split that panic-path probe into transport work.
+The initramfs train lane builds a 1.6 GiB CPIO and never reaches
 `LINX_SPEC_START`; a PC-watch run on `panic()`/`vpanic()` with
 `LINX_CALL_TRACE_RING=1` and `LINX_DEBUG_PC_WATCH_DUMP_CALL_RING=1` captures
 the first panic string as `VFS: Unable to mount root fs on "%s" or %s`, with the
 caller ring ending in `init/do_mounts.c`. A 4096 MiB rerun reproduces the same
-VFS root panic, so this is not only a 2 GiB guest-memory limit. The 9p lane
-keeps the initramfs at about 4 MiB and reaches `LINX_SPEC_START`, but the raw
-mount syscall returns `raw_rc=-14` (`EFAULT`) for
-`mount("spec2017", "/spec", "9p", 0, "trans=virtio,version=9p2000.L")`.
-QEMU syscall argdump can read the 9p options string from the same guest pointer,
-so the next owner is the Linx Linux mount/user-copy path before using 9p as the
-large-input SPEC transport. If 9p remains blocked by the older virtio-9p
-protocol lane, add a virtio-blk/ext2 SPEC transport instead of duplicating large
-train inputs into initramfs.
+VFS root panic, so this is not only a 2 GiB guest-memory limit. The SPEC 9p lane
+now mounts successfully after the Linx usercopy and virtio feature-read fixes:
+`workloads/generated/specint-525-9p-vmgetfeatures-wordfix-20260630-r1/` shows
+the 9p mount-tag feature reaching the guest and both SPEC mounts returning zero.
+The current 525 9p row reaches `LINX_SPEC_START` and classifies as
+`live-timeout`, so its active owner is throughput/output validation on a
+large-input transport, not the old `mount()` `-EFAULT` path. If 9p overhead stays
+too high for full SPEC correctness, add a virtio-blk/ext2 SPEC transport instead
+of duplicating large train inputs into initramfs.
 
 Focused `500.perlbench_r` rerun after adding the scalar FP-compare trace in
 QEMU commit `b5e90c7db5f`:
@@ -723,7 +733,7 @@ unlimited-stack mmap layout failures.
 | `505.mcf_r` | `live-timeout` | count `82000000003`, BPC `0x155555c8b4`, `progress=site-change` | Throughput/live-progress lane; reproduce older traps before reopening correctness. |
 | `520.omnetpp_r` | resource-sensitive C++ row | 2 GiB all-train row exits with child `sig=9`; 4 GiB + `--stack-limit 2G` reaches user trap `addr=0x3f7ffffff8` with `sp=0x3f80000000`; 4 GiB + unlimited stack runs to count `89000000001` before child `sig=9`; focused `999.specrand_ir` sentinel passes at 4096 MiB, while 4352 MiB, 5 GiB, and 8 GiB enter `panic()` before `LINX_SPEC_START` with `corrupted stack end detected inside scheduler` | Resource/debug lane. Do not classify as C++ startup. Keep <=4 GiB for SPEC user diagnostics until the >4 GiB Linx Linux high-memory panic is fixed; then bound the stack/RSS growth. |
 | `523.xalancbmk_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `46000000000`, BPC `0xffffffff800fb7a0`; verified output file is empty | Same wrapper/output lane as 520; inspect generated output and child status first. |
-| `525.x264_r` | `kernel-panic-loop-timeout` | count `43000000002`, BPC `0xffffffff803e88aa`; recent heartbeat sites resolve to `panic.c` and `udelay`, with no `LINX_SPEC_START` before timeout | Kernel panic-loop lane. Capture the first panic cause before the delay loop with focused panic-path PC-watch/ring and code-byte heartbeat. |
+| `525.x264_r` | initramfs `kernel-panic-loop-timeout`; 9p `live-timeout` | initramfs count `43000000002`, BPC `0xffffffff803e88aa`, no `LINX_SPEC_START`; 9p fast gate reaches `LINX_SPEC_START`, count `22000000000`, BPC `0xffffffff80110b8e`, no mount failure | Keep initramfs as rootfs-size panic sentinel. Use 9p or disk transport for benchmark execution, then profile throughput/output validation. |
 | `531.deepsjeng_r` | `live-timeout` | count `74000000003`, BPC `0x15555683de`, `progress=site-change` | Throughput/live-progress lane; compare with the passing test-input profile. |
 | `541.leela_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000000`, BPC `0xffffffff800f2c0e`; verified output file is empty | Wrapper/output lane under `--stack-limit 2G`; collect child status/stderr and kernel kill reason before treating as stack recurrence. |
 | `557.xz_r` | `live-timeout` | count `73000000007`, BPC `0x1555577b92`, `progress=site-change` | Throughput/live-progress lane. |
@@ -810,14 +820,17 @@ Proposed next fixes:
    failure is fixed. Run `523.xalancbmk_r` and `541.leela_r` with guest child
    heartbeat/proc status and kernel kill/OOM tracing before reopening old C++
    startup or stack-limit theories.
-5. Treat `525.x264_r` as a transport/rootfs row, not a benchmark execution row.
-   The first panic cause is now captured: giant initramfs packaging falls
-   through to the VFS root-mount panic before `/init`, while 9p reaches `/init`
-   but returns `-EFAULT` from `mount()`. Fix the Linux mount/user-copy path or
-   add a disk-image transport before rerunning 525 train for SPEC correctness.
-6. Profile only the live-slow rows with heartbeat off or at a very coarse
-   interval: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`,
-   `531.deepsjeng_r`, and `557.xz_r`. Remaining QEMU speedups should focus on
+5. Treat `525.x264_r` as two rows: initramfs remains a rootfs-size panic
+   sentinel, while 9p now reaches benchmark execution and is a live-slow row.
+   Do not spend more time on the historical SPEC 9p `-EFAULT` mount path unless
+   it regresses; the next transport decision is whether 9p overhead is
+   acceptable or whether a disk-image transport is needed for full train
+   correctness.
+6. Profile live-slow rows with heartbeat off or at a very coarse interval:
+   `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`,
+   `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`,
+   `557.xz_r`, plus 9p `999.specrand_ir` as a transport sentinel. Remaining QEMU
+   speedups should focus on
    tile commit/set/reset, template stepping, page-local BSTART decode caching,
    TB chaining, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
    avoiding helper probes in hot branch-validation paths. Queue/scalar helper

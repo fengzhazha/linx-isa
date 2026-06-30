@@ -2992,6 +2992,15 @@ def main(argv: list[str]) -> int:
         help="Fail if QEMU emits no output for this many seconds (0 to disable).",
     )
     parser.add_argument(
+        "--fail-9p-timeout",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_FAIL_9P_TIMEOUT", False),
+        help=(
+            "In 9p mode, treat a per-run QEMU timeout as a gate failure. "
+            "The default keeps running so full host-visible output validation can continue."
+        ),
+    )
+    parser.add_argument(
         "--append-extra",
         default=str(os.environ.get("LINX_SPEC_APPEND_EXTRA", "")),
         help="Extra kernel cmdline appended to the built-in defaults (for example: 'norandmaps').",
@@ -3085,6 +3094,7 @@ def main(argv: list[str]) -> int:
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "no_progress_timeout": args.no_progress_timeout,
+        "fail_9p_timeout": bool(args.fail_9p_timeout),
         "append_extra": args.append_extra,
         "dump_prefix_bytes": args.dump_prefix_bytes,
         "strict_hash": strict_hash,
@@ -3189,6 +3199,7 @@ def main(argv: list[str]) -> int:
                     # after the benchmark finishes. Host-side specdiff is authoritative.
                     one_ok = (
                         (not qemu_info["fail_marker"])
+                        and (not args.fail_9p_timeout or not qemu_info["timed_out"])
                         and (not qemu_info.get("trap_seen", False))
                         and (not qemu_info.get("stalled", False))
                     )

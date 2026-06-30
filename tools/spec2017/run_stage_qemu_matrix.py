@@ -175,6 +175,11 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
         details[str(bench)] = {
             "failure_class": str(failed_run.get("failure_class") or "unclassified"),
             "failure_evidence": str(failed_run.get("failure_evidence") or "")[:512],
+            "timed_out": bool(failed_run.get("timed_out", False)),
+            "stalled": bool(failed_run.get("stalled", False)),
+            "panic_seen": bool(failed_run.get("panic_seen", False)),
+            "trap_seen": bool(failed_run.get("trap_seen", False)),
+            "run_index": failed_run.get("run_index"),
             "heartbeat_running": bool(failed_run.get("heartbeat_running", False)),
             "heartbeat_site_progress": bool(failed_run.get("heartbeat_site_progress", False)),
             "heartbeat_last_count": failed_run.get("heartbeat_last_count"),
@@ -214,7 +219,9 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
             kernel = " kernel-panic-loop"
         elif row.get("heartbeat_kernel_symbol_evidence"):
             kernel = " kernel-symbolized"
-        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{kernel}{fcmp}")
+        timeout = " timeout" if row.get("timed_out") else ""
+        stalled = " stalled" if row.get("stalled") else ""
+        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{fcmp}")
     return ", ".join(parts)
 
 
@@ -229,6 +236,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- strict: `{str(summary['strict']).lower()}`")
     lines.append(f"- transports: `{', '.join(summary['transports'])}`")
     lines.append(f"- timeout_sec: `{summary['timeout_sec']}`")
+    lines.append(f"- fail_9p_timeout: `{str(bool(summary.get('fail_9p_timeout', False))).lower()}`")
     lines.append(f"- memory_mb: `{summary['memory_mb']}`")
     lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
@@ -342,6 +350,12 @@ def main(argv: list[str]) -> int:
         help="Fail a per-benchmark QEMU run if QEMU emits no output for this many seconds (0 disables).",
     )
     ap.add_argument(
+        "--fail-9p-timeout",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_FAIL_9P_TIMEOUT", False),
+        help="Pass --fail-9p-timeout to the per-transport runner for fast 9p gate classification.",
+    )
+    ap.add_argument(
         "--guest-heartbeat-sec",
         type=int,
         default=_env_int("LINX_SPEC_GUEST_HEARTBEAT_SEC", 0),
@@ -447,6 +461,8 @@ def main(argv: list[str]) -> int:
         ]
         if args.symbolize_heartbeat:
             cmd.append("--symbolize-heartbeat")
+        if args.fail_9p_timeout:
+            cmd.append("--fail-9p-timeout")
         if args.stack_limit.strip():
             cmd.extend(["--stack-limit", args.stack_limit.strip()])
         for bench in benches:
@@ -505,6 +521,7 @@ def main(argv: list[str]) -> int:
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
         "no_progress_timeout": float(args.no_progress_timeout),
+        "fail_9p_timeout": bool(args.fail_9p_timeout),
         "guest_heartbeat_sec": int(args.guest_heartbeat_sec),
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "append_extra": str(args.append_extra),
