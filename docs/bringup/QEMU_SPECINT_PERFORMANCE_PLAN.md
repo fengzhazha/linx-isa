@@ -255,7 +255,7 @@ five lanes:
   bad target `0x003f7fee56880000` and is now heartbeat-backed live-slow. The
   root cause was compiler-side: Blockify erased the shifted byte-count producer
   for ABI register `a2` before `Perl_repeatcpy`, corrupting Perl op pointers.
-- Current 502 correctness stop: `502.gcc_r` now traps at `addr=0x8` with
+- Closed 502 byval correctness stop: `502.gcc_r` trapped at `addr=0x8` with
   `tpc=0x1555f26c0e`, `bpc=0x1555f26c02`, and `orig_tpc=0x1556075fe2`.
   With slide `0x1515555000`, the trap PC maps to `gsi_prev` in
   `tree-ssa-dse.c`, specifically the second list-link load after loading
@@ -268,12 +268,17 @@ five lanes:
   `dse_optimize_stmt(..., gimple_stmt_iterator gsi)` takes the iterator by
   value, but that callee calls `gsi_remove(&gsi, true)`; the caller disassembly
   passes `sp+80` to `dse_optimize_stmt` and then reuses the same slot for
-  `gsi_prev`. Treat this as a Linx LLVM aggregate/by-value argument lowering
-  bug until disproven: by-value structs must be copied to a callee-owned
-  temporary, not passed by address to the caller's live loop variable.
-- Live-slow train rows: `500.perlbench_r` run_002, `505.mcf_r`, `525.x264_r`,
-  `531.deepsjeng_r`, and `557.xz_r` time out under the 300s diagnostic budget
-  with heartbeat site progress.
+  `gsi_prev`. This is now closed by the Linx LLVM by-value aggregate lowering
+  fix: by-value structs are copied to callee-owned temporaries before calls.
+  The focused rebuild and rerun under
+  `workloads/generated/specint-502-byval-fix-build-20260629/` and
+  `workloads/generated/specint-502-byval-fix-train-20260629-r1/` crosses the
+  former 35B-instruction trap window and reaches `live-timeout` at count
+  `61000000006` with BPC `0x155598d706`, `progress=site-change`, and no
+  `LINX_USER_TRAP`.
+- Live-slow train rows: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`,
+  `525.x264_r`, `531.deepsjeng_r`, and `557.xz_r` time out under diagnostic
+  budgets with heartbeat site progress.
 - Wrapper child-exit rows: `520.omnetpp_r`, `523.xalancbmk_r`, and
   `541.leela_r` emit `LINX_SPEC_FAIL child-exit`. The runner now appends the
   wrapper `LINX_SPEC_DBG wait ... status/code/sig` line to `spec-wrapper-fail`
@@ -662,6 +667,12 @@ profiling evidence. No live-timeout row is a global QEMU deadlock: those rows
 have `heartbeat_running=true`, `heartbeat_site_progress=true`, and increasing
 BPC/count evidence.
 
+Focused 2026-06-29 502 update: after rebuilding `502.gcc_r` with the Linx LLVM
+byval aggregate fix, `workloads/generated/specint-502-byval-fix-train-20260629-r1/`
+reclassifies the former `gsi_prev addr=0x8` correctness stop as live-slow. The
+run reaches count `61000000006` and BPC `0x155598d706` at the 420s timeout with
+`heartbeat_running=true`, `heartbeat_site_progress=true`, and no user trap.
+
 Important 2026-06-29 correction: Linx `prlimit64` succeeds, but the current
 libc `setrlimit()` wrapper reports `errno=21` after that successful syscall.
 The SPEC init wrapper now calls raw `prlimit64` first and logs
@@ -674,7 +685,7 @@ unlimited-stack mmap layout failures.
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
 | `500.perlbench_r` | run_001 pass; run_002 `live-timeout` | `perfect.b.3.out` hash `0xc69c7085` passes; run_002 reaches count `65000000006`, BPC `0x15556f5744`, `progress=site-change`, no trap | Old bad branch target is closed by the LLVM Blockify ABI call-argument fix. Current owner is QEMU throughput/live-progress profiling. |
-| `502.gcc_r` | `user-trap` | `addr=0x8`, `tpc=0x1555f26c0e`, `bpc=0x1555f26c02`; filtered PC-watch ring shows `a0=0x3ffffff750`, `[a0]=0`, and `tq0=0` at the final `gsi_prev` fault | Current correctness owner is Linx LLVM by-value aggregate argument lowering. `dse_optimize_stmt` receives `gimple_stmt_iterator gsi` by value and mutates its local copy with `gsi_remove(&gsi, true)`; Linx appears to pass the caller's live iterator slot. |
+| `502.gcc_r` | `live-timeout` after focused byval-fix rebuild | `workloads/generated/specint-502-byval-fix-train-20260629-r1/qemu_matrix_summary.json` reaches count `61000000006`, BPC `0x155598d706`, `progress=site-change`, no `LINX_USER_TRAP`; the previous filtered PC-watch ring showed the closed `gsi_prev addr=0x8` fault | Correctness stop closed by Linx LLVM by-value aggregate lowering. Current owner is QEMU throughput/live-progress profiling. |
 | `505.mcf_r` | `live-timeout` | count `82000000001`, BPC `0x155555c8b4`, `progress=site-change` | Throughput/live-progress lane; reproduce older traps before reopening correctness. |
 | `520.omnetpp_r` | `spec-wrapper-fail` | child exits and wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000005`, BPC `0xffffffff800d34f0` | Wrapper/output lane. Capture child wait status/stderr before classifying as C++ runtime or QEMU throughput. |
 | `523.xalancbmk_r` | `spec-wrapper-fail` | child exits and wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `46000000001`, BPC `0xffffffff800d32f6` | Same wrapper/output lane as 520; inspect generated output and child status first. |
@@ -737,14 +748,12 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Fix the active `502.gcc_r` correctness lane in Linx LLVM before spending more
-   QEMU profiling time on that benchmark. Add a compiler regression where a
-   by-value aggregate argument is passed to a callee that mutates its local copy
-   and the caller reuses the original after the call; then repair Linx aggregate
-   argument lowering so caller-owned stack slots are copied to callee-owned
-   byval temporaries. The SPEC signature to preserve is
+2. Keep the `502.gcc_r` byval correctness lane closed with the new compiler
+   regression. The SPEC signature to preserve is
    `dse_optimize_stmt(..., gimple_stmt_iterator gsi)` plus `gsi_remove(&gsi,
-   true)` inside the callee.
+   true)` inside the callee; callers must pass callee-owned copies for by-value
+   aggregate arguments. Rebuild all static SPECint binaries before the next
+   train-all matrix so any other byval users pick up the fix.
 3. Keep the old `500.perlbench_r` BigInt and bad-branch-target failures closed.
    The current static 500 row is run_001 hash pass plus run_002 live timeout, so
    it belongs in the QEMU throughput lane unless a fresh current run reproduces a
@@ -754,7 +763,7 @@ Proposed next fixes:
    status/code/sig evidence for future reruns; use that plus stderr/output
    hashes before reopening old C++ startup or stack-limit theories.
 5. Profile only the live-slow rows with heartbeat off or at a very coarse
-   interval: `500.perlbench_r` run_002, `505.mcf_r`, `525.x264_r`,
+   interval: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`, `525.x264_r`,
    `531.deepsjeng_r`, and `557.xz_r`. Remaining QEMU speedups should focus on
    tile commit/set/reset, template stepping, page-local BSTART decode caching,
    TB chaining, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
