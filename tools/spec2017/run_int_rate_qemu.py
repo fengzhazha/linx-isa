@@ -547,6 +547,17 @@ def _utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name, "").strip().lower()
+    if not value:
+        return default
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise SystemExit(f"error: {name} must be a boolean, got {value!r}")
+
+
 def _find_gen_init_cpio(linux_root: Path, out_dir: Path) -> Path:
     cands = [
         linux_root / "build-linx-fixed" / "usr" / "gen_init_cpio",
@@ -2124,6 +2135,7 @@ def _run_qemu(
     qemu_heartbeat_interval: int,
     no_progress_timeout: float,
     append_extra: str,
+    symbolize_heartbeat: bool,
 ) -> dict[str, Any]:
     append = "lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0"
     disable_timer_irq = os.environ.get("LINX_DISABLE_TIMER_IRQ", "").lower() in {"1", "true", "yes"}
@@ -2319,6 +2331,27 @@ def _run_qemu(
         panic_seen=panic_seen,
         fail_marker=fail_marker,
     )
+    if symbolize_heartbeat:
+        heartbeat_kernel_symbols = _symbolize_heartbeat_kernel_sites(text, kernel)
+    else:
+        heartbeat_kernel_symbols = {
+            "enabled": False,
+            "ok": False,
+            "tool": "",
+            "kernel": str(kernel),
+            "sites": [],
+            "panic_loop": False,
+            "evidence": "",
+        }
+    if (
+        classification["class"]
+        in {"live-timeout", "same-site-live-timeout", "timeout-no-bpc-progress"}
+        and heartbeat_kernel_symbols.get("panic_loop")
+    ):
+        classification["class"] = "kernel-panic-loop-timeout"
+        classification["evidence"] = str(
+            heartbeat_kernel_symbols.get("evidence") or classification["evidence"]
+        )[:512]
     fcmp_trace = _fcmp_trace_summary(text)
 
     return {
@@ -2342,6 +2375,10 @@ def _run_qemu(
         "heartbeat_last_same_site": classification["heartbeat_last_same_site"],
         "heartbeat_recent_unique_sites": classification["heartbeat_recent_unique_sites"],
         "heartbeat_recent_count_delta": classification["heartbeat_recent_count_delta"],
+        "heartbeat_kernel_symbols": heartbeat_kernel_symbols.get("sites", []),
+        "heartbeat_kernel_symbolized": bool(heartbeat_kernel_symbols.get("ok", False)),
+        "heartbeat_kernel_panic_loop": bool(heartbeat_kernel_symbols.get("panic_loop", False)),
+        "heartbeat_kernel_symbol_evidence": str(heartbeat_kernel_symbols.get("evidence") or "")[:512],
         "fcmp_trace_seen": fcmp_trace["seen"],
         "fcmp_trace_count": fcmp_trace["count"],
         "fcmp_trace_last": fcmp_trace["last"],
@@ -2548,6 +2585,108 @@ def _heartbeat_fields(line: str) -> dict[str, str]:
     for match in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)=([^ \n]+)", line):
         fields[match.group(1)] = match.group(2)
     return fields
+
+
+def _heartbeat_kernel_addresses(text: str, *, limit: int = 16) -> list[str]:
+    heartbeats = re.findall(r"^LINX_HEARTBEAT .*$", text, flags=re.MULTILINE)
+    addresses: list[str] = []
+    seen: set[str] = set()
+    for line in heartbeats[-limit:]:
+        fields = _heartbeat_fields(line)
+        for name in ("pc", "bpc", "envpc", "ra", "tpc"):
+            value = fields.get(name, "").lower()
+            if not value.startswith("0xffffffff"):
+                continue
+            if value in seen:
+                continue
+            seen.add(value)
+            addresses.append(value)
+    return addresses
+
+
+def _find_llvm_addr2line() -> Path | None:
+    env = os.environ.get("LINX_LLVM_ADDR2LINE", "").strip()
+    if env:
+        candidate = Path(os.path.expanduser(env)).resolve()
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
+        return None
+
+    bundled = (
+        REPO_ROOT
+        / "compiler"
+        / "llvm"
+        / "build-linxisa-clang"
+        / "bin"
+        / "llvm-addr2line"
+    )
+    if bundled.is_file() and os.access(bundled, os.X_OK):
+        return bundled
+
+    found = shutil.which("llvm-addr2line")
+    return Path(found).resolve() if found else None
+
+
+def _kernel_symbols_suggest_panic_loop(sites: list[dict[str, str]]) -> bool:
+    if not sites:
+        return False
+    for site in sites:
+        function = site.get("function", "").lower()
+        source = site.get("source", "").lower()
+        if "panic" in function or "panic.c" in source:
+            return True
+    return False
+
+
+def _symbolize_heartbeat_kernel_sites(text: str, kernel: Path) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "enabled": True,
+        "ok": False,
+        "tool": "",
+        "kernel": str(kernel),
+        "sites": [],
+        "panic_loop": False,
+        "evidence": "",
+    }
+    addresses = _heartbeat_kernel_addresses(text)
+    if not addresses:
+        return result
+
+    tool = _find_llvm_addr2line()
+    if tool is None:
+        result["evidence"] = "heartbeat kernel symbolization unavailable: llvm-addr2line not found"
+        return result
+
+    proc = subprocess.run(
+        [str(tool), "-e", str(kernel), "-f", "-C", *addresses],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    result["tool"] = str(tool)
+    if proc.returncode != 0:
+        result["evidence"] = proc.stdout.decode("utf-8", errors="replace").strip()[:512]
+        return result
+
+    lines = proc.stdout.decode("utf-8", errors="replace").splitlines()
+    sites: list[dict[str, str]] = []
+    for idx, address in enumerate(addresses):
+        function = lines[2 * idx].strip() if 2 * idx < len(lines) else ""
+        source = lines[2 * idx + 1].strip() if 2 * idx + 1 < len(lines) else ""
+        sites.append({"address": address, "function": function, "source": source})
+
+    result["ok"] = True
+    result["sites"] = sites
+    result["panic_loop"] = _kernel_symbols_suggest_panic_loop(sites)
+    interesting = [
+        f"{site['address']}={site['function']} {site['source']}".strip()
+        for site in sites
+        if site.get("function") and site.get("function") != "??"
+    ]
+    if not interesting:
+        interesting = [site["address"] for site in sites]
+    result["evidence"] = "heartbeat kernel symbols: " + "; ".join(interesting[:8])
+    return result
 
 
 def _decimal_or_none(value: str | None) -> int | None:
@@ -2792,6 +2931,12 @@ def main(argv: list[str]) -> int:
         help="Emit guest-side child/output heartbeats from the init wrapper while waiting (0 to disable).",
     )
     parser.add_argument(
+        "--symbolize-heartbeat",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_SYMBOLIZE_HEARTBEAT", False),
+        help="Symbolize recent kernel-space QEMU heartbeat PC/BPC sites with llvm-addr2line.",
+    )
+    parser.add_argument(
         "--no-progress-timeout",
         type=float,
         default=float(os.environ.get("LINX_SPEC_NO_PROGRESS_TIMEOUT", "0")),
@@ -2889,6 +3034,7 @@ def main(argv: list[str]) -> int:
         "heartbeat_sec": args.heartbeat_sec,
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
+        "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "no_progress_timeout": args.no_progress_timeout,
         "append_extra": args.append_extra,
         "dump_prefix_bytes": args.dump_prefix_bytes,
@@ -2978,6 +3124,7 @@ def main(argv: list[str]) -> int:
                     args.qemu_heartbeat_interval,
                     args.no_progress_timeout,
                     args.append_extra,
+                    args.symbolize_heartbeat,
                 )
                 qemu_info["run_index"] = run_idx
                 qemu_info["stdout"] = run_cfg.get("stdout")

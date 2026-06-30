@@ -58,6 +58,17 @@ def _env_float(name: str, default: float) -> float:
         raise SystemExit(f"error: {name} must be a number, got {value!r}") from exc
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name, "").strip().lower()
+    if not value:
+        return default
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise SystemExit(f"error: {name} must be a boolean, got {value!r}")
+
+
 def _usable_static_sysroot(path: Path) -> bool:
     return (
         (path / "usr" / "include" / "errno.h").is_file()
@@ -172,6 +183,10 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
             "heartbeat_last_same_site": failed_run.get("heartbeat_last_same_site"),
             "heartbeat_recent_unique_sites": failed_run.get("heartbeat_recent_unique_sites"),
             "heartbeat_recent_count_delta": failed_run.get("heartbeat_recent_count_delta"),
+            "heartbeat_kernel_symbolized": bool(failed_run.get("heartbeat_kernel_symbolized", False)),
+            "heartbeat_kernel_panic_loop": bool(failed_run.get("heartbeat_kernel_panic_loop", False)),
+            "heartbeat_kernel_symbol_evidence": str(failed_run.get("heartbeat_kernel_symbol_evidence") or "")[:512],
+            "heartbeat_kernel_symbols": failed_run.get("heartbeat_kernel_symbols") or [],
             "last_heartbeat": str(failed_run.get("last_heartbeat") or "")[:512],
             "fcmp_trace_seen": bool(failed_run.get("fcmp_trace_seen", False)),
             "fcmp_trace_count": failed_run.get("fcmp_trace_count"),
@@ -194,7 +209,12 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         fcmp = ""
         if row.get("fcmp_trace_seen"):
             fcmp = f" fcmp-trace={row.get('fcmp_trace_count')}"
-        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{fcmp}")
+        kernel = ""
+        if row.get("heartbeat_kernel_panic_loop"):
+            kernel = " kernel-panic-loop"
+        elif row.get("heartbeat_kernel_symbol_evidence"):
+            kernel = " kernel-symbolized"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{kernel}{fcmp}")
     return ", ".join(parts)
 
 
@@ -321,6 +341,12 @@ def main(argv: list[str]) -> int:
         help="Guest child/output heartbeat interval passed through to the initramfs runner (0 disables).",
     )
     ap.add_argument(
+        "--symbolize-heartbeat",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_SYMBOLIZE_HEARTBEAT", False),
+        help="Pass --symbolize-heartbeat to per-transport SPEC runners.",
+    )
+    ap.add_argument(
         "--append-extra",
         default=os.environ.get("LINX_SPEC_APPEND_EXTRA", ""),
         help="Extra kernel command-line text passed through to the per-transport runner.",
@@ -408,6 +434,8 @@ def main(argv: list[str]) -> int:
             "--dump-prefix-bytes",
             str(args.dump_prefix_bytes),
         ]
+        if args.symbolize_heartbeat:
+            cmd.append("--symbolize-heartbeat")
         if args.stack_limit.strip():
             cmd.extend(["--stack-limit", args.stack_limit.strip()])
         for bench in benches:
@@ -466,6 +494,7 @@ def main(argv: list[str]) -> int:
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
         "no_progress_timeout": float(args.no_progress_timeout),
         "guest_heartbeat_sec": int(args.guest_heartbeat_sec),
+        "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "append_extra": str(args.append_extra),
         "dump_prefix_bytes": int(args.dump_prefix_bytes),
         "bench_override": benches,

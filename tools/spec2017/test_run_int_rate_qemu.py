@@ -26,6 +26,50 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("code=1", result["evidence"])
         self.assertIn("signaled=0", result["evidence"])
 
+    def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
+        text = "\n".join(
+            [
+                "LINX_HEARTBEAT count=1 pc=0x1555555000 bpc=0x1555554000 ra=0x0",
+                (
+                    "LINX_HEARTBEAT count=2 pc=0xffffffff803e88f6 "
+                    "bpc=0xffffffff803e88b0 envpc=0xffffffff803e88aa "
+                    "ra=0xffffffff800019bc tpc=0x0"
+                ),
+                (
+                    "LINX_HEARTBEAT count=3 pc=0xffffffff803e88f6 "
+                    "bpc=0xffffffff803e88b0 envpc=0xffffffff803e88aa "
+                    "ra=0xffffffff800019bc tpc=0x0"
+                ),
+            ]
+        )
+
+        self.assertEqual(
+            runner._heartbeat_kernel_addresses(text),
+            [
+                "0xffffffff803e88f6",
+                "0xffffffff803e88b0",
+                "0xffffffff803e88aa",
+                "0xffffffff800019bc",
+            ],
+        )
+
+    def test_kernel_symbols_suggest_panic_loop_from_panic_source(self) -> None:
+        self.assertTrue(
+            runner._kernel_symbols_suggest_panic_loop(
+                [
+                    {"address": "0xffffffff803e88f6", "function": "udelay", "source": "??:0"},
+                    {"address": "0xffffffff800019bc", "function": ".LBB14_51", "source": "panic.c:0"},
+                ]
+            )
+        )
+        self.assertFalse(
+            runner._kernel_symbols_suggest_panic_loop(
+                [
+                    {"address": "0xffffffff800fb6e2", "function": "kcsan_atomic_next", "source": "page_alloc.c:0"},
+                ]
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

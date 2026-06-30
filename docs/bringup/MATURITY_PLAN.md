@@ -1,6 +1,6 @@
 # LinxISA Maturity Plan (Tier-1 Track vs ARM/x86)
 
-Last updated: 2026-06-14
+Last updated: 2026-06-30
 
 ## Baseline
 
@@ -17,6 +17,12 @@ Last updated: 2026-06-14
   order. The PR benchmark lane stops at TSVC/QEMU before Linux rootfs or SPEC;
   the full-OS BusyBox rootfs failure remains real but is downstream of that PR
   stop path.
+- June 30, 2026 BusyBox rootfs rerun: the current full-OS blocker is not the
+  older `finish_task_switch` / `FRET.STK` loop. Attempt 2 traps PID 1 in the
+  tiny static-PIE no-libc init image at `addr=0x10000004`, then panics while
+  killing init (`workloads/generated/busybox-rootfs-boot-20260630-r1/`). Treat
+  this as a separate Linux/initramfs test-binary lane from SPEC initramfs
+  throughput.
 
 ## Gap Snapshot
 

@@ -30,6 +30,8 @@ class StageQemuMatrixTests(unittest.TestCase):
                             "heartbeat_last_progress": "site-change",
                             "heartbeat_running": True,
                             "heartbeat_site_progress": True,
+                            "heartbeat_kernel_panic_loop": True,
+                            "heartbeat_kernel_symbol_evidence": "heartbeat kernel symbols: 0xffffffff800019bc=.LBB14_51 panic.c:0",
                             "log": "run_002/qemu.log",
                         },
                     ],
@@ -54,6 +56,17 @@ class StageQemuMatrixTests(unittest.TestCase):
                 "heartbeat_last_bpc"
             ],
             "0x1555677c50",
+        )
+        self.assertTrue(
+            matrix._transport_failure_details(summary)["500.perlbench_r"][
+                "heartbeat_kernel_panic_loop"
+            ]
+        )
+        self.assertIn(
+            "kernel-panic-loop",
+            matrix._format_failure_details(
+                matrix._transport_failure_details(summary)
+            ),
         )
 
 

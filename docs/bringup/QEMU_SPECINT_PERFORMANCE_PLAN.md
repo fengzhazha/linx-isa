@@ -223,6 +223,14 @@ QEMU emits `LINX_HEARTBEAT_CODE` records with up to 32 bytes at both the current
 PC and BPC. Use this only for short or coarse-interval diagnostics; it reads
 guest memory at every heartbeat boundary.
 
+For kernel-space heartbeat timeouts, add `--symbolize-heartbeat` to the SPEC
+runner, or set `LINX_SPEC_SYMBOLIZE_HEARTBEAT=1`. The runner symbolizes recent
+kernel PC/BPC/RA heartbeat sites with `llvm-addr2line` against the active
+`vmlinux` and records `heartbeat_kernel_symbols`,
+`heartbeat_kernel_symbol_evidence`, and `heartbeat_kernel_panic_loop`. Timeout
+rows whose recent heartbeat sites resolve into `panic.c` are reclassified as
+`kernel-panic-loop-timeout` instead of generic `live-timeout`.
+
 The SPEC fast gate now has an explicit `train` profile, backed by a `train-all`
 suite covering all current Linx SPECint rate benchmarks:
 
@@ -660,12 +668,15 @@ Artifacts:
 
 Result: all ten train-input benchmarks build in the static phase-b gate.
 `999.specrand_ir` passes by hash. The latest all-static diagnostic ledger is
-`workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`.
-It supersedes the older queue-inline/heartbeat-guard table for current failure
-ownership while retaining that table's performance samples as historical
-profiling evidence. No live-timeout row is a global QEMU deadlock: those rows
-have `heartbeat_running=true`, `heartbeat_site_progress=true`, and increasing
-BPC/count evidence.
+`workloads/generated/specint-train-all-static-byval-fix-20260630-r1/`.
+It supersedes the older queue-inline/heartbeat-guard and after-callarg tables
+for current failure ownership while retaining those tables' performance samples
+as historical profiling evidence. No generic timeout row is a global QEMU
+deadlock: timeout rows have `heartbeat_running=true`,
+`heartbeat_site_progress=true`, and increasing BPC/count evidence. The exception
+is `525.x264_r`, whose BPC heartbeat still advances but symbolizes into the
+kernel panic delay loop, so it is a kernel panic-loop lane rather than a
+throughput-only lane.
 
 Focused 2026-06-29 502 update: after rebuilding `502.gcc_r` with the Linx LLVM
 byval aggregate fix, `workloads/generated/specint-502-byval-fix-train-20260629-r1/`
@@ -684,15 +695,15 @@ unlimited-stack mmap layout failures.
 
 | Benchmark | Result | Evidence | Current classification |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | run_001 pass; run_002 `live-timeout` | `perfect.b.3.out` hash `0xc69c7085` passes; run_002 reaches count `65000000006`, BPC `0x15556f5744`, `progress=site-change`, no trap | Old bad branch target is closed by the LLVM Blockify ABI call-argument fix. Current owner is QEMU throughput/live-progress profiling. |
-| `502.gcc_r` | `live-timeout` after focused byval-fix rebuild | `workloads/generated/specint-502-byval-fix-train-20260629-r1/qemu_matrix_summary.json` reaches count `61000000006`, BPC `0x155598d706`, `progress=site-change`, no `LINX_USER_TRAP`; the previous filtered PC-watch ring showed the closed `gsi_prev addr=0x8` fault | Correctness stop closed by Linx LLVM by-value aggregate lowering. Current owner is QEMU throughput/live-progress profiling. |
-| `505.mcf_r` | `live-timeout` | count `82000000001`, BPC `0x155555c8b4`, `progress=site-change` | Throughput/live-progress lane; reproduce older traps before reopening correctness. |
-| `520.omnetpp_r` | `spec-wrapper-fail` | child exits and wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000005`, BPC `0xffffffff800d34f0` | Wrapper/output lane. Capture child wait status/stderr before classifying as C++ runtime or QEMU throughput. |
-| `523.xalancbmk_r` | `spec-wrapper-fail` | child exits and wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `46000000001`, BPC `0xffffffff800d32f6` | Same wrapper/output lane as 520; inspect generated output and child status first. |
-| `525.x264_r` | `live-timeout` | count `44000000000`, BPC `0xffffffff803e88b0`, `progress=site-change` | Throughput/live-progress lane; older panic evidence is a regression guard only. |
-| `531.deepsjeng_r` | `live-timeout` | count `77000000016`, BPC `0x155555b926`, `progress=site-change` | Throughput/live-progress lane; compare with the passing test-input profile. |
-| `541.leela_r` | `spec-wrapper-fail` | child exits and wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000003`, BPC `0xffffffff800b2e34` | Wrapper/output lane under `--stack-limit 2G`; collect child status/stderr before treating as stack recurrence. |
-| `557.xz_r` | `live-timeout` | count `72000000001`, BPC `0x1555572ef2`, `progress=site-change` | Throughput/live-progress lane. |
+| `500.perlbench_r` | run_001 pass; run_002 `live-timeout` | `perfect.b.3.out` hash `0xc69c7085` passes; run_002 reaches count `70000000011`, BPC `0x1555670bca`, `progress=site-change`, no trap | Old bad branch target is closed by the LLVM Blockify ABI call-argument fix. Current owner is QEMU throughput/live-progress profiling for run_002. |
+| `502.gcc_r` | `live-timeout` after byval-fix rebuild | all-train ledger reaches count `40000000006`, BPC `0x15556bdf40`, `progress=site-change`, no `LINX_USER_TRAP`; focused byval-fix run reached count `61000000006` | Correctness stop closed by Linx LLVM by-value aggregate lowering. Current owner is QEMU throughput/live-progress profiling. |
+| `505.mcf_r` | `live-timeout` | count `77000000005`, BPC `0x155555ccf8`, `progress=site-change` | Throughput/live-progress lane; reproduce older traps before reopening correctness. |
+| `520.omnetpp_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000000`, BPC `0xffffffff800fb6e2` | Wrapper/output lane. Capture child stderr/output and verify whether signal 9 is timeout kill, self-abort, or OOM before classifying as C++ runtime. |
+| `523.xalancbmk_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `46000000003`, BPC `0xffffffff800b2e34` | Same wrapper/output lane as 520; inspect generated output and child status first. |
+| `525.x264_r` | `live-timeout` in the raw report; symbolized as kernel panic loop | count `43000000002`, BPC `0xffffffff803e88aa`; recent heartbeat sites resolve to `panic.c` and `udelay`, with no `LINX_SPEC_START` before timeout | Kernel panic-loop lane. Re-run with `--symbolize-heartbeat` and capture the first panic cause before the delay loop. |
+| `531.deepsjeng_r` | `live-timeout` | count `72000000030`, BPC `0x155555ba20`, `progress=site-change` | Throughput/live-progress lane; compare with the passing test-input profile. |
+| `541.leela_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000003`, BPC `0xffffffff800f67ec` | Wrapper/output lane under `--stack-limit 2G`; collect child status/stderr before treating as stack recurrence. |
+| `557.xz_r` | `live-timeout` | count `65000000007`, BPC `0x1555570608`, `progress=site-change` | Throughput/live-progress lane. |
 | `999.specrand_ir` | pass | `LINX_SPEC_PASS 999.specrand_ir`; FNV-1a `rand.11.out` hash `0x973dcfc2` matches | smoke sentinel closed |
 
 The shared-runtime diagnostic run in
@@ -760,21 +771,28 @@ Proposed next fixes:
    trap.
 4. Diagnose `520.omnetpp_r`, `523.xalancbmk_r`, and `541.leela_r` as wrapper
    child-exit rows first. The runner now preserves `LINX_SPEC_DBG wait ...`
-   status/code/sig evidence for future reruns; use that plus stderr/output
-   hashes before reopening old C++ startup or stack-limit theories.
-5. Profile only the live-slow rows with heartbeat off or at a very coarse
-   interval: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`, `525.x264_r`,
+   status/code/sig evidence; the current all-train run shows `sig=9` for all
+   three rows. Use that plus stderr/output hashes before reopening old C++
+   startup or stack-limit theories.
+5. Diagnose `525.x264_r` as a kernel panic-loop row. The raw timeout was not a
+   deadlock, but symbolized heartbeat sites are in `panic.c`/`udelay`, and the
+   benchmark never reaches `LINX_SPEC_START`. Re-run it with
+   `--symbolize-heartbeat`, optional `LINX_HEARTBEAT_CODE_BYTES=16`, and a
+   focused PC-watch/ring window around the panic call path to capture the first
+   panic reason before the delay loop dominates the log.
+6. Profile only the live-slow rows with heartbeat off or at a very coarse
+   interval: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`,
    `531.deepsjeng_r`, and `557.xz_r`. Remaining QEMU speedups should focus on
    tile commit/set/reset, template stepping, page-local BSTART decode caching,
    TB chaining, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
    avoiding helper probes in hot branch-validation paths. Queue/scalar helper
    overhead and heartbeat helper overhead are already closed by the queue-inline
    and heartbeat-guard patches.
-6. Use count-windowed diagnostics for late SPEC windows. Pair
+7. Use count-windowed diagnostics for late SPEC windows. Pair
    `LINX_FAULT_TRACE_COUNT_LO/HI`, `LINX_DEBUG_PC_WATCH_COUNT_LO/HI`, and
    `LINX_MEM_TRACE_COUNT_LO/HI` with PC/ACR/address filters so early boot or
    early stack-slot reuse does not consume trace quotas before the final fault.
-7. Keep `train-all` opt-in through `--profile train`; the PR gate should stay on
+8. Keep `train-all` opt-in through `--profile train`; the PR gate should stay on
    cheap `999.specrand_ir` smoke while stress workloads run in isolated nightly
    or diagnostic lanes.
 
