@@ -69,6 +69,46 @@ SRC_RUN_DIR = "run_base_refrate_mytest-m64.0000"
 EMPTY_STDIN_NAME = ".linx_empty_stdin"
 
 
+def _kernel_cmdline_has_arg(cmdline: str, name: str) -> bool:
+    prefix = f"{name}="
+    try:
+        parts = shlex.split(cmdline)
+    except ValueError:
+        parts = cmdline.split()
+    return any(part == name or part.startswith(prefix) for part in parts)
+
+
+def _append_kernel_arg_if_absent(cmdline: str, name: str, value: str) -> str:
+    if _kernel_cmdline_has_arg(cmdline, name):
+        return cmdline
+    extra = f"{name}={value}"
+    return f"{cmdline} {extra}".strip()
+
+
+def _build_kernel_append(transport: str, append_extra: str) -> str:
+    append = "lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0"
+    disable_timer_irq = os.environ.get("LINX_DISABLE_TIMER_IRQ", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if disable_timer_irq:
+        append = _append_kernel_arg_if_absent(append, "linx_disable_timer_irq", "1")
+    if append_extra.strip():
+        append += " " + append_extra.strip()
+
+    if transport == "9p":
+        append = _append_kernel_arg_if_absent(append, "linx_storage_init", "1")
+        force_virtio_mmio = os.environ.get(
+            "LINX_SPEC_9P_FORCE_VIRTIO_MMIO", ""
+        ).lower() in {"1", "true", "yes"}
+        if force_virtio_mmio:
+            append = _append_kernel_arg_if_absent(
+                append, "virtio_mmio.device", "0x200@0x30001000:1"
+            )
+    return append
+
+
 def _default_musl_sysroot() -> str:
     env = os.environ.get("LINX_SYSROOT", "").strip()
     if env:
@@ -2172,15 +2212,7 @@ def _run_qemu(
     append_extra: str,
     symbolize_heartbeat: bool,
 ) -> dict[str, Any]:
-    append = "lpj=1000000 loglevel=8 console=ttyS0 kfence.sample_interval=0"
-    disable_timer_irq = os.environ.get("LINX_DISABLE_TIMER_IRQ", "").lower() in {"1", "true", "yes"}
-    if disable_timer_irq and "linx_disable_timer_irq=" not in append:
-        append += " linx_disable_timer_irq=1"
-    force_virtio_mmio = os.environ.get("LINX_SPEC_9P_FORCE_VIRTIO_MMIO", "").lower() in {"1", "true", "yes"}
-    if transport == "9p" and force_virtio_mmio and "virtio_mmio.device=" not in append:
-        append += " virtio_mmio.device=0x200@0x30001000:1"
-    if append_extra.strip():
-        append += " " + append_extra.strip()
+    append = _build_kernel_append(transport, append_extra)
 
     machine = "virt"
     machine_extra = os.environ.get("LINX_SPEC_QEMU_MACHINE_EXTRA", "").strip()

@@ -1,12 +1,37 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import unittest
+from unittest import mock
 
 import run_int_rate_qemu as runner
 
 
 class RunIntRateQemuTests(unittest.TestCase):
+    def test_9p_append_enables_storage_init_by_default(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            append = runner._build_kernel_append("9p", "norandmaps")
+
+        self.assertIn("norandmaps", append)
+        self.assertIn("linx_storage_init=1", append)
+
+    def test_9p_append_preserves_explicit_storage_init_override(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            append = runner._build_kernel_append("9p", "norandmaps linx_storage_init=0")
+
+        self.assertIn("linx_storage_init=0", append)
+        self.assertNotIn("linx_storage_init=1", append)
+
+    def test_9p_force_virtio_mmio_preserves_custom_device_arg(self) -> None:
+        with mock.patch.dict(os.environ, {"LINX_SPEC_9P_FORCE_VIRTIO_MMIO": "1"}, clear=True):
+            append = runner._build_kernel_append(
+                "9p", "virtio_mmio.device=0x100@0x30002000:2"
+            )
+
+        self.assertIn("virtio_mmio.device=0x100@0x30002000:2", append)
+        self.assertNotIn("virtio_mmio.device=0x200@0x30001000:1", append)
+
     def test_child_exit_failure_evidence_includes_wait_status(self) -> None:
         result = runner._classify_qemu_result(
             text=(

@@ -28,6 +28,15 @@ heartbeat-backed `live-timeout`; this proves the current 9p suite state is
 running, not deadlocked, but it is not a full correctness substitute for the
 initramfs strict-hash sentinel or a long 9p specdiff run.
 
+The SPEC 9p runner now appends `linx_storage_init=1` automatically unless the
+caller explicitly provides `linx_storage_init=...`. This keeps future 9p gates
+from failing before benchmark execution with `9p-mount-failed raw_rc=-19` when a
+manual append string omits the Linx storage-init switch. The focused proof is
+`workloads/generated/specint-999-9p-storageinit-auto-20260630-r1/`: the command
+line contains the automatic bootarg, reaches `LINX_SPEC_START`, emits no 9p
+mount warning, and times out with BPC site progress in kernel allocator code
+instead of failing `chdir-rundir`.
+
 ## Initial Profile
 
 Command shape:
@@ -619,6 +628,24 @@ pass. The standalone `avs/qemu/run_tests.py --suite tile --timeout 120`
 timeout reproduces after rebuilding the baseline without the guard, so that
 row remains a pre-existing tile-suite duration/coverage lane rather than this
 SPEC scalar fast-path proof.
+
+2026-06-30 9p storage-init runner update: a latest-QEMU all-train 9p rerun at
+`workloads/generated/specint-train-all-tilecommit-guard-9p-20260630-r1/`
+exposed a false setup failure: every row reached `LINX_SPEC_START`, then failed
+`chdir-rundir` after `mount("spec2017", "/spec", "9p", ...)` returned `-ENODEV`.
+The missing ingredient was the Linx storage-init bootarg used by the earlier
+successful 9p evidence. `tools/spec2017/run_int_rate_qemu.py` now centralizes
+kernel command-line construction and auto-adds `linx_storage_init=1` for 9p
+transport unless explicitly overridden. Unit coverage in
+`tools/spec2017/test_run_int_rate_qemu.py` locks the default, explicit override,
+and forced virtio-mmio override behavior. The fixed 9p sentinel
+`workloads/generated/specint-999-9p-storageinit-auto-20260630-r1/` proves the
+transport setup reaches live execution again; the interrupted all-train followup
+`workloads/generated/specint-train-all-storageinit-auto-9p-20260630-r1/` shows
+the same command-line fix advancing through multiple train rows with heartbeat
+site progress. Post-fix host sampling from that run keeps the QEMU hot list on
+`helper_linx_template_step`, BSTART validation, `linx_is_bstart_at_addr`, and
+`probe_access_flags`; `helper_linx_tile_commit` remains absent.
 
 Static build command. Rebuild the SPEC-profile C++ runtime overlay after every
 phase-b musl sysroot refresh; the musl install step replaces the sysroot
