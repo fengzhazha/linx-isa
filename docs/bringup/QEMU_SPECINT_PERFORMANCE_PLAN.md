@@ -565,12 +565,15 @@ frame.
 
 Speedup candidates:
 
-- QEMU: split `tlb.ia`, `tlb.iv`, and `tlb.iav` into address-aware helpers
-  instead of routing every variant through `tlb_flush()`. Preserve full flush for
-  `tlb.iall`.
-- QEMU: reset the BSTART validation cache by affected page/generation for
-  address-scoped invalidations; keep full cache reset for global invalidation,
-  MMU context changes, trap/ACRE transitions, and explicit debug revalidation.
+- QEMU: `tlb.iv` and the Linux packed-VA form of `tlb.iav` now use
+  `tlb_flush_page()` plus page-scoped BSTART-cache invalidation instead of
+  routing through full `tlb_flush()`. Preserve full flush for `tlb.iall` and
+  keep `tlb.ia` conservative until QEMU models ASID-tagged TLB entries
+  independently from TTBR/MMU-index state.
+- QEMU: a future BSTART validation cache should move from direct-mapped target
+  tags to page/generation-aware invalidation if self-modifying text or
+  page-remap churn becomes visible in post-start profiles; current page-scoped
+  TLBI only clears entries on the invalidated VA page.
 - Linux: reduce redundant fixmap clear/set invalidations in
   `arch/linx/mm/init.c` during early page-table construction. This is a
   boot-time speed lane and should be validated with a boot/userspace proof before
@@ -580,6 +583,22 @@ Speedup candidates:
   transport overhead. Use initramfs `999.specrand_ir` as the cheap correctness
   sentinel; use 9p `999.specrand_ir` as the transport/profiling sentinel until a
   block-backed SPEC transport exists.
+
+2026-06-30 page-scoped TLBI update: QEMU commit candidate
+`target/linx/{helper.c,helper.h,translate.c}` splits the TLB maintenance
+helpers. `tlb.iall` still performs a full local flush and full BSTART-cache
+reset. `tlb.ia` now logs the ASID operand but remains a full flush because the
+current QEMU TLB is not independently ASID-tagged. `tlb.iv` and Linux's packed
+`tlb.iav` operand perform a one-page flush across all QEMU MMU indexes and only
+clear BSTART-cache entries on the affected VA page. Validation evidence:
+`avs/qemu/out/musl-mprotect-adjacent-tlbiv-pageflush-20260630-r1/summary.json`
+passes and its log records `LINX_TLB_TRACE op=iv ... operand=...`;
+`workloads/generated/specint-train-smoke-tlbiv-pageflush-20260630-r1/` passes
+strict train `999.specrand_ir`; and focused
+`workloads/generated/specint-502-tlbiv-pageflush-20260630-r1/` keeps
+`502.gcc_r` in heartbeat-backed `live-timeout` with no `LINX_USER_TRAP`. This
+closes the QEMU-side boot TLBI overshoot without changing the live-slow SPEC
+steady-state owner list.
 
 Static build command. Rebuild the SPEC-profile C++ runtime overlay after every
 phase-b musl sysroot refresh; the musl install step replaces the sysroot
