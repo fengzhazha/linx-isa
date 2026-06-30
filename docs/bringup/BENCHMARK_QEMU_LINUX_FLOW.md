@@ -27,19 +27,19 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`
-  is the current all-SPECint static train diagnostic ledger: `999.specrand_ir`
-  passes; `500.perlbench_r` run_001 passes `perfect.b.3.out` by hash and
-  run_002 now runs until the live-timeout budget; after the Linx LLVM byval
-  aggregate fix, focused `502.gcc_r` train also runs until live-timeout with
-  BPC/site progress; `505`, `525`, `531`, and `557` are live timeouts with
-  BPC/site progress; `520`, `523`, and `541` are wrapper child-exit rows. The
-  earlier `500.perlbench_r` bad branch target is closed by the LLVM Blockify
-  ABI call-argument fix, the earlier `502.gcc_r` allocator/VM trap is closed by
-  the Linx Linux mremap workaround plus
-  `avs/qemu/out/mremap-end-smoke-r3/summary.json`, and the later `502.gcc_r`
-  `gsi_prev addr=0x8` trap is closed by copying by-value aggregate arguments to
-  callee-owned temporaries before calls.
+- `workloads/generated/specint-train-all-post-branchfix-20260630-r1/`
+  is the current all-SPECint train diagnostic ledger after QEMU commit
+  `085f20cc8bd`. The run requested all ten SPECint train rows with initramfs,
+  a 180s per-row timeout, QEMU BPC heartbeat every 1B guest instructions, and a
+  `2G` stack limit. `999.specrand_ir` passes; `500.perlbench_r`,
+  `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `531.deepsjeng_r`,
+  `541.leela_r`, and `557.xz_r` are heartbeat-backed `live-timeout` rows with
+  `heartbeat_site_progress=true`; `502.gcc_r` is a reopened user-trap
+  correctness lane at `addr=0x3f7fa8d010`; and `525.x264_r` still hits an
+  early VFS rootfs panic in initramfs mode. The older
+  `workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`
+  ledger remains historical closure evidence for the previous 500/502 compiler
+  failures, but it is no longer the active all-row status.
 
 Inference:
 

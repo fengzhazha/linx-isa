@@ -615,6 +615,44 @@ child-exit rows with `sig=9`; and `525.x264_r` is classified as
 closed and routes remaining work to throughput profiling, wrapper/kill cause
 capture, and a focused kernel panic-path probe.
 
+Post-branch-fix all-train rerun. QEMU commit `085f20cc8bd` fixes the AVS
+branch D0D2 failure where a predicated `FALL` edge skipped a marker-only
+`DIRECT` trampoline but then entered the following `COND` header with
+`cond/carg` reset. The QEMU rebuild passes `avs/qemu/run_tests.py --suite
+branch --timeout 20`, `avs/qemu/run_tests.py --suite system --timeout 20`,
+`avs/qemu/check_system_strict.sh`, and `avs/qemu/run_tests.py --all --timeout
+20`.
+
+The fresh all-SPECint train loop is
+`workloads/generated/specint-train-all-post-branchfix-20260630-r1/`. It uses
+the same all-ten train suite, rebuilt QEMU from the branch fix, initramfs
+transport, `SPECINT_TRAIN_ALL_TIMEOUT=180`, QEMU heartbeat every 1B guest
+instructions, `--no-progress-timeout 180`, `--stack-limit 2G`, and
+`LINX_SPEC_SYMBOLIZE_HEARTBEAT=1`. The nested matrix command requested all ten
+rows and completed in `1318.613s`; `999.specrand_ir` passed and the other rows
+failed as follows:
+
+| Bench | Class | Last BPC | Heartbeat | Current owner |
+| --- | --- | --- | --- | --- |
+| `500.perlbench_r` | `live-timeout` | `0xffffffff803d3a60` | `site-change`, count `107000000000` | Throughput: kernel maple-tree/mmap hot path after the old compiler bad-target failure is closed. |
+| `502.gcc_r` | `user-trap` | `0x15557418b4` | `site-change`, count `6000000001` | Correctness: new trap at `addr=0x3f7fa8d010`, `tpc=0x1556088006`, `bpc=0x1556087ff4`; rerun with syscall/fault trace and symbolize the static-PIE slide before treating 502 as only slow. |
+| `505.mcf_r` | `live-timeout` | `0x155555d0c6` | `site-change`, count `49000000005` | Throughput: user-space hot loop; profile post-`LINX_SPEC_START` before changing QEMU helpers. |
+| `520.omnetpp_r` | `live-timeout` | `0xffffffff803d3ac0` | `site-change`, count `39000000004` | Throughput/kernel logging or VM path: no longer an immediate wrapper child-exit in this run. |
+| `523.xalancbmk_r` | `live-timeout` | `0xffffffff8006c9b2` | `site-change`, count `42000000005` | Throughput/kernel logging path; check repeated printk/vsprintf/ring-buffer activity before blaming C++ runtime. |
+| `525.x264_r` | `kernel-panic` | `0x0` | no running heartbeat | Transport/rootfs: initramfs panics with `VFS: Unable to mount root fs`; use 9p or add a block-backed SPEC root instead of growing the CPIO path. |
+| `531.deepsjeng_r` | `live-timeout` | `0x15555630a8` | `site-change`, count `44000000009` | Throughput: user-space control-flow hot loop; keep as CPU stress sentinel. |
+| `541.leela_r` | `live-timeout` | `0xffffffff803e0e5a` | `site-change`, count `41000000005` | Throughput/kernel string/memset path; investigate kernel log/memory churn after stack-limit traps remain closed. |
+| `557.xz_r` | `live-timeout` | `0x155558d218` | `site-change`, count `36000000006` | Throughput: user-space compression loop; profile helper mix and timer/fault heartbeat sites. |
+| `999.specrand_ir` | pass | `0x0` | finishes before heartbeat | Keep as the cheap strict-hash train sentinel. |
+
+This run proves the all-row loop itself is not deadlocked: every timeout row
+has QEMU BPC heartbeat progress. The next QEMU speed work should therefore use
+post-start host sampling and the BPC ledger to avoid boot-biased samples. Start
+with user-space rows (`505`, `531`, `557`) for target-helper/TB-cache cost,
+then kernel-heavy rows (`500`, `520`, `523`, `541`) for maple-tree, printk, and
+string/memset churn. Keep `502` separate as a correctness bug until the new
+page-near trap is explained, and keep `525` on the transport/rootfs lane.
+
 Focused `525.x264_r` follow-up split that panic-path probe into transport work.
 The initramfs train lane builds a 1.6 GiB CPIO and never reaches
 `LINX_SPEC_START`; a PC-watch run on `panic()`/`vpanic()` with
