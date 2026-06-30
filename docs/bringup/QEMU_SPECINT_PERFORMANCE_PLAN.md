@@ -503,7 +503,7 @@ python3 tools/bringup/run_specint_fast_gate.py \
 ```
 
 Current train-all loop. This rerun uses the same all-ten SPECint train suite,
-rebuilt QEMU `v10.2.0-969-gf03477a0f56`, initramfs transport, no guest
+rebuilt QEMU `v10.2.0-970-g8dd1dcdbde2`, initramfs transport, no guest
 heartbeat, QEMU heartbeat every 1B guest instructions, a `2G` stack limit, the
 mallocng-default phase-b musl sysroot, and a refreshed spec C++ runtime overlay.
 The SPEC runner treats
@@ -545,6 +545,22 @@ child-exit rows with `sig=9`; and `525.x264_r` is classified as
 `kernel-panic-loop-timeout`. That split keeps the 502 compiler correctness lane
 closed and routes remaining work to throughput profiling, wrapper/kill cause
 capture, and a focused kernel panic-path probe.
+
+Focused `525.x264_r` follow-up splits that panic-path probe into transport
+work. The initramfs train lane builds a 1.6 GiB CPIO and never reaches
+`LINX_SPEC_START`; a PC-watch run on `panic()`/`vpanic()` with
+`LINX_CALL_TRACE_RING=1` and `LINX_DEBUG_PC_WATCH_DUMP_CALL_RING=1` captures
+the first panic string as `VFS: Unable to mount root fs on "%s" or %s`, with the
+caller ring ending in `init/do_mounts.c`. A 4096 MiB rerun reproduces the same
+VFS root panic, so this is not only a 2 GiB guest-memory limit. The 9p lane
+keeps the initramfs at about 4 MiB and reaches `LINX_SPEC_START`, but the raw
+mount syscall returns `raw_rc=-14` (`EFAULT`) for
+`mount("spec2017", "/spec", "9p", 0, "trans=virtio,version=9p2000.L")`.
+QEMU syscall argdump can read the 9p options string from the same guest pointer,
+so the next owner is the Linx Linux mount/user-copy path before using 9p as the
+large-input SPEC transport. If 9p remains blocked by the older virtio-9p
+protocol lane, add a virtio-blk/ext2 SPEC transport instead of duplicating large
+train inputs into initramfs.
 
 Focused `500.perlbench_r` rerun after adding the scalar FP-compare trace in
 QEMU commit `b5e90c7db5f`:
@@ -794,13 +810,11 @@ Proposed next fixes:
    failure is fixed. Run `523.xalancbmk_r` and `541.leela_r` with guest child
    heartbeat/proc status and kernel kill/OOM tracing before reopening old C++
    startup or stack-limit theories.
-5. Diagnose `525.x264_r` as a kernel panic-loop row. The latest run is already
-   classified as `kernel-panic-loop-timeout`: symbolized heartbeat sites are in
-   `panic.c`/`udelay`, and the benchmark never reaches `LINX_SPEC_START`.
-   Re-run it with `LINX_HEARTBEAT_CODE_BYTES=16`,
-   `LINX_CALL_TRACE_RING=1`, and `LINX_DEBUG_PC_WATCH_DUMP_CALL_RING=1` around
-   the panic call path to capture the first panic reason before the delay loop
-   dominates the log.
+5. Treat `525.x264_r` as a transport/rootfs row, not a benchmark execution row.
+   The first panic cause is now captured: giant initramfs packaging falls
+   through to the VFS root-mount panic before `/init`, while 9p reaches `/init`
+   but returns `-EFAULT` from `mount()`. Fix the Linux mount/user-copy path or
+   add a disk-image transport before rerunning 525 train for SPEC correctness.
 6. Profile only the live-slow rows with heartbeat off or at a very coarse
    interval: `500.perlbench_r` run_002, `502.gcc_r`, `505.mcf_r`,
    `531.deepsjeng_r`, and `557.xz_r`. Remaining QEMU speedups should focus on

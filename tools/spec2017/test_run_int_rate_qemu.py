@@ -26,6 +26,38 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("code=1", result["evidence"])
         self.assertIn("signaled=0", result["evidence"])
 
+    def test_chdir_failure_evidence_includes_9p_errno(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_SPEC_START 525.x264_r\n"
+                "LINX_SPEC_WARN 9p-mount-failed raw_rc=-71 neg_errno=71\n"
+                "LINX_SPEC_FAIL chdir-rundir\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-wrapper-fail")
+        self.assertIn("LINX_SPEC_FAIL chdir-rundir", result["evidence"])
+        self.assertIn("neg_errno=71", result["evidence"])
+
+    def test_pc_watch_exit_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_HEARTBEAT count=1 pc=0x0 bpc=0x0\n"
+                "linx_pc_watch: pc=0xffffffff80001574 hit=1 count=42 bpc=0xffffffff80402128\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=False,
+        )
+
+        self.assertEqual(result["class"], "pc-watch-exit")
+        self.assertIn("0xffffffff80001574", result["evidence"])
+
     def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
         text = "\n".join(
             [

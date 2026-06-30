@@ -713,9 +713,16 @@ def _build_init_for_run(
         guest_run = f"/spec/benchspec/CPU/{bench}/run/{cfg['linx_run']}"
         transport_block = f"""
   (void)mkdir("/spec", 0755);
-  int spec_mnt_rc = mount("spec2017", "/spec", "9p", 0, "{_c_escape(mount_opts)}");
-  if (spec_mnt_rc < 0)
-    LOG_LIT("LINX_SPEC_WARN 9p-mount-failed\\n");
+  long spec_mnt_rc = linx_spec_mount_raw("spec2017", "/spec", "9p", 0, "{_c_escape(mount_opts)}");
+  if (spec_mnt_rc < 0) {{
+    char spec_mnt_line[96];
+    int spec_mnt_n = snprintf(
+        spec_mnt_line, sizeof(spec_mnt_line),
+        "LINX_SPEC_WARN 9p-mount-failed raw_rc=%lld neg_errno=%lld\\n",
+        (long long)spec_mnt_rc, (long long)-spec_mnt_rc);
+    if (spec_mnt_n > 0 && spec_mnt_n < (int)sizeof(spec_mnt_line))
+      write_log_all(spec_mnt_line, (unsigned long)spec_mnt_n);
+  }}
 """
     else:
         guest_run = "/spec-run"
@@ -1309,6 +1316,28 @@ static long linx_spec_raw_syscall4(long n, long a0, long a1, long a2, long a3) {
   return ret;
 }}
 
+static long linx_spec_raw_syscall5(long n, long a0, long a1, long a2, long a3, long a4) {{
+  long ret;
+
+  __asm__ volatile(
+      "c.movr %1, ->a0\\n"
+      "c.movr %2, ->a1\\n"
+      "c.movr %3, ->a2\\n"
+      "c.movr %4, ->a3\\n"
+      "c.movr %5, ->a4\\n"
+      "c.movr %6, ->a7\\n"
+      "acrc 1\\n"
+      "c.bstop\\n"
+      "C.BSTART\\n"
+      "c.movr a0, ->%0\\n"
+      : "=r"(ret)
+      : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(n)
+      : "a0", "a1", "a2", "a3", "a4", "a7",
+        "x0", "x1", "x2", "x3", "memory");
+
+  return ret;
+}}
+
 static int linx_spec_execve(const char *path, char *const argv[], char *const envp[]) {{
   long ret = linx_spec_raw_syscall3(SYS_execve, (long)path, (long)argv, (long)envp);
   if (ret < 0 && ret >= -4095) {{
@@ -1316,6 +1345,12 @@ static int linx_spec_execve(const char *path, char *const argv[], char *const en
     return -1;
   }}
   return (int)ret;
+}}
+
+static long linx_spec_mount_raw(const char *src, const char *target, const char *fstype,
+                                unsigned long flags, const void *data) {{
+  return linx_spec_raw_syscall5(SYS_mount, (long)src, (long)target,
+                                (long)fstype, (long)flags, (long)data);
 }}
 
 static int g_log_fd = -1;
@@ -1933,8 +1968,8 @@ int main(void) {{
   (void)mkdir("/sys", 0755);
   (void)mkdir("/dev", 0755);
   /* Keep static device nodes from initramfs (/dev/console, /dev/ttyS0). */
-  (void)mount("proc", "/proc", "proc", 0, "");
-  (void)mount("sysfs", "/sys", "sysfs", 0, "");
+  (void)linx_spec_mount_raw("proc", "/proc", "proc", 0, "");
+  (void)linx_spec_mount_raw("sysfs", "/sys", "sysfs", 0, "");
   selftest_fp_bits();
   selftest_writev();
   try_open_kmsg_log();
@@ -2419,6 +2454,16 @@ def _classify_qemu_result(
             **_heartbeat_classification_fields(heartbeat),
         }
 
+    pc_watch = _first_matching_line(text, ("linx_pc_watch:", "LINX_CALL_TRACE_RING reason=pc_watch"))
+    if pc_watch:
+        return {
+            "class": "pc-watch-exit",
+            "evidence": pc_watch,
+            "last_heartbeat": last_heartbeat,
+            "heartbeat_progress": heartbeat["running"],
+            **_heartbeat_classification_fields(heartbeat),
+        }
+
     if stalled:
         return {
             "class": "no-progress-timeout",
@@ -2507,6 +2552,10 @@ def _first_matching_line(text: str, needles: tuple[str, ...]) -> str:
 
 def _spec_wrapper_failure_evidence(text: str) -> str:
     fail = _first_matching_line(text, ("LINX_SPEC_FAIL",)) or "LINX_SPEC_FAIL"
+    if "chdir-rundir" in fail:
+        mount = _first_matching_line(text, ("LINX_SPEC_WARN 9p-mount-failed",))
+        if mount:
+            return f"{fail}; {mount}"[:512]
     if "child-exit" not in fail:
         return fail
     wait = _first_matching_line(text, ("LINX_SPEC_DBG wait",))

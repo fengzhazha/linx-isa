@@ -9,6 +9,9 @@ Current status:
 - virtio-mmio transport(s): **working** (guest enumerates virtio devices)
 - virtio-blk on virtio-mmio: **working** (guest sees `vda`)
 - virtio-9p mount: **failing** with `EPROTO (-71)` when running `mount -t 9p render-share /opt/share ...`
+- SPEC init 9p mount: **failing earlier** with raw syscall return `-EFAULT (-14)`
+  for `mount("spec2017", "/spec", "9p", 0,
+  "trans=virtio,version=9p2000.L")`
 
 ## Minimal reproduction
 
@@ -43,6 +46,11 @@ In initramfs, run `m9p` (debug applet) to attempt the mount and print the raw re
 
 - If you pass `virtio_mmio.device=0x200@0x30001000:1` while the DT already contains virtio-mmio nodes, Linux may attempt to register a *second* virtio-mmio transport and hit probe conflicts (e.g. `-16`).
 - Endianness assumption: **little-endian** for virtio and 9p protocol fields.
+- 2026-06-30 SPEC evidence:
+  `workloads/generated/specint-525-9p-rawmount-argdump-20260630-r1/525_x264_r/run_001/qemu.log`
+  shows QEMU can read the SPEC 9p options string from the guest pointer while
+  Linux returns `-EFAULT`. This points at the Linx Linux mount/user-copy path
+  before the older virtio-9p `EPROTO` protocol lane.
 
 ## Related PRs
 
