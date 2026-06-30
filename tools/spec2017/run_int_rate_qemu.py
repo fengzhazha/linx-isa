@@ -2389,6 +2389,7 @@ def _run_qemu(
         )[:512]
     fcmp_trace = _fcmp_trace_summary(text)
     tlb_fill_trace = _tlb_fill_trace_summary(text)
+    mprotect_trace = _mprotect_trace_summary(text)
     heartbeat_stall = classification["heartbeat_stall"]
 
     return {
@@ -2431,6 +2432,10 @@ def _run_qemu(
         "tlb_fill_trace_count": tlb_fill_trace["count"],
         "tlb_fill_trace_last": tlb_fill_trace["last"],
         "tlb_fill_trace_samples": tlb_fill_trace["samples"],
+        "mprotect_trace_seen": mprotect_trace["seen"],
+        "mprotect_trace_count": mprotect_trace["count"],
+        "mprotect_trace_last": mprotect_trace["last"],
+        "mprotect_trace_samples": mprotect_trace["samples"],
         "log": str(out_log),
     }
 
@@ -2766,6 +2771,15 @@ def _decimal_or_none(value: str | None) -> int | None:
     return None
 
 
+def _int_or_none(value: str | None) -> int | None:
+    if not value:
+        return None
+    try:
+        return int(value, 0)
+    except ValueError:
+        return None
+
+
 def _fcmp_trace_summary(text: str) -> dict[str, Any]:
     lines = re.findall(r"^LINX_FCMP_TRACE .*$", text, flags=re.MULTILINE)
     samples: list[dict[str, Any]] = []
@@ -2820,6 +2834,43 @@ def _tlb_fill_trace_summary(text: str) -> dict[str, Any]:
                 "legacy_desc": fields.get("legacy_desc", "").lower(),
                 "legacy_prot": fields.get("legacy_prot", "").lower(),
                 "legacy_cause": fields.get("legacy_cause", "").lower(),
+            }
+        )
+    return {
+        "seen": bool(lines),
+        "count": len(lines),
+        "last": lines[-1][:512] if lines else "",
+        "samples": samples,
+    }
+
+
+def _mprotect_trace_summary(text: str) -> dict[str, Any]:
+    lines = re.findall(r"^LINX_MPROTECT .*$", text, flags=re.MULTILINE)
+    samples: list[dict[str, Any]] = []
+    for line in lines[-8:]:
+        fields = _heartbeat_fields(line)
+        samples.append(
+            {
+                "line": line[:512],
+                "stage": fields.get("stage", ""),
+                "count": _int_or_none(fields.get("count")),
+                "pid": _int_or_none(fields.get("pid")),
+                "comm": fields.get("comm", ""),
+                "start": fields.get("start", "").lower(),
+                "end": fields.get("end", "").lower(),
+                "prot": fields.get("prot", "").lower(),
+                "newflags": fields.get("newflags", "").lower(),
+                "error": _int_or_none(fields.get("error")),
+                "trace_addr": fields.get("trace_addr", "").lower(),
+                "prev_start": fields.get("prev_start", "").lower(),
+                "prev_end": fields.get("prev_end", "").lower(),
+                "cur_start": fields.get("cur_start", "").lower(),
+                "cur_end": fields.get("cur_end", "").lower(),
+                "next_start": fields.get("next_start", "").lower(),
+                "next_end": fields.get("next_end", "").lower(),
+                "target_start": fields.get("target_start", "").lower(),
+                "target_end": fields.get("target_end", "").lower(),
+                "target_flags": fields.get("target_flags", "").lower(),
             }
         )
     return {

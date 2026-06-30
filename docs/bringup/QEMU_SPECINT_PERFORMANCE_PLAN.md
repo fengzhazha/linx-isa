@@ -397,6 +397,28 @@ repair the kernel `mprotect()` VMA split/merge path around
 `0x3f7fa8d000..0x3f7fa8efff` and then rerun this focused gate before touching
 QEMU TLB policy.
 
+2026-06-30 no-merge update: the focused mprotect trace and Linux fix close the
+current 502 correctness stop. The new Linx-only kernel trace switch
+`linx_mprotect_trace=1` logs `LINX_MPROTECT` before/after VMA neighborhoods,
+with optional `linx_mprotect_trace_addr=<va>` and
+`linx_mprotect_trace_limit=<n>`. Before the fix,
+`workloads/generated/specint-502-mprotect-trace-20260630-r1/` showed the second
+metadata-page `mprotect()` returning success while `prev`, `cur`, `next`, and
+`target` all disappeared for `0x3f7fa8d010`; the next store then faulted as
+`LINX_VM_FAULT stage=no-vma`. `mm/vma.c` now keeps Linx
+`vma_modify()` operations out of `vma_merge_existing_range()`, matching the
+existing Linx no-merge policy for mmap/brk/mremap until the maple-tree merge
+path is repaired. After the fix,
+`avs/qemu/out/musl-mprotect-adjacent-nomerge-20260630-r1/summary.json` passes
+and the post-mprotect trace keeps both VMAs present. Focused `502.gcc_r` in
+`workloads/generated/specint-502-mprotect-nomerge-20260630-r1/` moves from
+`user-trap` to heartbeat-backed `live-timeout`, and the refreshed train-all
+ledger `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/` keeps
+`999.specrand_ir` passing strict hash `0x973dcfc2` while classifying `500`,
+`502`, `505`, `520`, `523`, `531`, `541`, and `557` as live-slow and
+`525.x264_r` as the remaining initramfs VFS-root panic. The next QEMU work is
+therefore throughput profiling, not further 502 TLB correctness triage.
+
 Additional opt-in QEMU debug switches used during this pass:
 
 - `LINX_TLB_TRACE=1` records Linx TLB invalidation helpers with translated PC,

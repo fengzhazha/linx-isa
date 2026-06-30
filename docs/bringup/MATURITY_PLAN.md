@@ -49,15 +49,16 @@ Last updated: 2026-06-30
   - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 SPECint
     train input, not a checked-in SPEC CPU2006 corpus. The latest all-ten
     train loop under
-    `workloads/generated/specint-train-all-hbstall-qemu-20260630-r1/`
+    `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/`
     builds and runs all supported SPECint C/C++ rows, passes
     `999.specrand_ir`, and proves timeout rows are live-progress rather than
-    global QEMU deadlock by QEMU heartbeat/BPC evidence. Current SPEC follow-up
-    splits into Linux VM/VMA correctness for `502.gcc_r`
-    (`LINX_VM_FAULT stage=no-vma` at `0x3f7fa8d010`), initramfs/rootfs
-    transport for `525.x264_r`, and QEMU/kernel throughput profiling for
-    `500`/`505`/`520`/`523`/`531`/`541`/`557`; shared-runtime packaging remains
-    separate from the static correctness gate.
+    global QEMU deadlock by QEMU heartbeat/BPC evidence. The former
+    `502.gcc_r` Linux VM/VMA correctness stop is closed by keeping Linx
+    `mprotect()` VMA modifications out of the unstable merge path; 502 now
+    joins the live-slow lane. Current SPEC follow-up splits into
+    initramfs/rootfs transport for `525.x264_r` and QEMU/kernel throughput
+    profiling for `500`/`502`/`505`/`520`/`523`/`531`/`541`/`557`;
+    shared-runtime packaging remains separate from the static correctness gate.
 - Remaining superproject work: refreshed strict/convergence publication, libc
   hosted runtime, SPEC correctness/performance, TSVC runtime, AVS nightly
   breadth, QEMU decode coverage, ABI/unwind/TLS hardening,
@@ -116,9 +117,9 @@ Status: Active
 3. Re-run the runtime-heavy workload lanes that still block nightly closure:
    - keep the CPU2017 SPECint `train-all` QEMU matrix as the active static
      workload loop; the current all-ten ledger is
-     `workloads/generated/specint-train-all-hbstall-qemu-20260630-r1/`,
-   - fix or instrument the `502.gcc_r` Linux VMA/mprotect lane using the
-     focused `linx_vm_trace=1` evidence before changing QEMU TLB behavior,
+     `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/`,
+   - keep the new Linx Linux `mprotect()` no-merge smoke in the regression
+     loop so the former `502.gcc_r` no-VMA trap stays closed,
    - move `525.x264_r` train execution to 9p or a future block-backed transport
      instead of relying on a giant initramfs CPIO,
    - profile the live-slow rows with heartbeat disabled or coarse and host

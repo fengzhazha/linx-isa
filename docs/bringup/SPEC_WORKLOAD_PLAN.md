@@ -178,10 +178,12 @@ As of 2026-06-30:
   reaches SPEC startup and `999.specrand_ir` passes strict train hash on the
   active QEMU/kernel stack.
 - `SPEC-M03` and `SPEC-M05` are active, not blocked by entry: current
-  initramfs train-all evidence passes `999.specrand_ir`, reproduces a focused
-  Linux VM/VMA correctness stop for `502.gcc_r`, reproduces the `525.x264_r`
-  initramfs VFS-root panic, and classifies the remaining failed rows as
-  heartbeat-backed live-slow rather than deadlock.
+  initramfs train-all evidence passes `999.specrand_ir`, keeps the former
+  `502.gcc_r` VMA/mprotect correctness stop closed by the Linx Linux
+  no-merge workaround, reproduces the `525.x264_r` initramfs VFS-root panic,
+  and classifies the remaining failed rows as heartbeat-backed live-slow
+  rather than deadlock. The current all-ten ledger is
+  `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/`.
 - `SPEC-M04` remains separately open for the shared-runtime path.
 - `SPEC-M06` is not actionable until `SPEC-M05` train correctness and
   throughput lanes are green on the promoted static transport policy.

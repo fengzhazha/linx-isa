@@ -208,6 +208,10 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
             "tlb_fill_trace_count": failed_run.get("tlb_fill_trace_count"),
             "tlb_fill_trace_last": str(failed_run.get("tlb_fill_trace_last") or "")[:512],
             "tlb_fill_trace_samples": failed_run.get("tlb_fill_trace_samples") or [],
+            "mprotect_trace_seen": bool(failed_run.get("mprotect_trace_seen", False)),
+            "mprotect_trace_count": failed_run.get("mprotect_trace_count"),
+            "mprotect_trace_last": str(failed_run.get("mprotect_trace_last") or "")[:512],
+            "mprotect_trace_samples": failed_run.get("mprotect_trace_samples") or [],
             "log": str(failed_run.get("log") or ""),
         }
     return details
@@ -228,6 +232,9 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         tlbfill = ""
         if row.get("tlb_fill_trace_seen"):
             tlbfill = f" tlbfill-trace={row.get('tlb_fill_trace_count')}"
+        mprotect = ""
+        if row.get("mprotect_trace_seen"):
+            mprotect = f" mprotect-trace={row.get('mprotect_trace_count')}"
         kernel = ""
         if row.get("heartbeat_kernel_panic_loop"):
             kernel = " kernel-panic-loop"
@@ -241,7 +248,10 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
             threshold = row.get("heartbeat_stall_threshold")
             status = row.get("heartbeat_stall_status") or "same-site"
             hb_stall = f" heartbeat-stall={status}:{repeats}/{threshold}"
-        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{hb_stall}{fcmp}{tlbfill}")
+        parts.append(
+            f"{bench}: {running}/{site} {progress}{timeout}{stalled} "
+            f"bpc={bpc}{kernel}{hb_stall}{fcmp}{tlbfill}{mprotect}"
+        )
     return ", ".join(parts)
 
 

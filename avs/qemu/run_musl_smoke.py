@@ -82,6 +82,11 @@ SAMPLES: dict[str, dict[str, str]] = {
         "start": "MUSL_MREMAP_END_START",
         "pass": "MUSL_MREMAP_END_PASS",
     },
+    "mprotect_adjacent": {
+        "src": "linux_musl_mprotect_adjacent.c",
+        "start": "MUSL_MPROTECT_ADJACENT_START",
+        "pass": "MUSL_MPROTECT_ADJACENT_PASS",
+    },
     "tp_preserve": {
         "src": "linux_musl_tp_preserve.c",
         "start": "MUSL_TP_PRESERVE_START",

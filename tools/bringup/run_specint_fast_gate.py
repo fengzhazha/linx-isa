@@ -276,7 +276,10 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         tlbfill = ""
         if row.get("tlb_fill_trace_seen"):
             tlbfill = f" tlbfill-trace={row.get('tlb_fill_trace_count')}"
-        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{hb_stall}{tlbfill}")
+        mprotect = ""
+        if row.get("mprotect_trace_seen"):
+            mprotect = f" mprotect-trace={row.get('mprotect_trace_count')}"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{hb_stall}{tlbfill}{mprotect}")
     return ", ".join(parts)
 
 
