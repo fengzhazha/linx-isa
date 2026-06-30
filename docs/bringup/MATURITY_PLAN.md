@@ -46,7 +46,16 @@ Last updated: 2026-06-30
   - rebuilt-image disassembly shows the active next lane is task creation from `rest_init()` into `user_mode_thread()` / `kernel_clone()`, not the earlier RCU tiny-helper callsite and not DT/procfs/nsfs/pidfs bring-up.
 - Hosted workload hardening is now split cleanly by tier:
   - PR lane: benchmark/polybench/portfolio/ctuning artifact publication and PTO parity are green.
-  - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 Stage A, not a checked-in SPEC CPU2006 corpus. A new 2026-05-17 non-canonical rerun shows static-only `999.specrand_ir` now reaches the same late kernel task-creation stall as initramfs smoke, while dynamic `531.deepsjeng_r` remains blocked earlier because `phase-c` shared musl packaging is still missing `libc.so` (`m3_notext_probe_signature=ld.lld: error: relocation R_LinxV5_64_BNEXT cannot be used against symbol 'malloc'; recompile with -fPIC`). TSVC QEMU runtime still fails in the latest diagnostic rerun.
+  - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 Stage A,
+    not a checked-in SPEC CPU2006 corpus. The latest rebuilt-QEMU static train
+    run under `workloads/generated/specint-train-all-latest-qemu-20260630-r1/`
+    builds all ten supported SPECint C/C++ train workloads, passes
+    `999.specrand_ir`, and proves failed rows are live-progress or bounded
+    wrapper/kernel lanes rather than global QEMU deadlock. Current SPEC
+    follow-up splits into QEMU throughput for `500` run_002/`502`/`505`/`531`/`557`,
+    child-exit/kill-cause capture for `520`/`523`/`541`, and first-panic-cause
+    capture for `525.x264_r`; shared-runtime packaging remains separate from
+    the static correctness gate.
 - Remaining superproject work: refreshed strict/convergence publication, libc
   hosted runtime, SPEC correctness/performance, TSVC runtime, AVS nightly
   breadth, QEMU decode coverage, ABI/unwind/TLS hardening,

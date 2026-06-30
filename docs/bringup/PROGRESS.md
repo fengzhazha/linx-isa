@@ -48,7 +48,7 @@ Last updated: 2026-06-30
 | 7. Sail/model verification | ✅ Current PR pass | The stale March Sail decode-generator failure is superseded; the current PR lane records model-diff as green, and the April 11 spot checks for `check_sail_model.py --require-parser` and `gen_sail_decode.py --check` both pass. |
 | 8. AVS tier closure | ✅ Current PR pass | `python3 tools/bringup/check_avs_profile_closure.py --matrix avs/linx_avs_v1_test_matrix.yaml --status avs/linx_avs_v1_test_matrix_status.json --tier pr` now reports `required_tests=31`, `failure_count=0`; nightly breadth remains `32/54`. |
 | 9. LinxCore/Testbench/Trace/pyCircuit closure | ✅ Current pin pass | Runner protocol, trace schema/memory smoke, LinxTrace sanity, cosim smoke, ROB bookkeeping, block-struct pyc flow, and pyCircuit CPU/QEMU smokes pass in the latest canonical pin run. |
-| 10. Workload and SPEC hard closure | ❌ Nightly/runtime blocker | Benchmark/PolyBench/portfolio/ctuning artifact publication, PTO kernel parity, TSVC compile-only PR coverage, and local BusyBox rootfs boot are green. Current SPEC work is blocked by train workload correctness/performance classes and hosted-runtime gaps, while TSVC QEMU runtime remains separately blocked. |
+| 10. Workload and SPEC hard closure | ❌ Nightly/runtime blocker | Benchmark/PolyBench/portfolio/ctuning artifact publication, PTO kernel parity, TSVC compile-only PR coverage, and local BusyBox rootfs boot are green. Static SPECint train-all now builds all supported C/C++ rows and passes `999.specrand_ir`; remaining SPEC work is split into heartbeat-backed QEMU throughput rows, wrapper `sig=9` child-exit rows, `525.x264_r` panic-loop capture, and hosted/shared-runtime gaps. |
 
 ## Gate Snapshot
 

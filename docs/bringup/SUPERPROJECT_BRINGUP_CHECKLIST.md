@@ -42,7 +42,7 @@ checklists for the module-specific closure criteria.
 | SIMT autovec | `Regression::TSVC strict coverage gate` / `INT-025` | Removed from active gates | TSVC is no longer part of the current bring-up gate path; Linux boot closure takes priority. |
 | QEMU baseline | `Emulator::QEMU all suites` + `QEMU strict system` | Active blocker | Baseline QEMU work is now evaluated only against Linux boot/runtime closure, not TSVC follow-up. |
 | Superproject breadth | `ISA::AVS tier closure` / `INT-016` | PR not blocked | PR-tier closure is green at `31/31`; nightly breadth remains `32/54`. |
-| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-M05` | Nightly/runtime blocker | The PR run leaves this row opt-in. The wrapper handoff bug is fixed, but the current bringup subset still does not reach output generation. Static `999.specrand_ir` and the corrected static hello control lane both stall silently under the same firmwareless Linux+initramfs path, so the live blocker is broader than one benchmark or only the dynamic-loader route. |
+| SPEC runtime | `Regression::SPEC stage A QEMU matrix` / `SPEC-M05` | Nightly/runtime blocker | The PR run leaves this row opt-in. The latest rebuilt-QEMU static train-all run builds all ten supported C/C++ SPECint train workloads and passes `999.specrand_ir`; failed rows are heartbeat-backed live-progress timeouts, wrapper `sig=9` child exits, or the `525.x264_r` kernel panic-loop lane, not a global QEMU deadlock. |
 
 ## 1. Keep Gate Truth Current
 
