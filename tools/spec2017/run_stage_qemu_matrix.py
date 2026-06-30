@@ -188,6 +188,13 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
             "heartbeat_last_same_site": failed_run.get("heartbeat_last_same_site"),
             "heartbeat_recent_unique_sites": failed_run.get("heartbeat_recent_unique_sites"),
             "heartbeat_recent_count_delta": failed_run.get("heartbeat_recent_count_delta"),
+            "heartbeat_stall_seen": bool(failed_run.get("heartbeat_stall_seen", False)),
+            "heartbeat_stall_count": failed_run.get("heartbeat_stall_count"),
+            "heartbeat_stall_last": str(failed_run.get("heartbeat_stall_last") or "")[:512],
+            "heartbeat_stall_repeats": failed_run.get("heartbeat_stall_repeats"),
+            "heartbeat_stall_threshold": failed_run.get("heartbeat_stall_threshold"),
+            "heartbeat_stall_bpc": str(failed_run.get("heartbeat_stall_bpc") or ""),
+            "heartbeat_stall_status": str(failed_run.get("heartbeat_stall_status") or ""),
             "heartbeat_kernel_symbolized": bool(failed_run.get("heartbeat_kernel_symbolized", False)),
             "heartbeat_kernel_panic_loop": bool(failed_run.get("heartbeat_kernel_panic_loop", False)),
             "heartbeat_kernel_symbol_evidence": str(failed_run.get("heartbeat_kernel_symbol_evidence") or "")[:512],
@@ -228,7 +235,13 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
             kernel = " kernel-symbolized"
         timeout = " timeout" if row.get("timed_out") else ""
         stalled = " stalled" if row.get("stalled") else ""
-        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{fcmp}{tlbfill}")
+        hb_stall = ""
+        if row.get("heartbeat_stall_seen"):
+            repeats = row.get("heartbeat_stall_repeats")
+            threshold = row.get("heartbeat_stall_threshold")
+            status = row.get("heartbeat_stall_status") or "same-site"
+            hb_stall = f" heartbeat-stall={status}:{repeats}/{threshold}"
+        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{hb_stall}{fcmp}{tlbfill}")
     return ", ".join(parts)
 
 

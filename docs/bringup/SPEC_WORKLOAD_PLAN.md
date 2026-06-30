@@ -19,11 +19,15 @@ The canonical taxonomy is capability-based:
 ## Policy Sets
 
 - `spec_policy.bringup_subset`
-  Current set: `999.specrand_ir`, `505.mcf_r`, `531.deepsjeng_r`
+  Current set: all supported Linx SPECint C/C++ rate rows on `train` input:
+  `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`,
+  `523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`,
+  `557.xz_r`, and `999.specrand_ir`.
 - `spec_policy.fast_gate`
   Current suites:
   - `test-smoke`: `999.specrand_ir` on `test`
   - `train-smoke`: `999.specrand_ir` on `train`
+  - `train-all`: all supported Linx SPECint C/C++ rate rows on `train`
   - `test-cpu-stress`: `531.deepsjeng_r` on `test`, isolated in nightly
     because it can run for minutes before guest progress
   - `test-vm-stress`: `505.mcf_r` on `test`, isolated because it is the
@@ -64,6 +68,8 @@ Done means:
   through the active QEMU binary and emits `specint_fast_gate_summary.json`.
 - The PR gate keeps `505.mcf_r` and `531.deepsjeng_r` out of the fast smoke
   path so cheap `test`/`train` regressions are visible first.
+- The train profile supports `--suite train-all` so all ten supported SPECint
+  rows can be run with bounded train input before promotion-scale runs.
 - Nightly uses `--profile nightly` to add CPU stress, VM stress, and promotion
   breadth.
 
@@ -161,13 +167,21 @@ Done means:
 
 ## Current Live Interpretation
 
-As of 2026-05-21:
+As of 2026-06-30:
 
 - `SPEC-M01` is resolved.
 - `SPEC-M01F` is the canonical fast gate shape for current QEMU/Linux SPECint
-  work: run minimal `test-smoke` and `train-smoke` before any refrate-scale,
-  `531` CPU-stress, `505` VM-stress, or broad promotion run.
-- `SPEC-M02` is the first unresolved runtime milestone.
-- `SPEC-M03` and `SPEC-M05` are blocked downstream of `SPEC-M02`.
+  work: run minimal `test-smoke` and `train-smoke` for cheap regression
+  signal, then use `--profile train --suite train-all` for the all-ten train
+  ledger before any refrate-scale or broad promotion run.
+- `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
+  reaches SPEC startup and `999.specrand_ir` passes strict train hash on the
+  active QEMU/kernel stack.
+- `SPEC-M03` and `SPEC-M05` are active, not blocked by entry: current
+  initramfs train-all evidence passes `999.specrand_ir`, reproduces a focused
+  Linux VM/VMA correctness stop for `502.gcc_r`, reproduces the `525.x264_r`
+  initramfs VFS-root panic, and classifies the remaining failed rows as
+  heartbeat-backed live-slow rather than deadlock.
 - `SPEC-M04` remains separately open for the shared-runtime path.
-- `SPEC-M06` is not actionable until `SPEC-M02` through `SPEC-M05` are green.
+- `SPEC-M06` is not actionable until `SPEC-M05` train correctness and
+  throughput lanes are green on the promoted static transport policy.

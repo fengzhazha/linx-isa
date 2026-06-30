@@ -46,16 +46,18 @@ Last updated: 2026-06-30
   - rebuilt-image disassembly shows the active next lane is task creation from `rest_init()` into `user_mode_thread()` / `kernel_clone()`, not the earlier RCU tiny-helper callsite and not DT/procfs/nsfs/pidfs bring-up.
 - Hosted workload hardening is now split cleanly by tier:
   - PR lane: benchmark/polybench/portfolio/ctuning artifact publication and PTO parity are green.
-  - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 Stage A,
-    not a checked-in SPEC CPU2006 corpus. The latest rebuilt-QEMU static train
-    run under `workloads/generated/specint-train-all-latest-qemu-20260630-r1/`
-    builds all ten supported SPECint C/C++ train workloads, passes
-    `999.specrand_ir`, and proves failed rows are live-progress or bounded
-    wrapper/kernel lanes rather than global QEMU deadlock. Current SPEC
-    follow-up splits into QEMU throughput for `500` run_002/`502`/`505`/`531`/`557`,
-    child-exit/kill-cause capture for `520`/`523`/`541`, and first-panic-cause
-    capture for `525.x264_r`; shared-runtime packaging remains separate from
-    the static correctness gate.
+  - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 SPECint
+    train input, not a checked-in SPEC CPU2006 corpus. The latest all-ten
+    train loop under
+    `workloads/generated/specint-train-all-hbstall-qemu-20260630-r1/`
+    builds and runs all supported SPECint C/C++ rows, passes
+    `999.specrand_ir`, and proves timeout rows are live-progress rather than
+    global QEMU deadlock by QEMU heartbeat/BPC evidence. Current SPEC follow-up
+    splits into Linux VM/VMA correctness for `502.gcc_r`
+    (`LINX_VM_FAULT stage=no-vma` at `0x3f7fa8d010`), initramfs/rootfs
+    transport for `525.x264_r`, and QEMU/kernel throughput profiling for
+    `500`/`505`/`520`/`523`/`531`/`541`/`557`; shared-runtime packaging remains
+    separate from the static correctness gate.
 - Remaining superproject work: refreshed strict/convergence publication, libc
   hosted runtime, SPEC correctness/performance, TSVC runtime, AVS nightly
   breadth, QEMU decode coverage, ABI/unwind/TLS hardening,
@@ -112,8 +114,15 @@ Status: Active
      `Regression::strict_cross_repo.sh` can turn green without a waiver.
    - keep the local initramfs smoke diagnostic distinct from canonical BusyBox closure: the present smoke-only blocker is the first task-creation handoff after `rest_init()`, with the tiny-RCU state flip already inlined on Linx and the next live investigation target narrowed to `kernel_clone()` / `copy_process()`.
 3. Re-run the runtime-heavy workload lanes that still block nightly closure:
-   - re-run the CPU2017 Stage A QEMU matrix once the shared-musl hosted lane is restored for dynamic benches and the kernel task-creation stall is cleared for static benches,
-   - reclassify the next Linux/userspace runtime fault after each fix.
+   - keep the CPU2017 SPECint `train-all` QEMU matrix as the active static
+     workload loop; the current all-ten ledger is
+     `workloads/generated/specint-train-all-hbstall-qemu-20260630-r1/`,
+   - fix or instrument the `502.gcc_r` Linux VMA/mprotect lane using the
+     focused `linx_vm_trace=1` evidence before changing QEMU TLB behavior,
+   - move `525.x264_r` train execution to 9p or a future block-backed transport
+     instead of relying on a giant initramfs CPIO,
+   - profile the live-slow rows with heartbeat disabled or coarse and host
+     sampling started after `LINX_SPEC_START`.
 4. Resume nightly AVS breadth work on decode/block edge cases, atomics, FP, vector runtime, and Linux workload launch semantics.
 
 ## Canonical Milestones
