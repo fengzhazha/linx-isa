@@ -27,19 +27,19 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-train-all-post-branchfix-20260630-r1/`
-  is the current all-SPECint train diagnostic ledger after QEMU commit
-  `085f20cc8bd`. The run requested all ten SPECint train rows with initramfs,
-  a 180s per-row timeout, QEMU BPC heartbeat every 1B guest instructions, and a
-  `2G` stack limit. `999.specrand_ir` passes; `500.perlbench_r`,
-  `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`, `531.deepsjeng_r`,
-  `541.leela_r`, and `557.xz_r` are heartbeat-backed `live-timeout` rows with
-  `heartbeat_site_progress=true`; `502.gcc_r` is a reopened user-trap
-  correctness lane at `addr=0x3f7fa8d010`; and `525.x264_r` still hits an
-  early VFS rootfs panic in initramfs mode. The older
-  `workloads/generated/specint-train-all-static-after-callarg-fix-20260629-r1/`
-  ledger remains historical closure evidence for the previous 500/502 compiler
-  failures, but it is no longer the active all-row status.
+- `workloads/generated/specint-train-all-tlbfill-debug-qemu-20260630-r1/`
+  is the current all-SPECint train diagnostic ledger. The run requested all ten
+  SPECint train rows with initramfs, a 180s per-row timeout, QEMU BPC heartbeat
+  every 1B guest instructions, and a `2G` stack limit. `999.specrand_ir` passes;
+  `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`,
+  `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` are heartbeat-backed
+  `live-timeout` rows; `502.gcc_r` is a reopened Linux VM correctness lane at
+  `addr=0x3f7fa8d010`; and `525.x264_r` hits an early VFS rootfs panic in
+  initramfs mode. The focused
+  `workloads/generated/specint-502-mprotect-tlbfill-20260630-r2/` trace shows
+  the 502 store faults on a type0 legacy PTE after the `mprotect()` path returns
+  to userspace, so the active 502 owner is Linux `mprotect()`/VMA/page-fault
+  bring-up rather than QEMU stale-TLB policy.
 
 Inference:
 
@@ -168,6 +168,14 @@ snapshots after the summary identifies a narrow failure window. If a temporary
 workload or library instrumentation changes a deterministic failure into a live
 timeout, keep the original uninstrumented run as the canonical blocker and
 record the instrumented run as perturbation evidence.
+
+Use `LINX_TLB_FILL_TRACE=1` or `LINX_QEMU_TLB_FILL_TRACE=1` only for focused
+page-walk windows. Narrow with `LINX_TLB_FILL_TRACE_VA=<addr>` or
+`LINX_TLB_FILL_TRACE_VA_LO/HI`, plus `LINX_TLB_FILL_TRACE_COUNT_LO/HI`, before
+running a SPEC row. Each record prints the requested VA, access kind, QEMU prot,
+fault cause, PC/BPC/TPC, and the legacy leaf descriptor decision. This is the
+preferred discriminator when a syscall such as `mprotect()` appears to succeed
+but the next access still faults.
 
 Use `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` with
 `LINX_SYSCALL_TRACE_NR=<nr>` for focused syscall copyout checks. Pair it with

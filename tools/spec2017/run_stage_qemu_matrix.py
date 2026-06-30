@@ -197,6 +197,10 @@ def _transport_failure_details(summary_obj: dict[str, Any]) -> dict[str, dict[st
             "fcmp_trace_count": failed_run.get("fcmp_trace_count"),
             "fcmp_trace_last": str(failed_run.get("fcmp_trace_last") or "")[:512],
             "fcmp_trace_samples": failed_run.get("fcmp_trace_samples") or [],
+            "tlb_fill_trace_seen": bool(failed_run.get("tlb_fill_trace_seen", False)),
+            "tlb_fill_trace_count": failed_run.get("tlb_fill_trace_count"),
+            "tlb_fill_trace_last": str(failed_run.get("tlb_fill_trace_last") or "")[:512],
+            "tlb_fill_trace_samples": failed_run.get("tlb_fill_trace_samples") or [],
             "log": str(failed_run.get("log") or ""),
         }
     return details
@@ -214,6 +218,9 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         fcmp = ""
         if row.get("fcmp_trace_seen"):
             fcmp = f" fcmp-trace={row.get('fcmp_trace_count')}"
+        tlbfill = ""
+        if row.get("tlb_fill_trace_seen"):
+            tlbfill = f" tlbfill-trace={row.get('tlb_fill_trace_count')}"
         kernel = ""
         if row.get("heartbeat_kernel_panic_loop"):
             kernel = " kernel-panic-loop"
@@ -221,7 +228,7 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
             kernel = " kernel-symbolized"
         timeout = " timeout" if row.get("timed_out") else ""
         stalled = " stalled" if row.get("stalled") else ""
-        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{fcmp}")
+        parts.append(f"{bench}: {running}/{site} {progress}{timeout}{stalled} bpc={bpc}{kernel}{fcmp}{tlbfill}")
     return ", ".join(parts)
 
 

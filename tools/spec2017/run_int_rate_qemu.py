@@ -2388,6 +2388,7 @@ def _run_qemu(
             heartbeat_kernel_symbols.get("evidence") or classification["evidence"]
         )[:512]
     fcmp_trace = _fcmp_trace_summary(text)
+    tlb_fill_trace = _tlb_fill_trace_summary(text)
 
     return {
         "command": cmd,
@@ -2418,6 +2419,10 @@ def _run_qemu(
         "fcmp_trace_count": fcmp_trace["count"],
         "fcmp_trace_last": fcmp_trace["last"],
         "fcmp_trace_samples": fcmp_trace["samples"],
+        "tlb_fill_trace_seen": tlb_fill_trace["seen"],
+        "tlb_fill_trace_count": tlb_fill_trace["count"],
+        "tlb_fill_trace_last": tlb_fill_trace["last"],
+        "tlb_fill_trace_samples": tlb_fill_trace["samples"],
         "log": str(out_log),
     }
 
@@ -2766,6 +2771,38 @@ def _fcmp_trace_summary(text: str) -> dict[str, Any]:
                 "rhs_f64": fields.get("rhs_f64", ""),
                 "lhs_f32": fields.get("lhs_f32", ""),
                 "rhs_f32": fields.get("rhs_f32", ""),
+            }
+        )
+    return {
+        "seen": bool(lines),
+        "count": len(lines),
+        "last": lines[-1][:512] if lines else "",
+        "samples": samples,
+    }
+
+
+def _tlb_fill_trace_summary(text: str) -> dict[str, Any]:
+    lines = re.findall(r"^LINX_TLB_FILL_TRACE .*$", text, flags=re.MULTILINE)
+    samples: list[dict[str, Any]] = []
+    for line in lines[-8:]:
+        fields = _heartbeat_fields(line)
+        samples.append(
+            {
+                "line": line[:512],
+                "ok": _decimal_or_none(fields.get("ok")),
+                "count": _decimal_or_none(fields.get("count")),
+                "access": fields.get("access", ""),
+                "va": fields.get("va", "").lower(),
+                "prot": fields.get("prot", "").lower(),
+                "cause": fields.get("cause", "").lower(),
+                "pc": fields.get("pc", "").lower(),
+                "bpc": fields.get("bpc", "").lower(),
+                "tpc": fields.get("tpc", "").lower(),
+                "legacy_ok": _decimal_or_none(fields.get("legacy_ok")),
+                "legacy_why": fields.get("legacy_why", ""),
+                "legacy_desc": fields.get("legacy_desc", "").lower(),
+                "legacy_prot": fields.get("legacy_prot", "").lower(),
+                "legacy_cause": fields.get("legacy_cause", "").lower(),
             }
         )
     return {

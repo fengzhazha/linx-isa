@@ -265,7 +265,10 @@ def _format_failure_details(details: dict[str, dict[str, Any]]) -> str:
         site = "site-progress" if row.get("heartbeat_site_progress") else "same-site"
         bpc = row.get("heartbeat_last_bpc") or "no-bpc"
         progress = row.get("heartbeat_last_progress") or "no-progress-tag"
-        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}")
+        tlbfill = ""
+        if row.get("tlb_fill_trace_seen"):
+            tlbfill = f" tlbfill-trace={row.get('tlb_fill_trace_count')}"
+        parts.append(f"{bench}: {running}/{site} {progress} bpc={bpc}{tlbfill}")
     return ", ".join(parts)
 
 
