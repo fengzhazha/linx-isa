@@ -14,15 +14,13 @@ Last updated: 2026-06-30
 - June 14, 2026 flow reset: benchmark work now uses
   `docs/bringup/BENCHMARK_QEMU_LINUX_FLOW.md` and
   `tools/bringup/run_benchmark_linux_flow.py` as the hard-break execution
-  order. The PR benchmark lane stops at TSVC/QEMU before Linux rootfs or SPEC;
-  the full-OS BusyBox rootfs failure remains real but is downstream of that PR
-  stop path.
-- June 30, 2026 BusyBox rootfs rerun: the current full-OS blocker is not the
-  older `finish_task_switch` / `FRET.STK` loop. Attempt 2 traps PID 1 in the
-  tiny static-PIE no-libc init image at `addr=0x10000004`, then panics while
-  killing init (`workloads/generated/busybox-rootfs-boot-20260630-r1/`). Treat
-  this as a separate Linux/initramfs test-binary lane from SPEC initramfs
-  throughput.
+  order. The PR benchmark lane stops at TSVC/QEMU before Linux rootfs or SPEC.
+- June 30, 2026 BusyBox rootfs rerun: the stale-rootfs
+  `addr=0x10000004` PID1 trap is closed. A fresh clean rootfs rebuild under
+  `workloads/generated/busybox-rootfs-clean-rebuild-20260630/` removes the old
+  direct UART MMIO sequence from the no-libc BusyBox binary; `boot-r2/report.json`
+  records `ok=true`, shell command execution, `linx-timer` IRQ progress
+  `30 -> 35`, and poweroff through `LINX_REBOOT lisc_shutdown`.
 
 ## Gap Snapshot
 
@@ -32,11 +30,16 @@ Last updated: 2026-06-30
     TSVC compile/QEMU runtime.
   - Linux/full-OS lane: `vmlinux`, trivial userspace entry, BusyBox rootfs,
     libc hosted runtime, then SPEC/full benchmarks.
-- The Linux/userspace runtime closure remains open:
-  - Linux BusyBox rootfs still fails after `/sbin/init` even with a clean pinned QEMU build and clean rootfs build helper,
-  - `strict_cross_repo.sh` remains red only because the required BusyBox rootfs row is red in the latest canonical run,
-  - canonical runtime evidence is otherwise refreshed through `2026-04-18-r9-pin-linuxlibc-refresh`,
-  - TSVC runtime is the active PR benchmark hard break; Linux/rootfs/libc closure is the downstream full-OS lane once the PR benchmark lane is green.
+- The Linux/userspace runtime closure has fresh local BusyBox-rootfs evidence:
+  - BusyBox rootfs now reaches `/sbin/init`, executes shell commands, observes
+    timer IRQ progress, and powers off under `qemu-system-linx64`,
+  - `strict_cross_repo.sh` is still red in the latest checked-in canonical run
+    because that report predates the June 30 BusyBox/rootfs rebuild proof,
+  - canonical runtime evidence is otherwise refreshed through
+    `2026-04-18-r9-pin-linuxlibc-refresh`,
+  - the next required closure step is a refreshed convergence/strict report and
+    then libc hosted runtime plus SPEC correctness, not another stale-rootfs
+    BusyBox investigation.
 - Separate non-canonical kernel smoke bring-up work is no longer blocked in DT parsing or pseudo-filesystem bootstrap:
   - read-only DT import, memory discovery, percpu setup, and late pseudo-fs smoke bypasses now complete,
   - the current local smoke trace reaches `...abcdefghijklZ` and then stalls before userspace launch,
@@ -44,7 +47,10 @@ Last updated: 2026-06-30
 - Hosted workload hardening is now split cleanly by tier:
   - PR lane: benchmark/polybench/portfolio/ctuning artifact publication and PTO parity are green.
   - runtime-heavy follow-up: the active in-repo SPEC lane is CPU2017 Stage A, not a checked-in SPEC CPU2006 corpus. A new 2026-05-17 non-canonical rerun shows static-only `999.specrand_ir` now reaches the same late kernel task-creation stall as initramfs smoke, while dynamic `531.deepsjeng_r` remains blocked earlier because `phase-c` shared musl packaging is still missing `libc.so` (`m3_notext_probe_signature=ld.lld: error: relocation R_LinxV5_64_BNEXT cannot be used against symbol 'malloc'; recompile with -fPIC`). TSVC QEMU runtime still fails in the latest diagnostic rerun.
-- Remaining superproject work: BusyBox rootfs Linux runtime, SPEC Stage A over 9p/initramfs, TSVC runtime, AVS nightly breadth, QEMU decode coverage, ABI/unwind/TLS hardening, privileged/MMU/debug scope, and SIMT/compiler maturity.
+- Remaining superproject work: refreshed strict/convergence publication, libc
+  hosted runtime, SPEC correctness/performance, TSVC runtime, AVS nightly
+  breadth, QEMU decode coverage, ABI/unwind/TLS hardening,
+  privileged/MMU/debug scope, and SIMT/compiler maturity.
 
 ## Closure Lanes
 
@@ -90,9 +96,11 @@ Status: Partial / staged after scalar
 Status: Active
 
 1. Keep the April 18, 2026 checked-in canonical report as the current PR-lane baseline.
-2. Close the remaining kernel/userspace runtime blocker:
-   - fix the BusyBox rootfs runtime regression (current signal: kernel `E_BLOCK` after `/sbin/init`; the same failure reproduces against a clean pinned QEMU build and currently lands in `__submit_bio` on `FRET.STK` with `ra=0`, while a clean-worktree `switch_to` EBARG rollback only stabilizes verbose boot),
-   - refresh the canonical convergence report after BusyBox rootfs passes so `Regression::strict_cross_repo.sh` can turn green without a waiver.
+2. Publish the refreshed kernel/userspace runtime proof:
+   - BusyBox rootfs runtime now passes locally with a clean rebuilt rootfs and
+     firmwareless QEMU boot,
+   - refresh the canonical convergence report after BusyBox rootfs passes so
+     `Regression::strict_cross_repo.sh` can turn green without a waiver.
    - keep the local initramfs smoke diagnostic distinct from canonical BusyBox closure: the present smoke-only blocker is the first task-creation handoff after `rest_init()`, with the tiny-RCU state flip already inlined on Linx and the next live investigation target narrowed to `kernel_clone()` / `copy_process()`.
 3. Re-run the runtime-heavy workload lanes that still block nightly closure:
    - re-run the CPU2017 Stage A QEMU matrix once the shared-musl hosted lane is restored for dynamic benches and the kernel task-creation stall is cleared for static benches,

@@ -34,10 +34,10 @@ checklists for the module-specific closure criteria.
 
 | Area | Gate / ID | Current state | Triage note |
 | --- | --- | --- | --- |
-| Kernel | `Kernel::Linux busybox rootfs boot` / `LINUX-004` | Active blocker | The rootfs lane still needs firmwareless boot (`-bios none`). Local follow-up has now cleared the earlier Linx parser/VDSO/page-table/API blockers, moved through the first `fs/nfs` and `fs/lockd` SelectionDAG crashes plus the follow-on `lib/random32.o` crash, and still has no new rootfs verdict because the rebuilt kernel stops later at `lib/hexdump.o`. |
+| Kernel | `Kernel::Linux busybox rootfs boot` / `LINUX-004` | Local pass, needs canonical refresh | `workloads/generated/busybox-rootfs-clean-rebuild-20260630/boot-r2/report.json` records `ok=true`: firmwareless QEMU boots the clean rebuilt rootfs, reaches `/sbin/init`, runs shell commands, observes `linx-timer` IRQ progress, and powers off. |
 | Kernel | `Kernel::Linux \`vmlinux\` build closure` / `LINUX-005` | Active dependency | The April 18 canonical run is still the last green proof. Current local revalidation advances well beyond the old assembler, VDSO, and MM glue blockers; the current deterministic stop is now a later repeat of the same Linx SelectionDAG crash family in `lib/hexdump.o` (`hex_to_bin`) after local object-scoped vectorizer workarounds for earlier `fs/nfs`, `fs/lockd`, and `lib/random32.o` failures. |
 | LLVM Linx target | `Compiler::AVS compile suites` + coverage | Active dependency | The AVS/coverage lane remains green, and the local integrated-assembler compatibility gap is fixed for `.option push/pop/norelax` plus `.word/.half/.dword` parsing. The current compiler-side blocker for Linux closure is no longer parser acceptance; it is backend codegen stability on larger C files in `fs/nfs`. |
-| Strict closure | `Regression::strict_cross_repo.sh` / `INT-004` | Active blocker | The row fails because the required BusyBox rootfs gate fails in the same run. Do not revive the stale March Sail decode diagnosis unless it reproduces. |
+| Strict closure | `Regression::strict_cross_repo.sh` / `INT-004` | Needs refreshed run | The latest checked-in canonical row predates the June 30 BusyBox rootfs pass. Re-run convergence/strict closure before treating the old BusyBox failure as current. |
 | Mixed tile + SIMT workloads | `Regression::PTO kernel parity` / `INT-020` | Not blocked | The April 18 canonical run records PTO parity as pass. |
 | SIMT autovec | `Regression::TSVC strict coverage gate` / `INT-025` | Removed from active gates | TSVC is no longer part of the current bring-up gate path; Linux boot closure takes priority. |
 | QEMU baseline | `Emulator::QEMU all suites` + `QEMU strict system` | Active blocker | Baseline QEMU work is now evaluated only against Linux boot/runtime closure, not TSVC follow-up. |
@@ -85,20 +85,23 @@ Exit criteria:
     --target vmlinux
   ```
 
-- [ ] Reproduce the current BusyBox rootfs failure with the clean helper path and firmwareless QEMU boot:
+- [x] Reproduce and close the current BusyBox rootfs lane with the clean helper
+  path and firmwareless QEMU boot:
 
   ```bash
-  QEMU="$(bash tools/bringup/run_qemu_build_clean.sh \
-    --qemu-root "$PWD/emulator/qemu" \
-    --out-dir /tmp/linx-qemu-clean-build \
-    --target qemu-system-linx64)" \
   ROOTFS_IMG="$(bash tools/bringup/run_linux_busybox_rootfs_build_clean.sh \
     --linux-root "$PWD/kernel/linux" \
-    --out-dir /tmp/linx-linux-rootfs-clean-out \
+    --worktree "$PWD/workloads/generated/busybox-rootfs-clean-rebuild-20260630/src" \
+    --obj-dir "$PWD/workloads/generated/busybox-rootfs-clean-rebuild-20260630/build" \
+    --out-dir "$PWD/workloads/generated/busybox-rootfs-clean-rebuild-20260630/out" \
     --llvm-build "$PWD/compiler/llvm/build-linxisa-clang")" \
-  SKIP_BUILD=1 QEMU="$QEMU" QEMU_EXTRA_ARGS='-bios none' \
+  SKIP_BUILD=1 QEMU="$PWD/emulator/qemu/build-linx/qemu-system-linx64" \
+    QEMU_EXTRA_ARGS='-bios none' TIMEOUT=90 \
     python3 kernel/linux/tools/linxisa/busybox_rootfs/boot.py
   ```
+
+  Evidence: `workloads/generated/busybox-rootfs-clean-rebuild-20260630/boot-r2/report.json`
+  records `ok=true`, shell commands, timer IRQ progress, and poweroff.
 
 - [ ] Keep initramfs smoke/full boot green while iterating, and treat them as the proof that the blocker is specific to the virtio-blk/ext2 userspace lane rather than the minimal BusyBox binary.
 
@@ -109,7 +112,9 @@ Exit criteria:
 
 Exit criteria:
 
-- `LINUX-004` reaches BusyBox userspace and powers off cleanly.
+- `LINUX-004` reaches BusyBox userspace and powers off cleanly. Local evidence
+  exists as of 2026-06-30; canonical strict/convergence publication still needs
+  refresh.
 - `LINUX-005`, smoke, and full boot remain green.
 
 ## 3. Re-run Strict Closure To First Real Failure (`INT-004`)

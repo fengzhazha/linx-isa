@@ -2,12 +2,20 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CALLER_PWD="$PWD"
 LINUX_ROOT="${LINUX_ROOT:-$ROOT/kernel/linux}"
 WORKTREE_DIR="${WORKTREE_DIR:-/tmp/linx-linux-rootfs-clean-src}"
 OUT_DIR="${OUT_DIR:-/tmp/linx-linux-rootfs-clean-out}"
 OBJ_DIR="${OBJ_DIR:-/tmp/linx-linux-rootfs-clean-build}"
 ROOTFS_IMG="${ROOTFS_IMG:-$OUT_DIR/rootfs.ext2}"
 LLVM_BUILD="${LLVM_BUILD:-$ROOT/compiler/llvm/build-linxisa-clang}"
+
+abs_path() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *) printf '%s/%s\n' "$CALLER_PWD" "$1" ;;
+  esac
+}
 
 usage() {
   cat <<'USAGE'
@@ -64,6 +72,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+LINUX_ROOT="$(abs_path "$LINUX_ROOT")"
+WORKTREE_DIR="$(abs_path "$WORKTREE_DIR")"
+OUT_DIR="$(abs_path "$OUT_DIR")"
+OBJ_DIR="$(abs_path "$OBJ_DIR")"
+ROOTFS_IMG="$(abs_path "$ROOTFS_IMG")"
+LLVM_BUILD="$(abs_path "$LLVM_BUILD")"
 
 if [[ ! -d "$LINUX_ROOT/.git" && ! -f "$LINUX_ROOT/.git" ]]; then
   echo "error: linux root is not a git worktree: $LINUX_ROOT" >&2

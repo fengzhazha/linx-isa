@@ -15,10 +15,13 @@ Evidence:
 - Recent TSVC evidence splits cleanly into compile coverage and QEMU runtime:
   compile coverage may be green while the PR benchmark lane still hard-breaks
   on TSVC/QEMU timeout or runtime completion.
-- `workloads/generated/flow-linux-20260614/linux-userspace-entry-v3.json`
-  records the current Linux hard break: `vmlinux` builds, the tiny initramfs
-  userspace proof reaches QEMU-observed userspace PCs, and the clean BusyBox
-  rootfs image still times out before shell command tokens.
+- `workloads/generated/busybox-rootfs-clean-rebuild-20260630/boot-r2/report.json`
+  records a fresh local Linux rootfs proof: the clean rebuilt BusyBox rootfs
+  boots from virtio-blk, reaches `/sbin/init`, runs shell commands, observes
+  `linx-timer` IRQ progress `30 -> 35`, and powers off. The older
+  `workloads/generated/busybox-rootfs-boot-20260630-r1/` `addr=0x10000004`
+  PID1 trap used a stale rootfs image whose BusyBox binary still performed
+  direct UART MMIO from user mode.
 - `docs/bringup/agent_runs/checklists/specint_qemu.md` records SPECint as a
   fast `test`/`train` gate first, with `505.mcf_r` isolated as VM stress rather
   than mixed into every cheap regression check.
@@ -44,9 +47,11 @@ Inference:
   partially repaired workspace. The efficient path is to stop at the first red
   prerequisite: ISA/catalog, compiler, QEMU, TSVC direct runtime, Linux
   userspace entry, libc hosted runtime, then full benchmark expansion.
-- The current strict PR benchmark lane reaches the TSVC/QEMU stage. Treat
-  TSVC direct runtime timeout or completion as the active PR hard break before
-  spending time on Linux rootfs, libc runtime, or SPEC expansion.
+- The current strict PR benchmark lane reaches the TSVC/QEMU stage, and the
+  Linux BusyBox rootfs lane now has a fresh local pass. The next broad closure
+  step is to refresh the canonical convergence/strict report and continue into
+  libc hosted runtime plus SPEC correctness rather than reopening the stale
+  BusyBox-rootfs image failure.
 - Markdown status pages are useful summaries, but several are stale relative to
   the current June 14 coverage snapshot and aggregate `latest.json` is older
   than some sidecar reports. Agents should use the JSON flow, command output,
