@@ -279,8 +279,10 @@ def _suite_command(
     out_dir: Path,
     append_extra: str,
     heartbeat_sec: float,
+    memory_mb: int,
     qemu_heartbeat_interval: int,
     no_progress_timeout: float,
+    forward_memory_mb: bool,
     forward_qemu_heartbeat: bool,
     forward_no_progress: bool,
     forward_stack_limit: bool,
@@ -320,6 +322,8 @@ def _suite_command(
         "--out-dir",
         str(out_dir / suite.name),
     ]
+    if forward_memory_mb:
+        cmd.extend(["--memory-mb", str(memory_mb)])
     if forward_qemu_heartbeat:
         cmd.extend(["--qemu-heartbeat-interval", str(qemu_heartbeat_interval)])
     if forward_no_progress:
@@ -342,6 +346,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         f"- elapsed_sec: `{summary['elapsed_sec']}`",
         f"- qemu: `{summary['qemu']}`",
         f"- spec_dir: `{summary['spec_dir']}`",
+        f"- memory_mb: `{summary['memory_mb']}`",
         f"- stack_limit: `{summary['stack_limit']}`",
         "",
         "## Suites",
@@ -388,6 +393,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out-dir", default=str(REPO_ROOT / "workloads" / "generated" / "specint-fast-gate"))
     parser.add_argument("--append-extra", default=os.environ.get("SPEC_APPEND_EXTRA", os.environ.get("LINX_SPEC_APPEND_EXTRA", "norandmaps")))
     parser.add_argument("--heartbeat-sec", type=float, default=float(os.environ.get("SPEC_HEARTBEAT_SEC", os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30"))))
+    parser.add_argument("--memory-mb", type=int, default=_env_int("SPEC_MEMORY_MB", _env_int("LINX_SPEC_MEMORY_MB", 2048)))
     parser.add_argument("--qemu-heartbeat-interval", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_INTERVAL", _env_int("LINX_SPEC_QEMU_HEARTBEAT_INTERVAL", 0)))
     parser.add_argument("--no-progress-timeout", type=float, default=_env_float("SPEC_NO_PROGRESS_TIMEOUT", _env_float("LINX_SPEC_NO_PROGRESS_TIMEOUT", 0.0)))
     parser.add_argument(
@@ -407,6 +413,8 @@ def main(argv: list[str]) -> int:
 
     if args.heartbeat_sec < 0:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
+    if args.memory_mb <= 0:
+        raise SystemExit("error: --memory-mb must be > 0")
     if args.qemu_heartbeat_interval < 0:
         raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
     if args.no_progress_timeout < 0:
@@ -431,6 +439,7 @@ def main(argv: list[str]) -> int:
 
     runner_has_qemu_heartbeat = _runner_supports_option(runner, "--qemu-heartbeat-interval")
     runner_has_no_progress = _runner_supports_option(runner, "--no-progress-timeout")
+    runner_has_memory_mb = _runner_supports_option(runner, "--memory-mb")
     runner_has_stack_limit = _runner_supports_option(runner, "--stack-limit")
     if args.qemu_heartbeat_interval and not runner_has_qemu_heartbeat:
         raise SystemExit(
@@ -443,6 +452,12 @@ def main(argv: list[str]) -> int:
             "error: local SPEC matrix runner does not support "
             "--no-progress-timeout; update tools/spec2017/run_stage_qemu_matrix.py "
             "or rerun without the no-progress switch"
+        )
+    if args.memory_mb != 2048 and not runner_has_memory_mb:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--memory-mb; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun with the default memory size"
         )
     if args.stack_limit.strip() and not runner_has_stack_limit:
         raise SystemExit(
@@ -470,8 +485,10 @@ def main(argv: list[str]) -> int:
             out_dir=out_dir,
             append_extra=args.append_extra,
             heartbeat_sec=args.heartbeat_sec,
+            memory_mb=args.memory_mb,
             qemu_heartbeat_interval=args.qemu_heartbeat_interval,
             no_progress_timeout=args.no_progress_timeout,
+            forward_memory_mb=runner_has_memory_mb,
             forward_qemu_heartbeat=runner_has_qemu_heartbeat,
             forward_no_progress=runner_has_no_progress,
             forward_stack_limit=runner_has_stack_limit,
@@ -529,6 +546,7 @@ def main(argv: list[str]) -> int:
         "spec_dir": str(spec_dir),
         "qemu": str(qemu),
         "sysroot": str(sysroot),
+        "memory_mb": args.memory_mb,
         "append_extra": args.append_extra,
         "stack_limit": args.stack_limit.strip() or "default",
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,

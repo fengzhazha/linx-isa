@@ -229,6 +229,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- strict: `{str(summary['strict']).lower()}`")
     lines.append(f"- transports: `{', '.join(summary['transports'])}`")
     lines.append(f"- timeout_sec: `{summary['timeout_sec']}`")
+    lines.append(f"- memory_mb: `{summary['memory_mb']}`")
     lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
     lines.append(f"- guest_heartbeat_sec: `{summary['guest_heartbeat_sec']}`")
@@ -309,6 +310,12 @@ def main(argv: list[str]) -> int:
         help="Per-transport runner timeout in seconds (default: LINX_SPEC_QEMU_TIMEOUT or 1200).",
     )
     ap.add_argument(
+        "--memory-mb",
+        type=int,
+        default=_env_int("LINX_SPEC_MEMORY_MB", 2048),
+        help="Guest memory in MiB passed through to qemu-system-linx64.",
+    )
+    ap.add_argument(
         "--stack-limit",
         default=os.environ.get(
             "SPEC_STACK_LIMIT",
@@ -371,6 +378,8 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"error: missing runner: {RUNNER}")
     if args.timeout <= 0:
         raise SystemExit("error: --timeout must be > 0")
+    if args.memory_mb <= 0:
+        raise SystemExit("error: --memory-mb must be > 0")
     if args.heartbeat_sec < 0:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
     if args.qemu_heartbeat_interval < 0:
@@ -421,6 +430,8 @@ def main(argv: list[str]) -> int:
             str(transport_out),
             "--timeout",
             str(args.timeout),
+            "--memory-mb",
+            str(args.memory_mb),
             "--heartbeat-sec",
             str(args.heartbeat_sec),
             "--qemu-heartbeat-interval",
@@ -489,6 +500,7 @@ def main(argv: list[str]) -> int:
         "spec_dir": str(spec_dir),
         "transports": transports,
         "timeout_sec": int(args.timeout),
+        "memory_mb": int(args.memory_mb),
         "stack_limit": args.stack_limit.strip() or "default",
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),

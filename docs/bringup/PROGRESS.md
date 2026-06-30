@@ -31,7 +31,7 @@ Last updated: 2026-06-30
   - `Regression::strict_cross_repo.sh` remains red in the checked-in canonical
     run because the canonical report has not yet been refreshed with this local
     BusyBox proof.
-- SPEC bringup-subset runtime remains a nightly/runtime blocker; the wrapper handoff is fixed, but the first unresolved milestone is now firmwareless Linux userspace entry rather than only dynamic SPEC packaging.
+- SPEC bringup-subset runtime remains a nightly/runtime blocker; the static train-all lane now reaches SPEC userspace, builds all supported C/C++ rows, and passes `999.specrand_ir`, but remaining rows split into throughput, C++ resource/kill, and kernel panic-loop classes.
   - TSVC QEMU runtime remains a nightly/runtime blocker on scalar-replay recurrence kernels in `auto` mode; PR closure uses compile-only strict coverage at `148/151`.
   - Some call/ret negative-contract and C++ runtime-overlay follow-up work remains outside the PR closure subset.
 
@@ -83,7 +83,7 @@ Last updated: 2026-06-30
 - `Regression::strict_cross_repo.sh` remains red in
   `2026-04-18-r9-pin-linuxlibc-refresh` because that checked-in report includes
   the older BusyBox rootfs failure.
-- SPEC Stage A remains a real runtime blocker behind the opt-in PR gate, but the blocker has moved further down the stack. The matrix-wrapper QEMU handoff bug is fixed, `phase-b` musl was repaired by aligning `arch/linx64/bits/float.h` with the actual compiler `long double` model, and `999.specrand_ir` can now be rebuilt as static PIE with `guest_shared_runtime=false`. Even so, the narrowed static Stage-A run, the corrected static hello control lane, and the repo's own no-libc initramfs smoke now all fail before guest-visible shell/userspace progress under firmwareless Linux+initramfs boot. The current live blocker is therefore the broader Linux/QEMU userspace-entry/runtime path rather than only missing shared musl packaging or SPEC harness logic.
+- SPEC remains a real runtime blocker behind the opt-in PR gate, but the blocker has moved past firmwareless userspace entry. The matrix-wrapper QEMU handoff bug is fixed, static phase-b SPECint train-all reaches guest execution, and `999.specrand_ir` passes strict hash. The current live blockers are heartbeat-backed throughput rows, C++ resource rows such as `520.omnetpp_r`, `523.xalancbmk_r`, and `541.leela_r`, the `525.x264_r` panic-loop row, and separate shared-runtime packaging gaps.
 - TSVC QEMU runtime remains a nightly/runtime blocker; the PR lane holds only the compile-only strict-coverage contract at `148/151`.
 
 ## Canonical Gate Artifacts

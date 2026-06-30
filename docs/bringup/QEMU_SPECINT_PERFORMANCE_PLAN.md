@@ -705,7 +705,7 @@ unlimited-stack mmap layout failures.
 | `500.perlbench_r` | run_001 pass; run_002 `live-timeout` | `perfect.b.3.out` hash `0xc69c7085` passes; run_002 reaches count `73000000000`, BPC `0x15556fc9cc`, `progress=site-change`, no trap | Old bad branch target is closed by the LLVM Blockify ABI call-argument fix. Current owner is QEMU throughput/live-progress profiling for run_002. |
 | `502.gcc_r` | `live-timeout` after byval-fix rebuild | all-train ledger reaches count `42000000004`, BPC `0xffffffff803def70`, `progress=site-change`, no `LINX_USER_TRAP`; focused byval-fix run reached count `61000000006` | Correctness stop closed by Linx LLVM by-value aggregate lowering. Current owner is QEMU throughput/live-progress profiling; if kernel heartbeat sites dominate, symbolize the `vsprintf`/`string` breadcrumb before adding full traces. |
 | `505.mcf_r` | `live-timeout` | count `82000000003`, BPC `0x155555c8b4`, `progress=site-change` | Throughput/live-progress lane; reproduce older traps before reopening correctness. |
-| `520.omnetpp_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `44000000005`, BPC `0xffffffff800b300e`; verified output file is empty | Wrapper/output lane. Capture child stderr/output and kernel kill reason before classifying as C++ runtime or OOM. |
+| `520.omnetpp_r` | resource-sensitive C++ row | 2 GiB all-train row exits with child `sig=9`; 4 GiB + `--stack-limit 2G` reaches user trap `addr=0x3f7ffffff8` with `sp=0x3f80000000`; 4 GiB + unlimited stack runs to count `89000000001` before child `sig=9`; 8 GiB + unlimited stack enters `panic.c`/`udelay` before `LINX_SPEC_START` | Resource/debug lane. Do not classify as C++ startup. Keep <=4 GiB for SPEC user diagnostics until the >4 GiB kernel memory-topology panic is understood; then bound the stack/RSS growth. |
 | `523.xalancbmk_r` | `spec-wrapper-fail` | child exits with `sig=9`; wrapper emits `LINX_SPEC_FAIL child-exit`; last heartbeat count `46000000000`, BPC `0xffffffff800fb7a0`; verified output file is empty | Same wrapper/output lane as 520; inspect generated output and child status first. |
 | `525.x264_r` | `kernel-panic-loop-timeout` | count `43000000002`, BPC `0xffffffff803e88aa`; recent heartbeat sites resolve to `panic.c` and `udelay`, with no `LINX_SPEC_START` before timeout | Kernel panic-loop lane. Capture the first panic cause before the delay loop with focused panic-path PC-watch/ring and code-byte heartbeat. |
 | `531.deepsjeng_r` | `live-timeout` | count `74000000003`, BPC `0x15555683de`, `progress=site-change` | Throughput/live-progress lane; compare with the passing test-input profile. |
@@ -721,7 +721,10 @@ static phase-b route is the baseline for benchmark correctness while shared
 startup and C++ runtime packaging are being repaired.
 
 The SPEC loop now records bounded failure classes and heartbeat-liveness fields
-in both `stage_b_summary.json` and `qemu_matrix_summary.json`. A focused
+in both `stage_b_summary.json` and `qemu_matrix_summary.json`. The matrix and
+fast-gate wrappers now also expose `--memory-mb` and record `memory_mb` in their
+summaries, so resource-sensitive C++ rows can be reproduced without bypassing
+the suite flow. A focused
 `LINX_QEMU_HEARTBEAT_REGS=1` sentinel run proves the full-register heartbeat
 switch without changing behavior: `999.specrand_ir` still passes and the QEMU
 log contains `LINX_HEARTBEAT_REGS`. A separate
@@ -776,11 +779,13 @@ Proposed next fixes:
    The current static 500 row is run_001 hash pass plus run_002 live timeout, so
    it belongs in the QEMU throughput lane unless a fresh current run reproduces a
    trap.
-4. Diagnose `520.omnetpp_r`, `523.xalancbmk_r`, and `541.leela_r` as wrapper
-   child-exit rows first. The runner now preserves `LINX_SPEC_DBG wait ...`
-   status/code/sig evidence; the current all-train run shows `sig=9` for all
-   three rows. Use that plus stderr/output hashes before reopening old C++
-   startup or stack-limit theories.
+4. Split the C++ child-exit rows before changing compiler or C++ runtime code.
+   `520.omnetpp_r` is now proven resource-sensitive: 4 GiB exposes the 2 GiB
+   stack floor, unlimited stack reaches a later `sig=9`, and 8 GiB currently
+   panics the kernel before `LINX_SPEC_START`. Keep 520 in a stack/RSS plus
+   >4 GiB kernel-memory-topology lane. Run `523.xalancbmk_r` and `541.leela_r`
+   with guest child heartbeat/proc status and kernel kill/OOM tracing before
+   reopening old C++ startup or stack-limit theories.
 5. Diagnose `525.x264_r` as a kernel panic-loop row. The latest run is already
    classified as `kernel-panic-loop-timeout`: symbolized heartbeat sites are in
    `panic.c`/`udelay`, and the benchmark never reaches `LINX_SPEC_START`.
