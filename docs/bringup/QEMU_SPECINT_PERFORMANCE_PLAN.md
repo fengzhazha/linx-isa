@@ -579,10 +579,11 @@ Speedup candidates:
   boot-time speed lane and should be validated with a boot/userspace proof before
   applying it to SPEC throughput claims.
 - SPEC steady state: focus next on allocator/free-list heartbeat BPCs such as
-  `kfree`/`__update_cpu_freelist_fast`, tile/template helper samples, and 9p I/O
-  transport overhead. Use initramfs `999.specrand_ir` as the cheap correctness
-  sentinel; use 9p `999.specrand_ir` as the transport/profiling sentinel until a
-  block-backed SPEC transport exists.
+  `kfree`/`__update_cpu_freelist_fast`, template/BSTART helper samples, tile
+  block reset/set helpers, and 9p I/O transport overhead. Use initramfs
+  `999.specrand_ir` as the cheap correctness sentinel; use 9p
+  `999.specrand_ir` as the transport/profiling sentinel until a block-backed
+  SPEC transport exists.
 
 2026-06-30 page-scoped TLBI update: QEMU commit candidate
 `target/linx/{helper.c,helper.h,translate.c}` splits the TLB maintenance
@@ -599,6 +600,25 @@ strict train `999.specrand_ir`; and focused
 `502.gcc_r` in heartbeat-backed `live-timeout` with no `LINX_USER_TRAP`. This
 closes the QEMU-side boot TLBI overshoot without changing the live-slow SPEC
 steady-state owner list.
+
+2026-06-30 scalar tile-commit guard update: a focused post-`LINX_SPEC_START`
+host sample of train `531.deepsjeng_r` in
+`workloads/generated/specint-profile-531-current-20260630-r1/profile/qemu-531-current.sample.txt`
+showed `helper_linx_tile_commit` still visible in scalar SPEC blocks even
+though no tile descriptor was pending. `target/linx/translate.c` now emits a
+runtime guard around the helper and calls `linx_tile_commit` only when
+`tile_iot_valid != 0`; this preserves descriptor state that may have been
+decoded in an earlier TB while removing the no-op scalar helper call. The
+follow-up sample
+`workloads/generated/specint-profile-531-tilecommit-guard-20260630-r1/profile/qemu-531-tilecommit-guard.sample.txt`
+has zero `helper_linx_tile_commit` occurrences by string-count comparison.
+Validation evidence: `python3 avs/qemu/run_tests.py --all --timeout 20`,
+`bash avs/qemu/check_system_strict.sh`, and
+`workloads/generated/specint-train-smoke-tilecommit-guard-20260630-r1/` all
+pass. The standalone `avs/qemu/run_tests.py --suite tile --timeout 120`
+timeout reproduces after rebuilding the baseline without the guard, so that
+row remains a pre-existing tile-suite duration/coverage lane rather than this
+SPEC scalar fast-path proof.
 
 Static build command. Rebuild the SPEC-profile C++ runtime overlay after every
 phase-b musl sysroot refresh; the musl install step replaces the sysroot
@@ -1050,8 +1070,8 @@ even with a 1B-instruction interval. The heartbeat guard adds
 until the next configured bucket. The follow-up sample at
 `workloads/generated/specint-profile-500-queue-inline-hbguard-20260629-r1/profile/qemu-500-queue-inline-hbguard.sample.txt`
 shows `helper_linx_heartbeat` at zero samples. Remaining top frames are
-`helper_linx_tile_commit`, `helper_linx_tile_set_attr`,
-`helper_linx_tile_reset_block`, `helper_linx_template_step`,
+`helper_linx_tile_set_attr`, `helper_linx_tile_reset_block`,
+`helper_linx_template_step`,
 `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
 `probe_access_flags`.
 
@@ -1089,11 +1109,12 @@ Proposed next fixes:
    transport sentinel. Keep `502.gcc_r` in the Linux VM correctness lane until
    the `mprotect()`/page-fault mismatch is closed. Remaining QEMU
    speedups should focus on
-   tile commit/set/reset, template stepping, page-local BSTART decode caching,
+   tile set/reset, template stepping, page-local BSTART decode caching,
    TB chaining, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
    avoiding helper probes in hot branch-validation paths. Queue/scalar helper
-   overhead and heartbeat helper overhead are already closed by the queue-inline
-   and heartbeat-guard patches.
+   overhead, heartbeat helper overhead, and scalar no-op tile commit overhead
+   are already closed by the queue-inline, heartbeat-guard, and tile-commit
+   guard patches.
 7. Use count-windowed diagnostics for late SPEC windows. Pair
    `LINX_FAULT_TRACE_COUNT_LO/HI`, `LINX_DEBUG_PC_WATCH_COUNT_LO/HI`,
    `LINX_MEM_TRACE_COUNT_LO/HI`, and `LINX_TLB_FILL_TRACE_COUNT_LO/HI` with
