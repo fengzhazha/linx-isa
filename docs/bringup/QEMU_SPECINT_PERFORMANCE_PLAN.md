@@ -233,6 +233,15 @@ QEMU emits `LINX_HEARTBEAT_CODE` records with up to 32 bytes at both the current
 PC and BPC. Use this only for short or coarse-interval diagnostics; it reads
 guest memory at every heartbeat boundary.
 
+For TLB-invalidation profiling, set `LINX_TLB_TRACE=1` or
+`LINX_QEMU_TLB_TRACE=1`. QEMU emits bounded `LINX_TLB_TRACE` records with the
+translated invalidation PC, BPC/TPC, ACR, control state, stack/return/TLS
+registers, and selected arguments. `LINX_TLB_TRACE_LIMIT` defaults to 64 records
+to avoid runaway logs; set it to `0` only for tightly filtered runs. Narrow with
+open-ended or closed `LINX_TLB_TRACE_PC_LO/HI` and
+`LINX_TLB_TRACE_COUNT_LO/HI` ranges. `LINX_TLB_TRACE_CODE_BYTES=<n>` dumps up to
+32 bytes at the invalidation PC and BPC.
+
 For kernel-space heartbeat timeouts, add `--symbolize-heartbeat` to the SPEC
 runner, or set `LINX_SPEC_SYMBOLIZE_HEARTBEAT=1`. The runner symbolizes recent
 kernel PC/BPC/RA heartbeat sites with `llvm-addr2line` against the active
@@ -337,6 +346,11 @@ syscall trace ties it to a current mallocng-era failure.
 
 Additional opt-in QEMU debug switches used during this pass:
 
+- `LINX_TLB_TRACE=1` records Linx TLB invalidation helpers with translated PC,
+  BPC/TPC, ACR/control state, stack/return/TLS registers, and optional code
+  bytes. Use `LINX_TLB_TRACE_COUNT_LO=<post-start-count>` when a host sample must
+  exclude boot-time fixmap churn. Matching `LINX_QEMU_TLB_TRACE_*` aliases are
+  accepted.
 - `LINX_CALL_TRACE_RING=1` records recent call/return/ACRE events in a bounded
   ring and dumps them after `LINX_FAULT_TRACE` reports a synchronous fault.
   Use `LINX_CALL_TRACE_RING_SIZE=<1..128>` to tune the retained window.
@@ -432,6 +446,51 @@ Additional opt-in QEMU debug switches used during this pass:
 - `LINX_TP_TRACE_SSR=1` adds TP/ETEMP/ETEMP0 SSR writes and swaps to
   `LINX_TP_TRACE`. `LINX_TP_TRACE_READS=1` adds reads. These are high-volume
   options for focused runs, not for train-all profiling.
+
+## 2026-06-30 9p TLBI Trace
+
+A focused 9p host sample for `999.specrand_ir` under
+`workloads/generated/specint-profile-999-9p-current-20260630-r1/` showed visible
+CPU-thread time in `helper_linx_tlb_iall`, `tlb_flush_by_mmuidx_async_work`, and
+`tcg_flush_jmp_cache`. The new `LINX_TLB_TRACE` switch was added to determine
+whether that cost is boot setup, 9p mount setup, or benchmark steady state.
+
+Evidence:
+
+- `workloads/generated/specint-tlbtrace-999-9p-20260630-r1/999_specrand_ir/run_001/qemu.log`
+  records the first 80 invalidations. Apart from two reset-time low-address
+  entries, all entries are before `LINX_SPEC_START` and symbolize through
+  `kernel/linux/build-linx-fixed/System.map` to `get_pmd_virt_fixmap`,
+  `get_pud_virt_fixmap`, and `get_p4d_virt_fixmap`.
+- `workloads/generated/specint-tlbtrace-999-9p-postboot-20260630-r2/` reruns the
+  same row with `LINX_TLB_TRACE_COUNT_LO=1000000000`. It emits zero
+  `LINX_TLB_TRACE` records after the first heartbeat bucket while QEMU heartbeat
+  reaches `count=5000000018`, `progress=site-change`, and
+  `heartbeat_site_progress=true`.
+
+Conclusion: the TLBI hot frames in whole-process samples are real, but for this
+9p SPEC sentinel they are boot/fixmap biased, not the current post-start SPEC
+bottleneck. Future host profiles must either start sampling after
+`LINX_SPEC_START` or use QEMU count filters before optimizing the sampled top
+frame.
+
+Speedup candidates:
+
+- QEMU: split `tlb.ia`, `tlb.iv`, and `tlb.iav` into address-aware helpers
+  instead of routing every variant through `tlb_flush()`. Preserve full flush for
+  `tlb.iall`.
+- QEMU: reset the BSTART validation cache by affected page/generation for
+  address-scoped invalidations; keep full cache reset for global invalidation,
+  MMU context changes, trap/ACRE transitions, and explicit debug revalidation.
+- Linux: reduce redundant fixmap clear/set invalidations in
+  `arch/linx/mm/init.c` during early page-table construction. This is a
+  boot-time speed lane and should be validated with a boot/userspace proof before
+  applying it to SPEC throughput claims.
+- SPEC steady state: focus next on allocator/free-list heartbeat BPCs such as
+  `kfree`/`__update_cpu_freelist_fast`, tile/template helper samples, and 9p I/O
+  transport overhead. Use initramfs `999.specrand_ir` as the cheap correctness
+  sentinel; use 9p `999.specrand_ir` as the transport/profiling sentinel until a
+  block-backed SPEC transport exists.
 
 Static build command. Rebuild the SPEC-profile C++ runtime overlay after every
 phase-b musl sysroot refresh; the musl install step replaces the sysroot

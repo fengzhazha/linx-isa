@@ -68,6 +68,11 @@ In initramfs, run `m9p` (debug applet) to attempt the mount and print the raw re
   - QEMU: set `LINX_VIRTIO_MMIO_DEBUG=1` to trace virtio-mmio feature/status
     registers and `LINX_SYSCALL_TRACE_DUMP_ARGS=0,1,2,4` to dump mount syscall
     pointers/strings.
+  - QEMU throughput: set `LINX_TLB_TRACE=1` with
+    `LINX_TLB_TRACE_COUNT_LO=<post-start-count>` only when a host sample points
+    at `helper_linx_tlb_iall`. The 2026-06-30 `999.specrand_ir` 9p trace showed
+    early fixmap invalidations before `LINX_SPEC_START`, and the post-boot
+    filtered run emitted no TLB trace records while heartbeat kept advancing.
   - Suite runs should leave these noisy switches off and rely on
     `LINX_HEARTBEAT_INTERVAL` / `LINX_QEMU_HEARTBEAT_INTERVAL` for BPC liveness.
 
