@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import tempfile
+from pathlib import Path
 import unittest
 from unittest import mock
 
@@ -125,6 +127,30 @@ class RunIntRateQemuTests(unittest.TestCase):
             argv = runner._apply_argv_overrides(["./bench", "input", "old"])
 
         self.assertEqual(argv, ["./bench", "input", "patched"])
+
+    def test_gcc_run_verifies_generated_assembly_output(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            bench_root = Path(td)
+            control = bench_root / "data" / "test" / "input" / "control"
+            control.parent.mkdir(parents=True)
+            control.write_text("t1.c -O3 -finline-limit=50000\n", encoding="utf-8")
+
+            runs = runner._runs_gcc(bench_root, "test", "cpugcc_r_base.mytest-m64")
+
+        self.assertEqual(len(runs), 1)
+        self.assertEqual(
+            runs[0]["argv"],
+            [
+                "./cpugcc_r_base.mytest-m64",
+                "t1.c",
+                "-O3",
+                "-finline-limit=50000",
+                "-o",
+                "t1.opts-O3_-finline-limit_50000.s",
+            ],
+        )
+        self.assertEqual(runs[0]["stdout"], "t1.opts-O3_-finline-limit_50000.out")
+        self.assertEqual(runs[0]["verify_outputs"], ["t1.opts-O3_-finline-limit_50000.s"])
 
     def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
         text = "\n".join(

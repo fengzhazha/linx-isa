@@ -226,7 +226,14 @@ def _runs_gcc(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]
         src, *opts = cols
         out = Path(src).stem + ".opts" + "_".join(opts)
         out = out.replace("=", "_")
-        runs.append(_mk_run([f"./{exe}", src, *opts, "-o", f"{out}.s"], f"{out}.out", f"{out}.err"))
+        runs.append(
+            _mk_run(
+                [f"./{exe}", src, *opts, "-o", f"{out}.s"],
+                f"{out}.out",
+                f"{out}.err",
+                verify_outputs=[f"{out}.s"],
+            )
+        )
     if not runs:
         raise SystemExit(f"error: failed to derive runs for 502.gcc_r ({input_set})")
     return runs
@@ -1297,6 +1304,10 @@ def _build_init_for_run(
 #define LINX_SPEC_SELFTEST_FP 0
 #endif
 
+#ifndef LINX_SPEC_SELFTEST_PRINTF
+#define LINX_SPEC_SELFTEST_PRINTF 0
+#endif
+
 #ifndef LINX_SPEC_STACK_LIMIT_BYTES
 #define LINX_SPEC_STACK_LIMIT_BYTES (256ULL * 1024ULL * 1024ULL)
 #endif
@@ -2021,6 +2032,18 @@ static void selftest_fp_bits(void) {{
 #endif
 }}
 
+static void selftest_printf_stdio(void) {{
+#if LINX_SPEC_SELFTEST_PRINTF
+  int pr = printf("LINX_SPEC_DBG printf_int seed=%d count=%d\\n",
+                  324342, 24239);
+  (void)fflush(stdout);
+  if (pr < 0) {{
+    write_cstr("LINX_SPEC_FAIL printf-selftest-ret\\n");
+    poweroff_now();
+  }}
+#endif
+}}
+
 #define WRITE_LIT(s) write_all((s), (unsigned long)(sizeof(s) - 1))
 #define LOG_LIT(s) write_log_all((s), (unsigned long)(sizeof(s) - 1))
 
@@ -2040,6 +2063,7 @@ int main(void) {{
   (void)linx_spec_mount_raw("proc", "/proc", "proc", 0, "");
   (void)linx_spec_mount_raw("sysfs", "/sys", "sysfs", 0, "");
   selftest_fp_bits();
+  selftest_printf_stdio();
   selftest_writev();
   try_open_kmsg_log();
   set_spec_stack_limit();
@@ -2078,6 +2102,8 @@ int main(void) {{
         compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_WRITEV=1")
     if os.environ.get("LINX_SPEC_SELFTEST_FP", "").lower() in {"1", "true", "yes"}:
         compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_FP=1")
+    if os.environ.get("LINX_SPEC_SELFTEST_PRINTF", "").lower() in {"1", "true", "yes"}:
+        compile_cmd.insert(4, "-DLINX_SPEC_SELFTEST_PRINTF=1")
     for define in _spec_stack_limit_defines():
         compile_cmd.insert(4, define)
     if init_static:
