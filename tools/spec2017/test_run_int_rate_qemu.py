@@ -53,6 +53,49 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("code=1", result["evidence"])
         self.assertIn("signaled=0", result["evidence"])
 
+    def test_child_sigkill_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=7 "
+                "fallback=0 status=0x0000000000000009 exited=0 code=-1 "
+                "signaled=1 sig=9\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-child-sigkill")
+        self.assertIn("sig=9", result["evidence"])
+
+    def test_child_sigsegv_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=7 "
+                "fallback=0 status=0x000000000000000b exited=0 code=-1 "
+                "signaled=1 sig=11\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-child-sigsegv")
+        self.assertIn("sig=11", result["evidence"])
+
+    def test_guest_proc_diagnostics_block_dumps_memory_state(self) -> None:
+        block = runner._guest_proc_diagnostics_block()
+
+        self.assertIn("/proc/%lld/status", block)
+        self.assertIn("LINX_SPEC_CHILD_STATUS_BEGIN", block)
+        self.assertIn("LINX_SPEC_MEMINFO_BEGIN", block)
+        self.assertIn("LINX_SPEC_VMSTAT_BEGIN", block)
+        self.assertIn("LINX_SPEC_PRESSURE_MEMORY_OPEN_FAIL", block)
+
     def test_chdir_failure_evidence_includes_9p_errno(self) -> None:
         result = runner._classify_qemu_result(
             text=(

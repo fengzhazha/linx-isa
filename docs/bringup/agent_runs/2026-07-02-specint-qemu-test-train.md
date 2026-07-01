@@ -70,11 +70,29 @@ Machine-readable summaries:
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/specint_fast_gate_summary.json`
 
+## Follow-up focused diagnostics
+
+`520.omnetpp_r` was rerun with guest heartbeat `/proc` sampling enabled:
+
+- Artifact: `workloads/generated/specint-520-guestdiag-20260702-r1/test/qemu_matrix_summary.json`
+- Result: `live-timeout`, not a reproduced child SIGKILL.
+- Liveness: QEMU heartbeat remained running with site progress through 240 seconds; last BPC was `0xffffffff800091dc`.
+- Kernel symbols at recent heartbeat sites included `vsprintf.c`, `string.c`, `memory.c`, `page_alloc.c`, `printk_ringbuffer.c`, `mmap.c`, and final idle-loop sites.
+- Guest memory snapshot at the child heartbeat showed `MemFree: 2040952 kB`, `MemAvailable: 2041044 kB`, and `oom_kill 0`.
+- Interpretation: this reproduction is a throughput/live-progress failure, not guest OOM. The earlier SIGKILL rows still need per-row reproduction with guest heartbeat because the failure mode is not stable across focused reruns.
+
+Wrapper compile/run smoke after the diagnostics change:
+
+- Artifact: `workloads/generated/specint-999-guestdiag-compile-20260702-r1/test/qemu_matrix_summary.json`
+- Result: `999.specrand_ir` test/initramfs passed in 19.328 seconds under strict hash validation.
+
 ## Tool fixes in this loop
 
 - Fixed the GCC test input verifier to compare the generated `.s` output instead of a nonexistent `.out`.
 - Added an opt-in printf self-test to the SPEC init wrapper for ABI debug.
 - Fixed a false-red path where exact strict host hashes were overwritten by host `specdiff` rc=2. The train `500.perlbench_r` run artifact predates this fix, so its JSON still shows `specdiff-mismatch` even though every output hash matches.
+- Added guest heartbeat process/memory sampling for initramfs child runs: `/proc/$pid/status`, `/proc/meminfo`, `/proc/vmstat`, and optional `/proc/pressure/memory`.
+- Split child SIGKILL/SIGSEGV rows into explicit JSON failure classes (`spec-child-sigkill`, `spec-child-sigsegv`) instead of generic `spec-wrapper-fail`.
 
 ## Profile observations
 
@@ -98,10 +116,14 @@ Hot paths seen in both profiles:
 4. SPEC gate: classify `live-timeout` as a performance failure distinct from correctness failures. Keep the correctness gate on hash-matching rows, and run timeout rows in a separate throughput budget.
 5. `525.x264_r`: do not use initramfs transport for full x264 inputs. The generated cpio is about 1.6 GB and panics before init. Use 9p/virtio payload transport or split input staging.
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
-7. SIGKILL rows (`520`, `523`, `541`): rerun with guest heartbeat enabled and `/proc/$pid/status` sampling to distinguish guest OOM, resource limit, or kernel kill path. No OOM line was visible in the current QEMU logs.
+7. SIGKILL rows (`523`, `541`, and prior `520` artifacts): rerun with guest heartbeat enabled and `/proc/$pid/status` sampling to distinguish guest OOM, resource limit, or kernel kill path. The focused `520` rerun did not reproduce SIGKILL and showed `oom_kill 0`.
 8. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
 
 ## Verification
 
 - `PYTHONPATH=tools/spec2017 python3 -m unittest -q tools.spec2017.test_run_int_rate_qemu tools.spec2017.test_run_stage_qemu_matrix`
 - `git diff --check -- tools/spec2017/run_int_rate_qemu.py tools/spec2017/test_run_int_rate_qemu.py`
+- `python3 -m py_compile run_int_rate_qemu.py test_run_int_rate_qemu.py` from `tools/spec2017`
+- `python3 -m unittest test_run_int_rate_qemu.py` from `tools/spec2017`
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 520.omnetpp_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `live-timeout`)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 999.specrand_ir --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 180` (passed)

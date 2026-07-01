@@ -599,6 +599,37 @@ def _c_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _guest_proc_diagnostics_block() -> str:
+    return """
+        char proc_status_path[64];
+        int proc_status_len = snprintf(proc_status_path, sizeof(proc_status_path),
+                                       "/proc/%lld/status", (long long)child);
+        if (proc_status_len > 0 && proc_status_len < (int)sizeof(proc_status_path)) {
+          dump_log_file_with_markers("LINX_SPEC_CHILD_STATUS_BEGIN",
+                                     "LINX_SPEC_CHILD_STATUS_END",
+                                     "LINX_SPEC_CHILD_STATUS_OPEN_FAIL",
+                                     "LINX_SPEC_CHILD_STATUS_READ_FAIL",
+                                     proc_status_path, 4096);
+        }
+
+        dump_log_file_with_markers("LINX_SPEC_MEMINFO_BEGIN",
+                                   "LINX_SPEC_MEMINFO_END",
+                                   "LINX_SPEC_MEMINFO_OPEN_FAIL",
+                                   "LINX_SPEC_MEMINFO_READ_FAIL",
+                                   "/proc/meminfo", 4096);
+        dump_log_file_with_markers("LINX_SPEC_VMSTAT_BEGIN",
+                                   "LINX_SPEC_VMSTAT_END",
+                                   "LINX_SPEC_VMSTAT_OPEN_FAIL",
+                                   "LINX_SPEC_VMSTAT_READ_FAIL",
+                                   "/proc/vmstat", 4096);
+        dump_log_file_with_markers("LINX_SPEC_PRESSURE_MEMORY_BEGIN",
+                                   "LINX_SPEC_PRESSURE_MEMORY_END",
+                                   "LINX_SPEC_PRESSURE_MEMORY_OPEN_FAIL",
+                                   "LINX_SPEC_PRESSURE_MEMORY_READ_FAIL",
+                                   "/proc/pressure/memory", 1024);
+"""
+
+
 def _utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -784,6 +815,7 @@ def _build_init_for_run(
     exec_path = str(argv[0])
     if transport == "initramfs" and exec_path.startswith("./"):
         exec_path = f"{guest_run}/{exec_path[2:]}"
+    guest_proc_diagnostics_block = _guest_proc_diagnostics_block()
     stdin_open_block = f"""
   LOG_LIT("LINX_SPEC_DBG step=open-in\\n");
   int fd_in = raw_openat("{_c_escape(stdin_rel)}", O_RDONLY, 0);
@@ -955,17 +987,15 @@ def _build_init_for_run(
         int kr = probe_child_alive(child);
         int kerr = errno;
 
-        LOG_LIT("LINX_SPEC_CHILD_HEARTBEAT child=");
-        write_log_s64_dec((long long)child);
-        LOG_LIT(" alive=");
-        write_log_s64_dec((long long)(kr == 0 || kerr != ESRCH));
-        LOG_LIT(" kill_errno=");
-        write_log_s64_dec((long long)kerr);
-        LOG_LIT(" out_size=");
-        write_log_s64_dec(out_size);
-        LOG_LIT(" err_size=");
-        write_log_s64_dec(err_size);
-        LOG_LIT("\\n");
+        char child_hb_line[192];
+        int child_hb_len = snprintf(
+            child_hb_line, sizeof(child_hb_line),
+            "LINX_SPEC_CHILD_HEARTBEAT child=%lld alive=%lld "
+            "kill_errno=%lld out_size=%lld err_size=%lld\\n",
+            (long long)child, (long long)(kr == 0 || kerr != ESRCH),
+            (long long)kerr, out_size, err_size);
+        if (child_hb_len > 0 && child_hb_len < (int)sizeof(child_hb_line))
+          write_log_all(child_hb_line, (unsigned long)child_hb_len);
 
         if (kDumpPrefixBytes > 0 && out_size > 0) {{
           LOG_LIT("LINX_SPEC_CHILD_STDOUT_PREFIX_BEGIN\\n");
@@ -1045,6 +1075,7 @@ def _build_init_for_run(
           }}
         }}
 
+{guest_proc_diagnostics_block}
         sleep(kGuestHeartbeatSec);
       }}
     }} else if (wait_child_waitid_blocking(child, &status, &waitid_errno) == 0) {{
@@ -1775,6 +1806,82 @@ static int dump_file_prefix(const char *path, unsigned long max_bytes) {{
 
   close(fd);
   return 0;
+}}
+
+static void write_log_marker_path_line(const char *marker, const char *path) {{
+  char line[512];
+  int n = snprintf(line, sizeof(line), "%s path=%s\\n", marker, path);
+  if (n > 0 && n < (int)sizeof(line)) {{
+    write_log_all(line, (unsigned long)n);
+    return;
+  }}
+  write_log_cstr(marker);
+  write_log_cstr(" path=");
+  write_log_cstr(path);
+  write_log_cstr("\\n");
+}}
+
+static void write_log_marker_errno_line(const char *marker, const char *path, int err) {{
+  char line[512];
+  int n = snprintf(line, sizeof(line), "%s path=%s errno=%lld\\n",
+                   marker, path, (long long)err);
+  if (n > 0 && n < (int)sizeof(line)) {{
+    write_log_all(line, (unsigned long)n);
+    return;
+  }}
+  write_log_cstr(marker);
+  write_log_cstr(" path=");
+  write_log_cstr(path);
+  write_log_cstr(" errno=");
+  write_log_s64_dec((long long)err);
+  write_log_cstr("\\n");
+}}
+
+static void dump_log_file_with_markers(const char *begin_marker,
+                                       const char *end_marker,
+                                       const char *open_fail_marker,
+                                       const char *read_fail_marker,
+                                       const char *path,
+                                       unsigned long max_bytes) {{
+  int fd = raw_openat(path, O_RDONLY, 0);
+  char buf[LINX_SPEC_IOBUF_SIZE];
+  int wrote = 0;
+  char last = '\\n';
+
+  if (fd < 0) {{
+    int open_errno = errno;
+    write_log_marker_errno_line(open_fail_marker, path, open_errno);
+    return;
+  }}
+
+  write_log_marker_path_line(begin_marker, path);
+
+  unsigned long remaining = max_bytes;
+  while (remaining > 0) {{
+    unsigned long want = remaining < sizeof(buf) ? remaining : (unsigned long)sizeof(buf);
+    errno = 0;
+    ssize_t n = read(fd, buf, want);
+    int read_errno = errno;
+    if (n == 0)
+      break;
+    if (n < 0) {{
+      close(fd);
+      if (wrote && last != '\\n')
+        write_log_cstr("\\n");
+      write_log_marker_errno_line(read_fail_marker, path, read_errno);
+      return;
+    }}
+    write_log_all(buf, (unsigned long)n);
+    wrote = 1;
+    last = buf[n - 1];
+    remaining -= (unsigned long)n;
+  }}
+
+  close(fd);
+  if (wrote && last != '\\n')
+    write_log_cstr("\\n");
+  write_log_cstr(end_marker);
+  write_log_cstr("\\n");
 }}
 
 static int dump_run_file(const char *run_root, const char *name) {{
@@ -2621,6 +2728,19 @@ def _classify_qemu_result(
         }
 
     if fail_marker:
+        signal = _spec_child_signal(text)
+        if signal is not None:
+            if signal == 9:
+                cls = "spec-child-sigkill"
+            elif signal == 11:
+                cls = "spec-child-sigsegv"
+            else:
+                cls = "spec-child-signal"
+            return {
+                "class": cls,
+                "evidence": _spec_wrapper_failure_evidence(text),
+                **base,
+            }
         return {
             "class": "spec-wrapper-fail",
             "evidence": _spec_wrapper_failure_evidence(text),
@@ -2653,6 +2773,16 @@ def _spec_wrapper_failure_evidence(text: str) -> str:
     if not wait:
         return fail
     return f"{fail}; {wait}"[:512]
+
+
+def _spec_child_signal(text: str) -> int | None:
+    wait = _first_matching_line(text, ("LINX_SPEC_DBG wait",))
+    if "signaled=1" not in wait:
+        return None
+    match = re.search(r"\bsig=([0-9]+)\b", wait)
+    if not match:
+        return None
+    return int(match.group(1))
 
 
 def _set_output_failure_class(qemu_info: dict[str, Any], cls: str, evidence: str) -> None:
