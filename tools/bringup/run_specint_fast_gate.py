@@ -3,7 +3,9 @@
 
 The private SPEC corpus and low-level SPEC runner live under ignored paths.
 This tracked wrapper keeps the public gate policy stable: small test/train
-suites first, expensive promotion work only in the nightly profile.
+suites first, expensive promotion work only in the nightly profile. Large
+payload rows that do not fit the initramfs path are split into transport
+specific shards unless --transports explicitly overrides the policy.
 """
 from __future__ import annotations
 
@@ -14,7 +16,7 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +58,10 @@ SPECINT_TRAIN_PROMOTION_BENCHES = tuple(
     for bench in SPECINT_STAGE_B_BENCHES
     if bench not in {"505.mcf_r", "531.deepsjeng_r", "999.specrand_ir"}
 )
+
+LARGE_PAYLOAD_TRANSPORTS: dict[str, str] = {
+    "525.x264_r": "9p",
+}
 
 
 SUITES: dict[str, Suite] = {
@@ -224,6 +230,42 @@ def _select_suites(profile: str, requested: list[str]) -> list[Suite]:
     return [SUITES[name] for name in names]
 
 
+def _suite_execution_units(suite: Suite, transports_override: str) -> list[Suite]:
+    override = transports_override.strip()
+    if override:
+        return [replace(suite, transports=override)]
+
+    large_benches = tuple(
+        bench for bench in suite.benches if bench in LARGE_PAYLOAD_TRANSPORTS
+    )
+    if not large_benches or suite.transports != "initramfs":
+        return [suite]
+
+    normal_benches = tuple(
+        bench for bench in suite.benches if bench not in LARGE_PAYLOAD_TRANSPORTS
+    )
+    units: list[Suite] = []
+    if normal_benches:
+        units.append(replace(suite, benches=normal_benches))
+
+    by_transport: dict[str, list[str]] = {}
+    for bench in large_benches:
+        by_transport.setdefault(LARGE_PAYLOAD_TRANSPORTS[bench], []).append(bench)
+
+    for transport, benches in sorted(by_transport.items()):
+        suffix = transport.replace(",", "-").replace("/", "-")
+        units.append(
+            replace(
+                suite,
+                name=f"{suite.name}-large-{suffix}",
+                benches=tuple(benches),
+                transports=transport,
+                description=f"{suite.description}; large payload via {transport}",
+            )
+        )
+    return units
+
+
 def _read_matrix_summary(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {"loaded": False, "ok": False, "error": f"missing {path}"}
@@ -317,10 +359,8 @@ def _suite_command(
     symbolize_heartbeat: bool,
     guest_heartbeat_sec: int,
     dump_prefix_bytes: int,
-    transports_override: str,
 ) -> list[str]:
     timeout = _env_int(suite.timeout_env, suite.timeout_default)
-    transports = transports_override or suite.transports
     cmd = [
         sys.executable,
         str(runner),
@@ -333,7 +373,7 @@ def _suite_command(
         "--input-set",
         suite.input_set,
         "--transports",
-        transports,
+        suite.transports,
         "--sysroot",
         str(sysroot),
         "--timeout",
@@ -513,66 +553,69 @@ def main(argv: list[str]) -> int:
     overall_ok = True
 
     for suite in suites:
-        suite_out = out_dir / suite.name
-        cmd = _suite_command(
-            suite=suite,
-            runner=runner,
-            spec_dir=spec_dir,
-            qemu=qemu,
-            sysroot=sysroot,
-            out_dir=out_dir,
-            append_extra=args.append_extra,
-            heartbeat_sec=args.heartbeat_sec,
-            memory_mb=args.memory_mb,
-            qemu_heartbeat_interval=args.qemu_heartbeat_interval,
-            no_progress_timeout=args.no_progress_timeout,
-            forward_memory_mb=runner_has_memory_mb,
-            forward_qemu_heartbeat=runner_has_qemu_heartbeat,
-            forward_no_progress=runner_has_no_progress,
-            forward_stack_limit=runner_has_stack_limit,
-            forward_symbolize_heartbeat=runner_has_symbolize_heartbeat,
-            stack_limit=args.stack_limit,
-            symbolize_heartbeat=args.symbolize_heartbeat,
-            guest_heartbeat_sec=args.guest_heartbeat_sec,
-            dump_prefix_bytes=args.dump_prefix_bytes,
-            transports_override=args.transports,
-        )
-        print(f"-- {suite.name}: {suite.description}")
-        print(" ".join(cmd))
-        suite_start = time.monotonic()
-        if args.dry_run:
-            rc = 0
-            matrix = {"ok": True, "loaded": False, "dry_run": True}
-        else:
-            proc = subprocess.run(cmd, check=False)
-            rc = proc.returncode
-            matrix = _read_matrix_summary(suite_out / "qemu_matrix_summary.json")
-        row_ok = rc == 0 and bool(matrix.get("ok", False))
-        failure_classes = _matrix_failure_classes(matrix)
-        failure_details = _matrix_failure_details(matrix)
-        rows.append(
-            {
-                "name": suite.name,
-                "description": suite.description,
-                "stage": suite.stage,
-                "input_set": suite.input_set,
-                "benches": list(suite.benches),
-                "transports": args.transports or suite.transports,
-                "timeout_sec": _env_int(suite.timeout_env, suite.timeout_default),
-                "command": cmd,
-                "returncode": rc,
-                "ok": row_ok,
-                "elapsed_sec": round(time.monotonic() - suite_start, 3),
-                "out_dir": str(suite_out),
-                "matrix_summary": str(suite_out / "qemu_matrix_summary.json"),
-                "matrix_loaded": bool(matrix.get("loaded", False)),
-                "matrix_ok": bool(matrix.get("ok", False)),
-                "failure_classes": failure_classes,
-                "failure_details": failure_details,
-            }
-        )
-        overall_ok = overall_ok and row_ok
-        if not row_ok and not args.continue_on_fail:
+        suite_ok = True
+        for unit in _suite_execution_units(suite, args.transports):
+            suite_out = out_dir / unit.name
+            cmd = _suite_command(
+                suite=unit,
+                runner=runner,
+                spec_dir=spec_dir,
+                qemu=qemu,
+                sysroot=sysroot,
+                out_dir=out_dir,
+                append_extra=args.append_extra,
+                heartbeat_sec=args.heartbeat_sec,
+                memory_mb=args.memory_mb,
+                qemu_heartbeat_interval=args.qemu_heartbeat_interval,
+                no_progress_timeout=args.no_progress_timeout,
+                forward_memory_mb=runner_has_memory_mb,
+                forward_qemu_heartbeat=runner_has_qemu_heartbeat,
+                forward_no_progress=runner_has_no_progress,
+                forward_stack_limit=runner_has_stack_limit,
+                forward_symbolize_heartbeat=runner_has_symbolize_heartbeat,
+                stack_limit=args.stack_limit,
+                symbolize_heartbeat=args.symbolize_heartbeat,
+                guest_heartbeat_sec=args.guest_heartbeat_sec,
+                dump_prefix_bytes=args.dump_prefix_bytes,
+            )
+            print(f"-- {unit.name}: {unit.description}")
+            print(" ".join(cmd))
+            suite_start = time.monotonic()
+            if args.dry_run:
+                rc = 0
+                matrix = {"ok": True, "loaded": False, "dry_run": True}
+            else:
+                proc = subprocess.run(cmd, check=False)
+                rc = proc.returncode
+                matrix = _read_matrix_summary(suite_out / "qemu_matrix_summary.json")
+            row_ok = rc == 0 and bool(matrix.get("ok", False))
+            failure_classes = _matrix_failure_classes(matrix)
+            failure_details = _matrix_failure_details(matrix)
+            rows.append(
+                {
+                    "name": unit.name,
+                    "source_suite": suite.name,
+                    "description": unit.description,
+                    "stage": unit.stage,
+                    "input_set": unit.input_set,
+                    "benches": list(unit.benches),
+                    "transports": unit.transports,
+                    "timeout_sec": _env_int(unit.timeout_env, unit.timeout_default),
+                    "command": cmd,
+                    "returncode": rc,
+                    "ok": row_ok,
+                    "elapsed_sec": round(time.monotonic() - suite_start, 3),
+                    "out_dir": str(suite_out),
+                    "matrix_summary": str(suite_out / "qemu_matrix_summary.json"),
+                    "matrix_loaded": bool(matrix.get("loaded", False)),
+                    "matrix_ok": bool(matrix.get("ok", False)),
+                    "failure_classes": failure_classes,
+                    "failure_details": failure_details,
+                }
+            )
+            suite_ok = suite_ok and row_ok
+        overall_ok = overall_ok and suite_ok
+        if not suite_ok and not args.continue_on_fail:
             break
 
     summary = {

@@ -28,15 +28,23 @@ Evidence:
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/` is
-  the current all-SPECint bounded diagnostic ledger after the QEMU Linx `virt`
-  memory-node MMIO-hole fix and blockify rebuild. The run requested all ten
-  SPECint rows on both `test` and `train` inputs with initramfs, QEMU BPC
+  the last initramfs-only all-SPECint bounded diagnostic ledger after the QEMU
+  Linx `virt` memory-node MMIO-hole fix and blockify rebuild. The run requested
+  all ten SPECint rows on both `test` and `train` inputs with initramfs, QEMU BPC
   heartbeat every 1B guest instructions, and a `2G` stack limit on rebuilt QEMU
   `v10.2.0-989-g5cfb672a711`. It is red, but the failure mix is now narrower:
   `502.gcc_r`, `557.xz_r`, and `999.specrand_ir` pass on `test`;
   `999.specrand_ir` passes on `train`; remaining red rows are live-progress
   timeouts, focused user traps, guest OOM at 2 GiB, wrapper/benchmark exits, or
   the persistent `525.x264_r` oversized-initramfs VFS-root panic.
+- `run_specint_fast_gate.py` now keeps the bounded all-row surface while
+  splitting large payload rows onto the right transport: `525.x264_r` runs as
+  `test-all-large-9p` / `train-all-large-9p` by default. Do not pass
+  `--transports initramfs` for routine all-row gates unless intentionally
+  reproducing the oversized-cpio VFS-root panic. Focused 9p evidence under
+  `workloads/generated/specint-525-9p-current-20260702-r1/` and
+  `workloads/generated/specint-525-9p-train-20260702-r1/` classifies x264 as
+  live-progress timeout, not a boot transport failure.
 
 Inference:
 
@@ -146,7 +154,6 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --guest-heartbeat-sec 0 \
   --no-progress-timeout 120 \
   --stack-limit 2G \
-  --transports initramfs \
   --continue-on-fail
 ```
 
@@ -170,9 +177,12 @@ python3 tools/bringup/run_specint_fast_gate.py \
   --guest-heartbeat-sec 0 \
   --no-progress-timeout 180 \
   --stack-limit 2G \
-  --transports initramfs \
   --continue-on-fail
 ```
+
+Leave `--transports` unset in these wrapper commands so the gate can split
+`525.x264_r` to 9p while keeping the remaining all-row benches on initramfs.
+Use an explicit `--transports` override only for focused transport bisection.
 
 Use `LINX_TP_TRACE=1 LINX_TP_TRACE_LIMIT=<n>` only for focused TP/TLS
 diagnosis. Use `LINX_TP_TRACE_SSR=1` or `LINX_TP_TRACE_READS=1` only after a

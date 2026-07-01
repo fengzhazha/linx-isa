@@ -75,6 +75,9 @@ Done means:
   rows can be run with bounded train input before promotion-scale runs.
 - The `test-train` profile runs `test-all` and `train-all` together when the
   goal is a complete bounded all-row gate rather than PR smoke.
+- The all-row profiles keep `525.x264_r` in the suite, but route it through a
+  generated `*-large-9p` shard by default because its full input payload is too
+  large for the initramfs transport.
 - Nightly uses `--profile nightly` to add CPU stress, VM stress, and promotion
   breadth.
 
@@ -188,7 +191,11 @@ As of 2026-07-01:
   supersedes the older hashclass ledger: `502.gcc_r`, `557.xz_r`, and
   `999.specrand_ir` pass on `test`; `999.specrand_ir` passes on `train`;
   remaining red rows are live-progress timeouts, focused user traps, guest OOM
-  at 2 GiB, or the `525.x264_r` oversized-initramfs panic.
+  at 2 GiB, wrapper/benchmark exits, and the now-isolated `525.x264_r`
+  large-payload transport row. Focused x264 9p reruns classify both `test` and
+  `train` as heartbeat-backed `live-timeout`, so future all-row ledgers should
+  use the wrapper's default `*-large-9p` split rather than recording the
+  oversized-initramfs panic as a benchmark result.
 - Focused `531.deepsjeng_r` follow-up is
   `workloads/generated/specint-531-test-filesys-trace-20260701-r1/`: cwd,
   executable preflight, and `execve()` are correct, but the child writes the

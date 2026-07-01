@@ -70,6 +70,12 @@ Machine-readable summaries:
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/train-all/initramfs/stage_b_summary.json`
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/specint_fast_gate_summary.json`
 
+The all-row wrapper has since been updated so this old `525.x264_r`
+classification is no longer the default all-row gate behavior. `525.x264_r`
+stays in `test-all` and `train-all`, but it runs through generated
+`test-all-large-9p` / `train-all-large-9p` shards unless `--transports`
+explicitly overrides the policy.
+
 ## Follow-up focused diagnostics
 
 `520.omnetpp_r` was rerun with guest heartbeat `/proc` sampling enabled:
@@ -85,6 +91,23 @@ Wrapper compile/run smoke after the diagnostics change:
 
 - Artifact: `workloads/generated/specint-999-guestdiag-compile-20260702-r1/test/qemu_matrix_summary.json`
 - Result: `999.specrand_ir` test/initramfs passed in 19.328 seconds under strict hash validation.
+
+Focused `525.x264_r` transport diagnostics:
+
+- `workloads/generated/specint-525-9p-current-20260702-r1/test/qemu_matrix_summary.json`
+  reran `525.x264_r` test input with 9p transport. It reached userspace and
+  classified as `live-timeout` at 360 seconds, count `43000000004`, recent
+  delta `7000000000`, eight recent unique BPC sites, no trap, no panic, and
+  no 9p mount warning.
+- `workloads/generated/specint-525-9p-train-20260702-r1/train/qemu_matrix_summary.json`
+  reran `525.x264_r` train input with 9p transport, 4096 MiB, and the same
+  `--stack-limit 2G` policy. It classified as `live-timeout` at 480 seconds,
+  count `55000000000`, recent delta `6999999998`, eight recent unique BPC
+  sites, no trap, no panic, and no 9p mount warning.
+- Interpretation: x264 is a QEMU throughput/live-progress row under the proper
+  payload transport. The prior `kernel-panic` rows are initramfs transport
+  artifacts caused by the about-1.6 GiB generated cpio, not x264 correctness
+  failures.
 
 Additional focused diagnostics:
 
@@ -188,6 +211,10 @@ Additional focused diagnostics:
   `--qemu-fault-trace`, `--qemu-fault-trace-pc[-lo|-hi]`,
   `--qemu-fault-trace-addr[-lo|-hi]`, `--qemu-fault-trace-count[-lo|-hi]`,
   and `--qemu-fault-trace-trapnum`.
+- Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
+  all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
+  `train-all-large-9p`, while explicit `--transports` still forces a single
+  transport for focused bisection.
 
 ## Profile observations
 
@@ -209,7 +236,9 @@ Hot paths seen in both profiles:
 2. QEMU speed: split `helper_linx_template_step` into fast paths for common non-template/non-trace execution and keep trace hooks fully disabled unless an explicit trace switch is set.
 3. QEMU debug: add an exit counter summary with TB count, dynamic instruction count, BSTART checks, BSTART cache hits/misses, template helper calls, MMU probes, trace hook calls, heartbeat stall count, and last BPC.
 4. SPEC gate: classify `live-timeout` as a performance failure distinct from correctness failures. Keep the correctness gate on hash-matching rows, and run timeout rows in a separate throughput budget.
-5. `525.x264_r`: do not use initramfs transport for full x264 inputs. The generated cpio is about 1.6 GB and panics before init. Use 9p/virtio payload transport or split input staging.
+5. `525.x264_r`: the fast gate now splits x264 to 9p by default. Treat both
+   test and train focused 9p runs as `live-timeout` throughput rows; use
+   initramfs only to reproduce the oversized-cpio panic.
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
    2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
@@ -250,3 +279,8 @@ Hot paths seen in both profiles:
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 1200` against the oldmalloc-linked binary (expected red; `live-timeout`, count `133000000000`, no trap/panic/OOM)
 - `skill-evolve: update linx-compiler (record compiler-rt/C11 atomic recursion triage and fallback verification)`
 - `skill-evolve: update linx-lib (record oldmalloc bisection for mallocng metadata traps)`
+- `python3 -m unittest tools.bringup.test_run_specint_fast_gate` (passed)
+- `python3 -m py_compile tools/bringup/run_specint_fast_gate.py tools/bringup/test_run_specint_fast_gate.py` (passed)
+- `python3 tools/bringup/run_specint_fast_gate.py --profile test-train --dry-run ...` (passed; generated `test-all-large-9p` and `train-all-large-9p` x264 shards)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 525.x264_r --input-set train --transports 9p --memory-mb 4096 --stack-limit 2G --timeout 480 --fail-9p-timeout` (expected red; `live-timeout`, no trap/panic/mount failure)
+- `skill-evolve: update linx-superproject (record large SPEC payload transport split)`
