@@ -2,7 +2,7 @@
   "$schema": "https://docs.openclaw.ai/schemas/linxisa/pto_encoding.v0.json",
   "isa": "LinxISA",
   "version": "0.57.0",
-  "status": "proposed",
+  "status": "current",
   "summary": "Block-encoding map for hardware-visible PTO tile/data instructions under the v0.57 block definition.",
   "encoding_scope": {
     "encoded": [

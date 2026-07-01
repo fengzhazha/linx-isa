@@ -4,28 +4,29 @@
 
 ## Canonical Artifacts
 
-- Canonical components: `isa/v0.56/{encoding,opcodes,registers,state,meta.json}`
-- Compiled catalog: `isa/v0.56/linxisa-v0.56.json`
-- Proposed v0.57 profile: `isa/v0.57/`
-- Archived historical profile: retained as the repository's versioned history and not used by active defaults
+- Latest profile package: `isa/v0.57/`
+- Latest changelog: `isa/v0.57/CHANGELOG.md`
+- Previous generated catalog components: `isa/v0.56/{encoding,opcodes,registers,state,meta.json}`
+- Previous compiled catalog: `isa/v0.56/linxisa-v0.56.json`
+- Historical profiles: retained as the repository's versioned history and not used as the live contract
 - Generated codec tables: `isa/generated/codecs/`
 - Sail model + coverage assets: `isa/sail/`
 
 ## Build + Validate
 
 ```bash
-python3 tools/isa/build_golden.py --profile v0.56 --pretty
-python3 tools/isa/validate_spec.py --profile v0.56
+python3 tools/isa/check_pto_v057_encoding.py --spec isa/v0.57/state/pto_encoding.json
+python3 tools/isa/check_pto_v057_downstream.py --strict
 ```
 
 ## Downstream Consumption
 
-Compiler, emulator, and RTL integration MUST consume the compiled v0.56 catalog to avoid decode/semantic drift.
+Compiler, emulator, benchmark, model, and TileOP API integration MUST consume
+the v0.57 block definition and PTO encoding map to avoid decode/semantic drift.
 
-v0.57 material records the current Linx block definition for the proposed
-profile. `isa/v0.57/state/downstream_migration.json` tracks the benchmark,
-TileOP API, LLVM, QEMU, and GFSIM delta that must close before v0.57 becomes
-the active generator default.
+`isa/v0.57/state/downstream_migration.json` tracks the benchmark, TileOP API,
+LLVM, QEMU, tools/model, pyCircuit, PTOAS, and GFSIM deltas for the current
+profile.
 
 See also:
 

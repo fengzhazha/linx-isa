@@ -2,7 +2,7 @@
   "$schema": "https://docs.openclaw.ai/schemas/linxisa/v057_downstream_migration.v0.json",
   "isa": "LinxISA",
   "version": "0.57.0",
-  "status": "open",
+  "status": "current",
   "summary": "Checked downstream delta required to make the v0.57 PTO block encoding executable across benchmarks, TileOP API, LLVM, QEMU, tools/model, and GFSIM.",
   "completion_rule": "The downstream migration is complete only when tools/isa/check_pto_v057_downstream.py --strict reports no stale patterns and the benchmark flow passes with v0.57 descriptors and opcode ids.",
   "required_api_forms": [
@@ -155,13 +155,13 @@
         "Expose the issue #14 TileOP API forms with signatures that match benchmark callsites.",
         "Keep real PTO instruction forms such as TSTORE_FP, TINSERT, TCONCAT, and TFILLPAD assigned to concrete instruction families; expose TileOP wrappers when compiler lowering exists.",
         "Map merged forms such as TSTORE/TSTORE_FP, TINSERT/TINSERT_FP, TCONCAT/TCONCATIDX, and the TFILLPAD family through form fields instead of new opcode ids.",
-        "Replace the temporary generic-FIXP gaps with real TINSERT/TTRANS/TCONCAT/TFILLPAD lowering after the compiler FIXP intrinsic surface is added.",
+        "Keep real TINSERT/TTRANS/TCONCAT/TFILLPAD lowering executable in the Linx API and GFSIM paths.",
         "Do not add sync, communication, pipe-sync, or IR virtual forms as block-encoded TileOP instructions."
       ],
       "completed_delta": [
         "Linx TEPL convenience constants in workloads/pto_kernels/include/common/pto_tileop.hpp match the v0.57 TEPL.TileOpcode map and are checked by tools/isa/check_pto_v057_downstream.py.",
         "common/pto_tileop.hpp exposes benchmark-facing v0.57 wrappers for TREMS, TCOLMAX, TCOLPROD, TCOLSUM, TROWPROD, TMOV, MGATHER, MSCATTER, TCVT, TDIVS, TEXP, TRECIP, TROWMAX, TROWSUM, TLOAD, TSTORE, TSTORE_FP, TEXPANDS, and TROWEXPAND.",
-        "TCONCAT and TCONCATIDX are exposed in workloads/pto_kernels/include/pto/common/pto_instr.hpp, implemented for CPU simulation in workloads/pto_kernels/include/pto/cpu/TConcat.hpp, and have __LINXISA__ hooks in workloads/pto_kernels/include/pto/linx/impl/PtoInstrImpl.hpp.",
+        "TCONCAT and TCONCATIDX are exposed in workloads/pto_kernels/include/pto/common/pto_instr.hpp, implemented for CPU simulation in workloads/pto_kernels/include/pto/cpu/TConcat.hpp, and implemented for __LINXISA__ row-wise concat in workloads/pto_kernels/include/pto/linx/impl/PtoInstrImpl.hpp.",
         "PTO-AS emits TCONCATIDX for pto.tconcatidx instead of overloading the plain TCONCAT call name.",
         "PTO-AS no longer emits an instruction-looking scale-address helper for pto.tget_scale_addr; that op remains an IR/view operation with no LinxISA v0.57 EmitC instruction lowering."
       ],
@@ -341,7 +341,7 @@
         "Decode v0.57 B.ITP and B.OTA descriptors with 8-bit TileReg ids.",
         "Replace old TEPL mode/function splitting with direct v0.57 TEPL.TileOpcode dispatch.",
         "Update TMA/CUBE/FIXP function dispatch to merged v0.57 opcode families and B.ARG form selection.",
-        "Add FIXP execution paths for TCONCAT, TFILLPAD, TINSERT, TTRANS, TMOV, and related real PTO instruction families."
+        "Maintain FIXP execution paths for TCONCAT, TFILLPAD, TINSERT, TTRANS, TMOV, and related real PTO instruction families."
       ],
       "completed_delta": [
         "TMA function dispatch uses v0.57 ids: MGATHER=0, MSCATTER=1, TLOAD=2, TPREFETCH=3, and TSTORE/TSTORE_FP=4.",

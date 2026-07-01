@@ -31,7 +31,7 @@ static void log_i64(long v)
 
 	if (v < 0) {
 		(void)write(log_fd, "-", 1);
-		x = (unsigned long)(-v);
+		x = -(unsigned long)v;
 	} else {
 		x = (unsigned long)v;
 	}

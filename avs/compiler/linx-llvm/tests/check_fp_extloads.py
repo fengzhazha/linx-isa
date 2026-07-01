@@ -14,8 +14,10 @@ FCMP64_RE = re.compile(r"\bf(?:eq|lt|ge)\.fd\b", re.IGNORECASE)
 
 
 def is_code_line(line: str) -> bool:
-    stripped = line.strip()
-    return bool(stripped and not stripped.startswith(("#", ".", "//")))
+    code = line.split("#", 1)[0].split("//", 1)[0].strip()
+    if not code or code.startswith("."):
+        return False
+    return not code.endswith(":")
 
 
 def previous_code_line(lines: list[str], index: int) -> tuple[int, str] | None:

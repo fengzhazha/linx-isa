@@ -270,7 +270,7 @@
     }
   },
   "isa": "LinxISA",
-  "status": "proposed",
+  "status": "current",
   "tile_register_namespace": {
     "ordinary_range": {
       "end": 255,

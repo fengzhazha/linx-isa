@@ -1,26 +1,37 @@
-# LinxISA ISA Tooling (v0.56)
+# LinxISA ISA Tooling
 
-These tools operate on the canonical LinxISA v0.56 catalog.
+These tools include the latest v0.57 PTO/block validation gates and the
+previous v0.56 generated-catalog utilities.
 
-- Golden source root: `isa/v0.56/`
-- Compiled catalog: `isa/v0.56/linxisa-v0.56.json`
-- Generated codecs: `isa/generated/codecs/`
+- Latest profile root: `isa/v0.57/`
+- Latest block/PTO encoding checks: `tools/isa/check_pto_v057_*.py`
+- Previous generated catalog root: `isa/v0.56/`
+- Previous generated codecs: `isa/generated/codecs/`
 
 ## Core Commands
 
-Build catalog:
+Validate the latest v0.57 PTO block encoding:
+
+```bash
+python3 tools/isa/check_pto_v057_encoding.py --spec isa/v0.57/state/pto_encoding.json
+```
+
+Audit latest v0.57 downstream synchronization:
+
+```bash
+python3 tools/isa/check_pto_v057_downstream.py
+python3 tools/isa/check_pto_v057_downstream.py --strict
+```
+
+Build or validate the previous v0.56 generated catalog when maintaining the
+existing scalar codec generator:
 
 ```bash
 python3 tools/isa/build_golden.py --profile v0.56 --pretty
-```
-
-Validate catalog:
-
-```bash
 python3 tools/isa/validate_spec.py --profile v0.56
 ```
 
-Generate decode tables:
+Generate previous v0.56 decode tables:
 
 ```bash
 python3 tools/isa/gen_qemu_codec.py --profile v0.56 --out-dir isa/generated/codecs
@@ -35,24 +46,8 @@ python3 tools/isa/gen_instruction_fragments.py --profile v0.56 --out-dir docs/ar
 python3 tools/isa/gen_ssr_adoc.py --profile v0.56 --out-dir docs/architecture/isa-manual/src/generated
 ```
 
-Run the active canonical-content guard:
+Run the previous v0.56 canonical-content guard:
 
 ```bash
 python3 tools/isa/check_canonical_v056.py --root .
-```
-
-## Proposed v0.57 Checks
-
-The v0.57 PTO block-encoding map is not the active generator default. Validate
-it with:
-
-```bash
-python3 tools/isa/check_pto_v057_encoding.py --spec isa/v0.57/state/pto_encoding.json
-```
-
-Audit downstream migration blockers with:
-
-```bash
-python3 tools/isa/check_pto_v057_downstream.py
-python3 tools/isa/check_pto_v057_downstream.py --strict
 ```

@@ -8,6 +8,6 @@
   ],
   "description": "LinxISA v0.57 profile manifest for the current block definition, PTO encoding map, and downstream migration delta.",
   "isa": "LinxISA",
-  "status": "proposed",
+  "status": "current",
   "version": "0.57.0"
 }

@@ -12,6 +12,6 @@
     "B.OTA encodes destination allocation size as an 8-bit CellCountM1 field in 128-byte CELL units.",
     "B.META names an ordinary GPR metadata operand for TEPL/TMA element-domain shape, valid-region, and mask state."
   ],
-  "status": "proposed",
+  "status": "current",
   "version": "0.57.0"
 }
