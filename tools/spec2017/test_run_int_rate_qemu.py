@@ -116,6 +116,21 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(qemu_info["failure_class"], "user-trap")
         self.assertEqual(qemu_info["failure_evidence"], "trap")
 
+    def test_strict_hash_pass_suppresses_specdiff_false_red(self) -> None:
+        qemu_runs = [{"failure_class": "none", "failure_evidence": ""}]
+        specdiff_info = {
+            "ok": False,
+            "strict_hash": True,
+            "hash_checks": [{"ok": True, "output_name": "suns.out"}],
+            "checks": [{"ok": False, "out": "suns.out", "returncode": 2}],
+        }
+
+        runner._annotate_specdiff_mismatch(qemu_runs, specdiff_info)
+
+        self.assertTrue(runner._strict_hash_checks_ok(specdiff_info))
+        self.assertEqual(qemu_runs[0]["failure_class"], "none")
+        self.assertEqual(qemu_runs[0]["failure_evidence"], "")
+
     def test_indexed_argv_override_targets_requested_argument(self) -> None:
         with mock.patch.dict(os.environ, {"LINX_SPEC_ARGV1_OVERRIDE": "/spec-run/test.txt"}, clear=True):
             argv = runner._apply_argv_overrides(["./bench", "test.txt"])
