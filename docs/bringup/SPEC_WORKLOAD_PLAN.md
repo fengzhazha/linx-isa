@@ -196,6 +196,17 @@ As of 2026-07-01:
   `workloads/generated/musl-control-stdio-cpp-20260701-r1/`, so this row is
   currently a C++ runtime/codegen correctness blocker rather than a SPEC input
   packaging blocker.
+- Focused `500.perlbench_r` addr-zero follow-up is
+  `workloads/generated/specint-500-fret-stk-trace-20260701-r2/`: syscall trace
+  already proved the preceding `mprotect` syscall returns to
+  `0x155582ea44`; the new `LINX_FRET_STK_TRACE` evidence proves the final
+  `FRET.STK [ra ~ s5], sp!, 80` at `0x1555828d20` computes restore slot
+  `ra@0x3fdd764798 = 0` while incoming `ra` is still `0x15558292f0`. A
+  translated user-store memtrace on `0x3fdd764750..0x3fdd76479f` produced no
+  `LINX_MEM_TRACE` records in
+  `workloads/generated/specint-500-fret-frame-memtrace-20260701-r1/`, so the
+  next owner is QEMU/template stack-save or stack-growth fault semantics, not
+  Linux syscall return or SPEC input packaging.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup, and prior focused `999.specrand_ir` train-smoke
   evidence passes strict hash on this QEMU/kernel stack. The current all-row

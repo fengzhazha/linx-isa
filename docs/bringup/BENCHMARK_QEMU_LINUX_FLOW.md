@@ -248,7 +248,16 @@ is too noisy for routine train-all loops.
 When a fault-trace run is expected to dump a late PC-watch ring, pair
 `LINX_FAULT_TRACE_PC_LO/HI` with `LINX_FAULT_TRACE_COUNT_LO/HI`. Early boot
 faults and unrelated user faults otherwise consume `LINX_FAULT_TRACE_LIMIT`
-before QEMU reaches the final SPEC window.
+before QEMU reaches the final SPEC window. For null-branch or null-data traps,
+`LINX_FAULT_TRACE_ADDR=0` now arms an explicit zero-address fault filter.
+
+When a null-branch fault comes from `FRET.STK` restoring `ra=0`, use
+`LINX_FRET_STK_TRACE=1` with `LINX_FRET_STK_TRACE_PC=<fret-pc>`,
+`LINX_FRET_STK_TRACE_RA=0`, and optional `LINX_FRET_STK_TRACE_COUNT_LO/HI`.
+Add `LINX_FRET_STK_TRACE_DUMP_WORDS=<n>` only for focused frame snapshots. The
+trace prints the computed restore addresses and values before QEMU commits the
+register file, so it distinguishes a bad return slot from syscall-return or
+branch-target handling.
 
 For user traps at `addr = sp - 8` or at the current stack bottom, run a bounded
 stack-limit classifier before treating the failure as a C++ runtime, atomic, or

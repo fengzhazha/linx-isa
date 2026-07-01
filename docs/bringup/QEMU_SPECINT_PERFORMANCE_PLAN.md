@@ -450,13 +450,21 @@ Additional opt-in QEMU debug switches used during this pass:
   instruction bytes, and fetch/store page-walk probes. Use
   `LINX_FAULT_TRACE_ADDR=<va>` or `_ADDR_LO/_ADDR_HI` to filter data faults by
   `pending_trap_arg0`; `LINX_FAULT_TRACE_VA*` is accepted as an alias for data
-  VA filters. Matching `LINX_QEMU_FAULT_TRACE_*` aliases are accepted. Use
+  VA filters. Literal `0` is accepted, so `LINX_FAULT_TRACE_ADDR=0` is the
+  focused null-fault filter. Matching `LINX_QEMU_FAULT_TRACE_*` aliases are accepted. Use
   `LINX_FAULT_TRACE_PC*`, `LINX_FAULT_TRACE_COUNT*`, and
   `LINX_FAULT_TRACE_TRAPNUM*` when a late SPEC run needs the quota to survive
   until the failing window.
 - `LINX_CALL_TRACE_RING=1` records recent call/return/ACRE events in a bounded
   ring and dumps them after `LINX_FAULT_TRACE` reports a synchronous fault.
   Use `LINX_CALL_TRACE_RING_SIZE=<1..128>` to tune the retained window.
+- `LINX_FRET_STK_TRACE=1` records `FRET.STK` restore slots before the register
+  file is committed. Narrow with `LINX_FRET_STK_TRACE_PC=<pc>`,
+  `LINX_FRET_STK_TRACE_COUNT_LO/HI`, and `LINX_FRET_STK_TRACE_RA=<value>`;
+  literal `0` is accepted for the RA filter. Add
+  `LINX_FRET_STK_TRACE_DUMP_WORDS=<n>` or `_REGS=1` when the frame contents or
+  live GPRs are needed. Matching `LINX_QEMU_FRET_STK_TRACE_*` aliases are
+  accepted.
 - `LINX_MEM_TRACE_ADDR=<addr>` instruments translated loads/stores and prints
   only accesses overlapping the requested address range. Narrow with
   `LINX_MEM_TRACE_SIZE`, `LINX_MEM_TRACE_ACCESS=loads|stores|all`,
@@ -1163,18 +1171,16 @@ Proposed next fixes:
 1. Keep the QEMU heartbeat disabled by default, but enable it on long train
    runs to distinguish live progress from deadlock. Use BPC/PC churn plus
    `progress` and `same_site` before increasing timeouts.
-2. Keep the old `502.gcc_r` byval compiler lane closed, but treat current 502
-   as a Linux VM correctness blocker. Add temporary kernel-side tracepoints or
-   `pr_info_once` guards around `do_mprotect_pkey()` and `do_page_fault()` for
-   `0x3f7fa8d000..0x3f7fa8dfff`: log VMA start/end/flags, return value,
-   `find_vma()` result, `access_error()`, and `handle_mm_fault()` flags. The
-   QEMU page-walk evidence already proves the store sees a type0 PTE, so do not
-   change QEMU TLB invalidation policy unless the kernel trace shows valid VMA
-   coverage and a newly installed writable PTE.
+2. Treat the current addr-zero rows (`500`, `502`, `520`, and `557`) as a
+   shared frame/stack-growth lane until disproved. The latest focused 500 trace
+   proves `mprotect()` returns correctly and the final `FRET.STK` restores
+   `ra=0` from a zeroed frame slot; prioritize QEMU template save/retry and
+   stack-growth fault semantics before changing Linux syscall return or SPEC
+   input packaging.
 3. Keep the old `500.perlbench_r` BigInt and bad-branch-target failures closed.
-   The current static 500 row is run_001 hash pass plus run_002 live timeout, so
-   it belongs in the QEMU throughput lane unless a fresh current run reproduces a
-   trap.
+   The current static 500 failure has moved to the addr-zero frame lane above;
+   use `LINX_FRET_STK_TRACE` and frame-save tracing before returning to Perl
+   optimizer or object-state probes.
 4. Reclassify the current C++ rows from wrapper child-exit to live-slow unless a
    fresh run reproduces `sig=9`. In the latest all-train matrix,
    `520.omnetpp_r`, `523.xalancbmk_r`, and `541.leela_r` all reach
@@ -1187,11 +1193,10 @@ Proposed next fixes:
    with `VFS: Unable to mount root fs`; use 9p or a disk/rootfs transport for
    benchmark execution after preserving this panic as a separate rootfs test.
 6. Profile live-slow rows with heartbeat off or at a very coarse interval:
-   `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`,
-   `531.deepsjeng_r`, `541.leela_r`, `557.xz_r`, plus 9p `999.specrand_ir` as a
-   transport sentinel. Keep `502.gcc_r` in the Linux VM correctness lane until
-   the `mprotect()`/page-fault mismatch is closed. Remaining QEMU
-   speedups should focus on
+   `505.mcf_r`, `523.xalancbmk_r`, `541.leela_r`, plus focused
+   `999.specrand_ir` as a transport sentinel. Keep `500`, `502`, `520`, and
+   `557` in the addr-zero frame lane until the restore-slot/root cause is
+   closed. Remaining QEMU speedups should focus on
    tile set/reset, template stepping, page-local BSTART decode caching,
    TB chaining, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, and
    avoiding helper probes in hot branch-validation paths. Queue/scalar helper
@@ -1206,6 +1211,32 @@ Proposed next fixes:
 8. Keep `train-all` opt-in through `--profile train`; the PR gate should stay on
    cheap `999.specrand_ir` smoke while stress workloads run in isolated nightly
    or diagnostic lanes.
+
+## 2026-07-01 500 FRET.STK Frame Evidence
+
+`workloads/generated/specint-test-train-all-hashclass-20260701-r1/` is the
+current all-row ledger and shows shared addr-zero user traps for `500`, `502`,
+`520`, and `557`. Focused `500.perlbench_r` follow-up narrows the first proven
+cause:
+
+- `workloads/generated/specint-500-mprotect-sysret-trace-20260701-r1/` shows
+  syscall 226 (`mprotect`) returning normally to `0x155582ea44`; this closes
+  the syscall-return hypothesis for the immediate null branch.
+- `workloads/generated/specint-500-fret-stk-trace-20260701-r2/` records
+  `LINX_FRET_STK_TRACE count=18674966518 pc=0x1555828d20 old_sp=0x3fdd764750
+  new_sp=0x3fdd7647a0 stacksize=80 incoming_ra=0x15558292f0
+  restored_ra=0x0`. The slot dump shows `ra@0x3fdd764798 = 0` and all restored
+  `s0..s5` slots are also zero before QEMU commits the restore.
+- `workloads/generated/specint-500-fret-frame-memtrace-20260701-r1/` adds a
+  translated user-store trace on `0x3fdd764750..0x3fdd76479f`; it emits no
+  `LINX_MEM_TRACE` records before the same zero-slot restore, so the current
+  owner is helper/template frame save or stack-growth fault/retry semantics.
+
+Next solution path: add or use frame-save-side tracing around the matching
+`FENTRY` at `0x1555828a72`, then verify whether the `ra=0x15558292f0` save lands
+at `0x3fdd764798` after any stack-growth fault. If it never lands, fix the
+restartable `FENTRY` probe/save path; if it lands and later disappears, trace
+helper-side page remap/zeroing before broad user-store instrumentation.
 
 ## 2026-06-29 500 BigInt Current Evidence
 
