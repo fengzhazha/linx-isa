@@ -128,6 +128,31 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
   --report-out workloads/generated/flow-specint-fast/report.json
 ```
 
+Run the bounded all-row test+train SPECint gate directly when the goal is to
+exercise every supported SPECint row without refrate input cost:
+
+```bash
+SPECINT_TEST_ALL_TIMEOUT=120 \
+SPECINT_TRAIN_ALL_TIMEOUT=180 \
+SPEC_GUEST_HEARTBEAT_SEC=0 \
+SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000 \
+SPEC_NO_PROGRESS_TIMEOUT=120 \
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile test-train \
+  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --sysroot out/libc/musl/install/phase-b \
+  --out-dir workloads/generated/specint-test-train-all-<date> \
+  --append-extra norandmaps \
+  --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 1000000000 \
+  --guest-heartbeat-sec 0 \
+  --no-progress-timeout 120 \
+  --stack-limit 2G \
+  --transports initramfs \
+  --continue-on-fail
+```
+
 Run the current all-SPECint train diagnostic loop directly when the goal is to
 classify every train workload rather than stop at PR smoke:
 

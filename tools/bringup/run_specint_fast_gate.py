@@ -119,6 +119,16 @@ SUITES: dict[str, Suite] = {
         timeout_default=1200,
         description="train-input mcf VM/allocation stress check",
     ),
+    "test-all": Suite(
+        name="test-all",
+        stage="b",
+        input_set="test",
+        benches=SPECINT_STAGE_B_BENCHES,
+        transports="initramfs",
+        timeout_env="SPECINT_TEST_ALL_TIMEOUT",
+        timeout_default=120,
+        description="bounded all-SPECint test-input diagnostic gate",
+    ),
     "train-promotion": Suite(
         name="train-promotion",
         stage="b",
@@ -144,7 +154,9 @@ SUITES: dict[str, Suite] = {
 PROFILE_SUITES: dict[str, tuple[str, ...]] = {
     "smoke": ("test-smoke",),
     "pr": ("test-smoke", "train-smoke"),
+    "test": ("test-all",),
     "train": ("train-all",),
+    "test-train": ("test-all", "train-all"),
     "nightly": (
         "test-smoke",
         "train-smoke",

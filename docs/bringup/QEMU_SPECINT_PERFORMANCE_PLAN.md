@@ -11,6 +11,10 @@ or the broad promotion set directly.
 
 - `smoke`: `test-smoke` only, for quick local sanity.
 - `pr`: `test-smoke` and `train-smoke`, both using `999.specrand_ir`.
+- `test`: `test-all`, all ten supported SPECint rows on `test` input.
+- `train`: `train-all`, all ten supported SPECint rows on `train` input.
+- `test-train`: `test-all` followed by `train-all`, for the bounded all-row
+  gate before promotion-scale runs.
 - `nightly`: PR suites plus `test-cpu-stress`, `test-vm-stress`,
   `train-cpu-stress`, `train-vm-stress`, and train promotion breadth.
 
@@ -269,8 +273,9 @@ kernel PC/BPC/RA heartbeat sites with `llvm-addr2line` against the active
 rows whose recent heartbeat sites resolve into `panic.c` are reclassified as
 `kernel-panic-loop-timeout` instead of generic `live-timeout`.
 
-The SPEC fast gate now has an explicit `train` profile, backed by a `train-all`
-suite covering all current Linx SPECint rate benchmarks:
+The SPEC fast gate now has explicit `test`, `train`, and `test-train`
+profiles, backed by all-row `test-all` and `train-all` suites covering all
+current Linx SPECint rate benchmarks:
 
 - `500.perlbench_r`
 - `502.gcc_r`
@@ -857,6 +862,45 @@ all-train diagnostics and reserve `LINX_HEARTBEAT_REGS`,
 `LINX_FAULT_TRACE*` for focused single-row runs. For speed profiling, disable
 or coarsen heartbeat and start host sampling after `LINX_SPEC_START`, otherwise
 kernel boot, printk/vsprintf, and early page-table setup dominate the sample.
+
+Bounded test+train all-row rerun (2026-07-01). The fast gate now has a
+`test-all` suite and `test-train` profile so every supported SPECint C/C++ row
+can run with bounded `test` and `train` inputs before refrate-scale work. The
+static rebuild manifest is
+`workloads/generated/specint-build-all-20260701-r1/build_manifest.json`;
+`overall_ok=true` and all ten selected rows were built:
+`500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`,
+`523.xalancbmk_r`, `525.x264_r`, `531.deepsjeng_r`, `541.leela_r`,
+`557.xz_r`, and `999.specrand_ir`.
+
+The QEMU run ledger is
+`workloads/generated/specint-test-train-all-20260701-r1/`, using
+`SPECINT_TEST_ALL_TIMEOUT=120`, `SPECINT_TRAIN_ALL_TIMEOUT=180`,
+`SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000`,
+`LINX_QEMU_HEARTBEAT_SAME_SITE_WARN=4`, initramfs transport, 2 GiB guest
+memory, and `--stack-limit 2G`. The profile completed in `1485.953s` and
+attempted all ten rows in both suites. It is intentionally red:
+
+| Bench | `test` result | `train` result | Current owner |
+| --- | --- | --- | --- |
+| `500.perlbench_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: static-PIE/user branch or signal-return target. |
+| `502.gcc_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: rerun with focused fault/TLB trace and user slide symbols. |
+| `505.mcf_r` | wrapper child exit, code 255 | wrapper child exit, code 255 | Wrapper/runtime exit-status lane. |
+| `520.omnetpp_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: same addr-zero class as 500/502. |
+| `523.xalancbmk_r` | live timeout, heartbeat site progress plus same-site warning | live timeout, heartbeat site progress | Throughput; the same-site warning did not prove deadlock. |
+| `525.x264_r` | VFS root panic before SPEC start | VFS root panic before SPEC start | Transport/rootfs: use 9p or block-backed SPEC root for large inputs. |
+| `531.deepsjeng_r` | guest pass, host hash mismatch (`test.out`, 102 bytes vs 3611) | guest pass, host hash mismatch (`train.out`, 102 bytes vs 35012) | Output validation/wrapper collection; future summaries classify as `hash-mismatch`. |
+| `541.leela_r` | live timeout, heartbeat site progress | wrapper child exit, signal 9, same-site warning observed | Resource/kill-cause plus throughput lane. |
+| `557.xz_r` | live timeout, heartbeat site progress | `user-trap`, addr 0 | Correctness for train; throughput for test. |
+| `999.specrand_ir` | guest pass, host hash mismatch (`rand.24239.out`, 310 bytes vs 616074) | live timeout, heartbeat site progress | Recheck under no host contention; keep as cheap strict-hash sentinel when stable. |
+
+Loop update: the all-row `test-train` gate is now the preferred bounded
+bring-up ledger when a change may affect SPEC broadly. Treat `hash-mismatch`
+rows separately from guest execution failures: the guest reached
+`LINX_SPEC_PASS`, but host-side output verification failed. For QEMU profiling,
+drop `ignore_loglevel loglevel=8` and use coarse or disabled heartbeat after
+`LINX_SPEC_START`; the verbose diagnostic shape above is for failure
+classification, not speed measurement.
 
 Focused `525.x264_r` follow-up split that panic-path probe into transport work.
 The initramfs train lane builds a 1.6 GiB CPIO and never reaches

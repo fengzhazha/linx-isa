@@ -83,6 +83,37 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(result["class"], "pc-watch-exit")
         self.assertIn("0xffffffff80001574", result["evidence"])
 
+    def test_hash_mismatch_annotates_none_qemu_result(self) -> None:
+        qemu_info = {"failure_class": "none", "failure_evidence": ""}
+        runner._annotate_hash_mismatch(
+            qemu_info,
+            {
+                "ok": False,
+                "checks": [
+                    {
+                        "ok": False,
+                        "output_name": "train.out",
+                        "actual_hash": "0x1",
+                        "expected_hash": "0x2",
+                        "actual_size": 4,
+                        "expected_size": 8,
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(qemu_info["failure_class"], "hash-mismatch")
+        self.assertIn("train.out", qemu_info["failure_evidence"])
+        self.assertIn("0x1", qemu_info["failure_evidence"])
+        self.assertIn("0x2", qemu_info["failure_evidence"])
+
+    def test_hash_mismatch_preserves_runtime_failure_class(self) -> None:
+        qemu_info = {"failure_class": "user-trap", "failure_evidence": "trap"}
+        runner._annotate_hash_mismatch(qemu_info, {"ok": False, "checks": []})
+
+        self.assertEqual(qemu_info["failure_class"], "user-trap")
+        self.assertEqual(qemu_info["failure_evidence"], "trap")
+
     def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
         text = "\n".join(
             [

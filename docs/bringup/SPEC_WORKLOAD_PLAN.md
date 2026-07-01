@@ -27,6 +27,7 @@ The canonical taxonomy is capability-based:
   Current suites:
   - `test-smoke`: `999.specrand_ir` on `test`
   - `train-smoke`: `999.specrand_ir` on `train`
+  - `test-all`: all supported Linx SPECint C/C++ rate rows on `test`
   - `train-all`: all supported Linx SPECint C/C++ rate rows on `train`
   - `test-cpu-stress`: `531.deepsjeng_r` on `test`, isolated in nightly
     because it can run for minutes before guest progress
@@ -68,8 +69,12 @@ Done means:
   through the active QEMU binary and emits `specint_fast_gate_summary.json`.
 - The PR gate keeps `505.mcf_r` and `531.deepsjeng_r` out of the fast smoke
   path so cheap `test`/`train` regressions are visible first.
+- The test profile supports `--suite test-all` so all ten supported SPECint
+  rows can be run with bounded test input.
 - The train profile supports `--suite train-all` so all ten supported SPECint
   rows can be run with bounded train input before promotion-scale runs.
+- The `test-train` profile runs `test-all` and `train-all` together when the
+  goal is a complete bounded all-row gate rather than PR smoke.
 - Nightly uses `--profile nightly` to add CPU stress, VM stress, and promotion
   breadth.
 
@@ -167,13 +172,20 @@ Done means:
 
 ## Current Live Interpretation
 
-As of 2026-06-30:
+As of 2026-07-01:
 
 - `SPEC-M01` is resolved.
 - `SPEC-M01F` is the canonical fast gate shape for current QEMU/Linux SPECint
   work: run minimal `test-smoke` and `train-smoke` for cheap regression
-  signal, then use `--profile train --suite train-all` for the all-ten train
-  ledger before any refrate-scale or broad promotion run.
+  signal, then use `--profile test --suite test-all`,
+  `--profile train --suite train-all`, or `--profile test-train` for bounded
+  all-row ledgers before any refrate-scale or broad promotion run.
+- Latest all-row evidence is
+  `workloads/generated/specint-test-train-all-20260701-r1/`: both `test-all`
+  and `train-all` attempted all ten supported rows with BPC heartbeat. The run
+  is red and is the active failure ledger for addr-zero user traps, wrapper
+  exits, VFS-root transport panic, live-timeout rows, and strict host-output
+  hash mismatches.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup and `999.specrand_ir` passes strict train hash on the
   active QEMU/kernel stack.

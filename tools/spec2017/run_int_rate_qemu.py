@@ -2599,6 +2599,60 @@ def _spec_wrapper_failure_evidence(text: str) -> str:
     return f"{fail}; {wait}"[:512]
 
 
+def _set_output_failure_class(qemu_info: dict[str, Any], cls: str, evidence: str) -> None:
+    if qemu_info.get("failure_class") != "none":
+        return
+    qemu_info["failure_class"] = cls
+    qemu_info["failure_evidence"] = evidence[:512]
+
+
+def _annotate_hash_mismatch(qemu_info: dict[str, Any], hash_info: dict[str, Any]) -> None:
+    if hash_info.get("ok", True):
+        return
+    checks = hash_info.get("checks", [])
+    first_failed = next(
+        (check for check in checks if isinstance(check, dict) and not check.get("ok", False)),
+        None,
+    )
+    if not isinstance(first_failed, dict):
+        _set_output_failure_class(qemu_info, "hash-mismatch", "host hash check failed")
+        return
+
+    output = first_failed.get("output_name", "<unknown>")
+    actual_hash = first_failed.get("actual_hash", "<none>")
+    expected_hash = first_failed.get("expected_hash", "<none>")
+    actual_size = first_failed.get("actual_size", "<none>")
+    expected_size = first_failed.get("expected_size", "<none>")
+    _set_output_failure_class(
+        qemu_info,
+        "hash-mismatch",
+        (
+            f"{output}: actual hash {actual_hash} size {actual_size} "
+            f"!= expected hash {expected_hash} size {expected_size}"
+        ),
+    )
+
+
+def _annotate_specdiff_mismatch(
+    qemu_runs: list[dict[str, Any]], specdiff_info: dict[str, Any]
+) -> None:
+    if specdiff_info.get("ok", True) or not qemu_runs:
+        return
+    checks = specdiff_info.get("checks", [])
+    first_failed = next(
+        (check for check in checks if isinstance(check, dict) and not check.get("ok", False)),
+        None,
+    )
+    if isinstance(first_failed, dict):
+        evidence = (
+            f"{first_failed.get('out', '<unknown>')}: specdiff rc="
+            f"{first_failed.get('returncode', '<none>')}"
+        )
+    else:
+        evidence = "host specdiff failed"
+    _set_output_failure_class(qemu_runs[-1], "specdiff-mismatch", evidence)
+
+
 def _heartbeat_progress(heartbeats: list[str]) -> bool:
     return bool(_heartbeat_summary(heartbeats)["running"])
 
@@ -3377,6 +3431,7 @@ def main(argv: list[str]) -> int:
                             collected_outputs = True
                             collected_outputs_ok = collected_outputs_ok and bool(collect_info.get("ok", False))
                         if strict_hash and not hash_info.get("ok", False):
+                            _annotate_hash_mismatch(qemu_info, hash_info)
                             one_ok = False
 
                 if not one_ok:
@@ -3392,6 +3447,8 @@ def main(argv: list[str]) -> int:
                         specdiff_info["hash_checks"] = hash_checks
                         specdiff_info["strict_hash"] = strict_hash
                         bench_result["specdiff"] = specdiff_info
+                        if not specdiff_info.get("ok", False):
+                            _annotate_specdiff_mismatch(qemu_runs, specdiff_info)
                         bench_result["ok"] = bool(specdiff_info.get("ok", False)) and (
                             bool(hash_ok) if strict_hash else True
                         )
@@ -3401,6 +3458,8 @@ def main(argv: list[str]) -> int:
                 else:
                     specdiff_info = _run_specdiff(spec_dir, run_dir, bench, cfg, bench_out)
                     bench_result["specdiff"] = specdiff_info
+                    if not specdiff_info.get("ok", False):
+                        _annotate_specdiff_mismatch(qemu_runs, specdiff_info)
                     bench_result["ok"] = bool(specdiff_info.get("ok", False))
             else:
                 bench_result["specdiff"] = {"ok": False, "checks": []}
