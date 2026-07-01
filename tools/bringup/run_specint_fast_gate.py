@@ -199,6 +199,17 @@ def _env_float(name: str, default: float) -> float:
         raise SystemExit(f"error: {name} must be a number, got {value!r}") from exc
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name, "").strip().lower()
+    if not value:
+        return default
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise SystemExit(f"error: {name} must be a boolean, got {value!r}")
+
+
 def _default_qemu() -> str:
     env = os.environ.get("QEMU", "").strip()
     if env:
@@ -349,9 +360,15 @@ def _suite_command(
     heartbeat_sec: float,
     memory_mb: int,
     qemu_heartbeat_interval: int,
+    qemu_heartbeat_regs: bool,
+    qemu_heartbeat_code_bytes: int,
+    qemu_heartbeat_same_site_warn: int,
     no_progress_timeout: float,
     forward_memory_mb: bool,
     forward_qemu_heartbeat: bool,
+    forward_qemu_heartbeat_regs: bool,
+    forward_qemu_heartbeat_code_bytes: bool,
+    forward_qemu_heartbeat_same_site_warn: bool,
     forward_no_progress: bool,
     forward_stack_limit: bool,
     forward_symbolize_heartbeat: bool,
@@ -394,6 +411,12 @@ def _suite_command(
         cmd.extend(["--memory-mb", str(memory_mb)])
     if forward_qemu_heartbeat:
         cmd.extend(["--qemu-heartbeat-interval", str(qemu_heartbeat_interval)])
+    if qemu_heartbeat_regs and forward_qemu_heartbeat_regs:
+        cmd.append("--qemu-heartbeat-regs")
+    if qemu_heartbeat_code_bytes and forward_qemu_heartbeat_code_bytes:
+        cmd.extend(["--qemu-heartbeat-code-bytes", str(qemu_heartbeat_code_bytes)])
+    if qemu_heartbeat_same_site_warn and forward_qemu_heartbeat_same_site_warn:
+        cmd.extend(["--qemu-heartbeat-same-site-warn", str(qemu_heartbeat_same_site_warn)])
     if forward_no_progress:
         cmd.extend(["--no-progress-timeout", str(no_progress_timeout)])
     if stack_limit.strip() and forward_stack_limit:
@@ -418,6 +441,10 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         f"- spec_dir: `{summary['spec_dir']}`",
         f"- memory_mb: `{summary['memory_mb']}`",
         f"- stack_limit: `{summary['stack_limit']}`",
+        f"- qemu_heartbeat_interval: `{summary['qemu_heartbeat_interval']}`",
+        f"- qemu_heartbeat_regs: `{str(bool(summary.get('qemu_heartbeat_regs', False))).lower()}`",
+        f"- qemu_heartbeat_code_bytes: `{summary.get('qemu_heartbeat_code_bytes', 0)}`",
+        f"- qemu_heartbeat_same_site_warn: `{summary.get('qemu_heartbeat_same_site_warn', 0)}`",
         "",
         "## Suites",
         "",
@@ -465,6 +492,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--heartbeat-sec", type=float, default=float(os.environ.get("SPEC_HEARTBEAT_SEC", os.environ.get("LINX_SPEC_HEARTBEAT_SEC", "30"))))
     parser.add_argument("--memory-mb", type=int, default=_env_int("SPEC_MEMORY_MB", _env_int("LINX_SPEC_MEMORY_MB", 2048)))
     parser.add_argument("--qemu-heartbeat-interval", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_INTERVAL", _env_int("LINX_SPEC_QEMU_HEARTBEAT_INTERVAL", 0)))
+    parser.add_argument("--qemu-heartbeat-regs", action="store_true", default=_env_bool("SPEC_QEMU_HEARTBEAT_REGS", _env_bool("LINX_SPEC_QEMU_HEARTBEAT_REGS", False)))
+    parser.add_argument("--qemu-heartbeat-code-bytes", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_CODE_BYTES", _env_int("LINX_SPEC_QEMU_HEARTBEAT_CODE_BYTES", 0)))
+    parser.add_argument("--qemu-heartbeat-same-site-warn", type=int, default=_env_int("SPEC_QEMU_HEARTBEAT_SAME_SITE_WARN", _env_int("LINX_SPEC_QEMU_HEARTBEAT_SAME_SITE_WARN", 0)))
     parser.add_argument("--no-progress-timeout", type=float, default=_env_float("SPEC_NO_PROGRESS_TIMEOUT", _env_float("LINX_SPEC_NO_PROGRESS_TIMEOUT", 0.0)))
     parser.add_argument(
         "--stack-limit",
@@ -488,6 +518,10 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --memory-mb must be > 0")
     if args.qemu_heartbeat_interval < 0:
         raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.qemu_heartbeat_code_bytes < 0:
+        raise SystemExit("error: --qemu-heartbeat-code-bytes must be >= 0")
+    if args.qemu_heartbeat_same_site_warn < 0:
+        raise SystemExit("error: --qemu-heartbeat-same-site-warn must be >= 0")
     if args.no_progress_timeout < 0:
         raise SystemExit("error: --no-progress-timeout must be >= 0")
     if args.guest_heartbeat_sec < 0:
@@ -509,6 +543,9 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"error: missing QEMU binary: {qemu}")
 
     runner_has_qemu_heartbeat = _runner_supports_option(runner, "--qemu-heartbeat-interval")
+    runner_has_qemu_heartbeat_regs = _runner_supports_option(runner, "--qemu-heartbeat-regs")
+    runner_has_qemu_heartbeat_code_bytes = _runner_supports_option(runner, "--qemu-heartbeat-code-bytes")
+    runner_has_qemu_heartbeat_same_site_warn = _runner_supports_option(runner, "--qemu-heartbeat-same-site-warn")
     runner_has_no_progress = _runner_supports_option(runner, "--no-progress-timeout")
     runner_has_memory_mb = _runner_supports_option(runner, "--memory-mb")
     runner_has_stack_limit = _runner_supports_option(runner, "--stack-limit")
@@ -518,6 +555,24 @@ def main(argv: list[str]) -> int:
             "error: local SPEC matrix runner does not support "
             "--qemu-heartbeat-interval; update tools/spec2017/run_stage_qemu_matrix.py "
             "or rerun without the heartbeat switch"
+        )
+    if args.qemu_heartbeat_regs and not runner_has_qemu_heartbeat_regs:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--qemu-heartbeat-regs; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the heartbeat register switch"
+        )
+    if args.qemu_heartbeat_code_bytes and not runner_has_qemu_heartbeat_code_bytes:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--qemu-heartbeat-code-bytes; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the heartbeat code-byte switch"
+        )
+    if args.qemu_heartbeat_same_site_warn and not runner_has_qemu_heartbeat_same_site_warn:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--qemu-heartbeat-same-site-warn; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the heartbeat stall switch"
         )
     if args.no_progress_timeout and not runner_has_no_progress:
         raise SystemExit(
@@ -567,9 +622,15 @@ def main(argv: list[str]) -> int:
                 heartbeat_sec=args.heartbeat_sec,
                 memory_mb=args.memory_mb,
                 qemu_heartbeat_interval=args.qemu_heartbeat_interval,
+                qemu_heartbeat_regs=args.qemu_heartbeat_regs,
+                qemu_heartbeat_code_bytes=args.qemu_heartbeat_code_bytes,
+                qemu_heartbeat_same_site_warn=args.qemu_heartbeat_same_site_warn,
                 no_progress_timeout=args.no_progress_timeout,
                 forward_memory_mb=runner_has_memory_mb,
                 forward_qemu_heartbeat=runner_has_qemu_heartbeat,
+                forward_qemu_heartbeat_regs=runner_has_qemu_heartbeat_regs,
+                forward_qemu_heartbeat_code_bytes=runner_has_qemu_heartbeat_code_bytes,
+                forward_qemu_heartbeat_same_site_warn=runner_has_qemu_heartbeat_same_site_warn,
                 forward_no_progress=runner_has_no_progress,
                 forward_stack_limit=runner_has_stack_limit,
                 forward_symbolize_heartbeat=runner_has_symbolize_heartbeat,
@@ -633,6 +694,9 @@ def main(argv: list[str]) -> int:
         "append_extra": args.append_extra,
         "stack_limit": args.stack_limit.strip() or "default",
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
+        "qemu_heartbeat_regs": bool(args.qemu_heartbeat_regs),
+        "qemu_heartbeat_code_bytes": args.qemu_heartbeat_code_bytes,
+        "qemu_heartbeat_same_site_warn": args.qemu_heartbeat_same_site_warn,
         "no_progress_timeout": args.no_progress_timeout,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),

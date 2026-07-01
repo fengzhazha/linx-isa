@@ -282,6 +282,9 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
     lines.append(f"- qemu_heartbeat_interval: `{summary['qemu_heartbeat_interval']}`")
+    lines.append(f"- qemu_heartbeat_regs: `{str(bool(summary.get('qemu_heartbeat_regs', False))).lower()}`")
+    lines.append(f"- qemu_heartbeat_code_bytes: `{summary.get('qemu_heartbeat_code_bytes', 0)}`")
+    lines.append(f"- qemu_heartbeat_same_site_warn: `{summary.get('qemu_heartbeat_same_site_warn', 0)}`")
     lines.append(f"- qemu_fault_trace: `{str(bool(summary.get('qemu_fault_trace', False))).lower()}`")
     lines.append(f"- qemu_fault_trace_regs: `{str(bool(summary.get('qemu_fault_trace_regs', False))).lower()}`")
     lines.append(f"- qemu_fault_trace_limit: `{summary.get('qemu_fault_trace_limit', 1)}`")
@@ -393,6 +396,24 @@ def main(argv: list[str]) -> int:
         help="QEMU BPC heartbeat interval passed through to the per-transport runner (0 disables).",
     )
     ap.add_argument(
+        "--qemu-heartbeat-regs",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_QEMU_HEARTBEAT_REGS", False),
+        help="Pass --qemu-heartbeat-regs to the per-transport runner.",
+    )
+    ap.add_argument(
+        "--qemu-heartbeat-code-bytes",
+        type=int,
+        default=_env_int("LINX_SPEC_QEMU_HEARTBEAT_CODE_BYTES", 0),
+        help="QEMU heartbeat PC/BPC code bytes passed through to the per-transport runner (0 disables).",
+    )
+    ap.add_argument(
+        "--qemu-heartbeat-same-site-warn",
+        type=int,
+        default=_env_int("LINX_SPEC_QEMU_HEARTBEAT_SAME_SITE_WARN", 0),
+        help="QEMU same-site heartbeat warning threshold passed through to the per-transport runner (0 disables).",
+    )
+    ap.add_argument(
         "--qemu-fault-trace",
         action="store_true",
         default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE", False),
@@ -474,6 +495,10 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
     if args.qemu_heartbeat_interval < 0:
         raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.qemu_heartbeat_code_bytes < 0:
+        raise SystemExit("error: --qemu-heartbeat-code-bytes must be >= 0")
+    if args.qemu_heartbeat_same_site_warn < 0:
+        raise SystemExit("error: --qemu-heartbeat-same-site-warn must be >= 0")
     if args.qemu_fault_trace_limit < 0:
         raise SystemExit("error: --qemu-fault-trace-limit must be >= 0")
     if args.no_progress_timeout < 0:
@@ -533,6 +558,10 @@ def main(argv: list[str]) -> int:
             str(args.heartbeat_sec),
             "--qemu-heartbeat-interval",
             str(args.qemu_heartbeat_interval),
+            "--qemu-heartbeat-code-bytes",
+            str(args.qemu_heartbeat_code_bytes),
+            "--qemu-heartbeat-same-site-warn",
+            str(args.qemu_heartbeat_same_site_warn),
             "--qemu-fault-trace-limit",
             str(args.qemu_fault_trace_limit),
             "--no-progress-timeout",
@@ -546,6 +575,8 @@ def main(argv: list[str]) -> int:
         ]
         if args.symbolize_heartbeat:
             cmd.append("--symbolize-heartbeat")
+        if args.qemu_heartbeat_regs:
+            cmd.append("--qemu-heartbeat-regs")
         if args.qemu_fault_trace:
             cmd.append("--qemu-fault-trace")
         if args.qemu_fault_trace_regs:
@@ -613,6 +644,9 @@ def main(argv: list[str]) -> int:
         "stack_limit": args.stack_limit.strip() or "default",
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
+        "qemu_heartbeat_regs": bool(args.qemu_heartbeat_regs),
+        "qemu_heartbeat_code_bytes": int(args.qemu_heartbeat_code_bytes),
+        "qemu_heartbeat_same_site_warn": int(args.qemu_heartbeat_same_site_warn),
         "qemu_fault_trace": bool(args.qemu_fault_trace or qemu_fault_trace_filters),
         "qemu_fault_trace_regs": bool(args.qemu_fault_trace_regs),
         "qemu_fault_trace_limit": int(args.qemu_fault_trace_limit),

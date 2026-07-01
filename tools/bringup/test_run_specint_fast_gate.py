@@ -35,6 +35,42 @@ class SpecintFastGateTests(unittest.TestCase):
         self.assertEqual(units[0].transports, "9p")
         self.assertEqual(units[0].benches, gate.SPECINT_STAGE_B_BENCHES)
 
+    def test_suite_command_forwards_qemu_heartbeat_debug_switches(self) -> None:
+        cmd = gate._suite_command(
+            suite=gate.SUITES["train-smoke"],
+            runner=Path("/runner.py"),
+            spec_dir=Path("/spec"),
+            qemu=Path("/qemu"),
+            sysroot=Path("/sysroot"),
+            out_dir=Path("/out"),
+            append_extra="norandmaps",
+            heartbeat_sec=30,
+            memory_mb=2048,
+            qemu_heartbeat_interval=1000000000,
+            qemu_heartbeat_regs=True,
+            qemu_heartbeat_code_bytes=16,
+            qemu_heartbeat_same_site_warn=4,
+            no_progress_timeout=120,
+            forward_memory_mb=True,
+            forward_qemu_heartbeat=True,
+            forward_qemu_heartbeat_regs=True,
+            forward_qemu_heartbeat_code_bytes=True,
+            forward_qemu_heartbeat_same_site_warn=True,
+            forward_no_progress=True,
+            forward_stack_limit=True,
+            forward_symbolize_heartbeat=True,
+            stack_limit="2G",
+            symbolize_heartbeat=True,
+            guest_heartbeat_sec=0,
+            dump_prefix_bytes=0,
+        )
+
+        self.assertIn("--qemu-heartbeat-regs", cmd)
+        self.assertIn("--qemu-heartbeat-code-bytes", cmd)
+        self.assertEqual(cmd[cmd.index("--qemu-heartbeat-code-bytes") + 1], "16")
+        self.assertIn("--qemu-heartbeat-same-site-warn", cmd)
+        self.assertEqual(cmd[cmd.index("--qemu-heartbeat-same-site-warn") + 1], "4")
+
 
 if __name__ == "__main__":
     unittest.main()

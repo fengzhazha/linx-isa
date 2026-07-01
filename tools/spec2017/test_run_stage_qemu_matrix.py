@@ -82,6 +82,9 @@ class StageQemuMatrixTests(unittest.TestCase):
             "stack_limit": "2G",
             "append_extra": "norandmaps",
             "qemu_heartbeat_interval": 1000000000,
+            "qemu_heartbeat_regs": True,
+            "qemu_heartbeat_code_bytes": 16,
+            "qemu_heartbeat_same_site_warn": 4,
             "qemu_fault_trace": True,
             "qemu_fault_trace_regs": True,
             "qemu_fault_trace_limit": 1,
@@ -103,6 +106,9 @@ class StageQemuMatrixTests(unittest.TestCase):
             text = path.read_text()
 
         self.assertIn("qemu_fault_trace: `true`", text)
+        self.assertIn("qemu_heartbeat_regs: `true`", text)
+        self.assertIn("qemu_heartbeat_code_bytes: `16`", text)
+        self.assertIn("qemu_heartbeat_same_site_warn: `4`", text)
         self.assertIn("LINX_QEMU_FAULT_TRACE_PC_LO=0x15559efe00", text)
         self.assertIn("LINX_QEMU_FAULT_TRACE_PC_HI=0x15559efe40", text)
 

@@ -143,11 +143,17 @@ class RunIntRateQemuTests(unittest.TestCase):
         runner._apply_qemu_debug_env(
             env,
             qemu_heartbeat_interval=100,
+            qemu_heartbeat_regs=True,
+            qemu_heartbeat_code_bytes=16,
+            qemu_heartbeat_same_site_warn=4,
             qemu_fault_trace_regs=True,
             qemu_fault_trace_limit=3,
         )
 
         self.assertEqual(env["LINX_HEARTBEAT_INTERVAL"], "100")
+        self.assertEqual(env["LINX_QEMU_HEARTBEAT_REGS"], "1")
+        self.assertEqual(env["LINX_QEMU_HEARTBEAT_CODE_BYTES"], "16")
+        self.assertEqual(env["LINX_QEMU_HEARTBEAT_SAME_SITE_WARN"], "4")
         self.assertEqual(env["LINX_QEMU_FAULT_TRACE"], "1")
         self.assertEqual(env["LINX_QEMU_FAULT_TRACE_REGS"], "1")
         self.assertEqual(env["LINX_QEMU_FAULT_TRACE_LIMIT"], "3")
