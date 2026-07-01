@@ -181,11 +181,12 @@ As of 2026-07-01:
   `--profile train --suite train-all`, or `--profile test-train` for bounded
   all-row ledgers before any refrate-scale or broad promotion run.
 - Latest all-row evidence is
-  `workloads/generated/specint-test-train-all-20260701-r1/`: both `test-all`
-  and `train-all` attempted all ten supported rows with BPC heartbeat. The run
-  is red and is the active failure ledger for addr-zero user traps, wrapper
-  exits, VFS-root transport panic, live-timeout rows, and strict host-output
-  hash mismatches.
+  `workloads/generated/specint-test-train-all-hashclass-20260701-r1/`: both
+  `test-all` and `train-all` attempted all ten supported rows with BPC
+  heartbeat on rebuilt QEMU `v10.2.0-987-g08783bb4572`. The run is red and is
+  the active failure ledger for addr-zero user traps, wrapper exits, VFS-root
+  transport panic, live-timeout rows, and strict host-output `hash-mismatch`
+  rows.
 - Focused `531.deepsjeng_r` follow-up is
   `workloads/generated/specint-531-test-filesys-trace-20260701-r1/`: cwd,
   executable preflight, and `execve()` are correct, but the child writes the
@@ -196,15 +197,18 @@ As of 2026-07-01:
   currently a C++ runtime/codegen correctness blocker rather than a SPEC input
   packaging blocker.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
-  reaches SPEC startup and `999.specrand_ir` passes strict train hash on the
-  active QEMU/kernel stack.
+  reaches SPEC startup, and prior focused `999.specrand_ir` train-smoke
+  evidence passes strict hash on this QEMU/kernel stack. The current all-row
+  diagnostic keeps `999` train in the live-timeout lane under the bounded
+  180s suite budget, so use a focused smoke rerun for cheap `999` correctness
+  checks.
 - `SPEC-M03` and `SPEC-M05` are active, not blocked by entry: current
-  initramfs train-all evidence passes `999.specrand_ir`, keeps the former
-  `502.gcc_r` VMA/mprotect correctness stop closed by the Linx Linux
-  no-merge workaround, reproduces the `525.x264_r` initramfs VFS-root panic,
-  and classifies the remaining failed rows as heartbeat-backed live-slow
-  rather than deadlock. The current all-ten ledger is
-  `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/`.
+  initramfs train-all evidence reaches SPEC startup for every non-panic row,
+  reproduces addr-zero user traps for `500`, `502`, `520`, and `557`,
+  classifies `531` as a host-output `hash-mismatch`, keeps `523` and `999`
+  in heartbeat-backed live-slow lanes, and reproduces the `525.x264_r`
+  initramfs VFS-root panic. The current all-ten ledger is
+  `workloads/generated/specint-test-train-all-hashclass-20260701-r1/`.
 - `SPEC-M04` remains separately open for the shared-runtime path.
 - `SPEC-M06` is not actionable until `SPEC-M05` train correctness and
   throughput lanes are green on the promoted static transport policy.

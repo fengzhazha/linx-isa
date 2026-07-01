@@ -874,12 +874,13 @@ static rebuild manifest is
 `557.xz_r`, and `999.specrand_ir`.
 
 The QEMU run ledger is
-`workloads/generated/specint-test-train-all-20260701-r1/`, using
+`workloads/generated/specint-test-train-all-hashclass-20260701-r1/`, using
 `SPECINT_TEST_ALL_TIMEOUT=120`, `SPECINT_TRAIN_ALL_TIMEOUT=180`,
 `SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000`,
 `LINX_QEMU_HEARTBEAT_SAME_SITE_WARN=4`, initramfs transport, 2 GiB guest
-memory, and `--stack-limit 2G`. The profile completed in `1485.953s` and
-attempted all ten rows in both suites. It is intentionally red:
+memory, `--stack-limit 2G`, and rebuilt QEMU `v10.2.0-987-g08783bb4572`.
+The profile completed in `1452.145s` and attempted all ten rows in both
+suites. It is intentionally red:
 
 | Bench | `test` result | `train` result | Current owner |
 | --- | --- | --- | --- |
@@ -890,14 +891,15 @@ attempted all ten rows in both suites. It is intentionally red:
 | `523.xalancbmk_r` | live timeout, heartbeat site progress plus same-site warning | live timeout, heartbeat site progress | Throughput; the same-site warning did not prove deadlock. |
 | `525.x264_r` | VFS root panic before SPEC start | VFS root panic before SPEC start | Transport/rootfs: use 9p or block-backed SPEC root for large inputs. |
 | `531.deepsjeng_r` | guest pass, host hash mismatch (`test.out`, 102 bytes vs 3611) | guest pass, host hash mismatch (`train.out`, 102 bytes vs 35012) | C++ runtime/codegen correctness. Focused trace shows exec succeeds but the child emits `Allocated Workload not found` without a child-side file syscall for `test.txt`; C stdio controls pass while static C++ smoke traps. |
-| `541.leela_r` | live timeout, heartbeat site progress | wrapper child exit, signal 9, same-site warning observed | Resource/kill-cause plus throughput lane. |
-| `557.xz_r` | live timeout, heartbeat site progress | `user-trap`, addr 0 | Correctness for train; throughput for test. |
+| `541.leela_r` | live timeout, heartbeat site progress | wrapper child exit, signal 9 after BPC progress | Resource/kill-cause plus throughput lane. |
+| `557.xz_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: same addr-zero class as 500/502/520. |
 | `999.specrand_ir` | guest pass, host hash mismatch (`rand.24239.out`, 310 bytes vs 616074) | live timeout, heartbeat site progress | Recheck under no host contention; keep as cheap strict-hash sentinel when stable. |
 
 Loop update: the all-row `test-train` gate is now the preferred bounded
-bring-up ledger when a change may affect SPEC broadly. Treat `hash-mismatch`
-rows separately from guest execution failures: the guest reached
-`LINX_SPEC_PASS`, but host-side output verification failed. For QEMU profiling,
+bring-up ledger when a change may affect SPEC broadly. The current runner
+records guest-pass/output-verification failures as `hash-mismatch` in the
+matrix, so treat those separately from guest execution failures: the guest
+reached `LINX_SPEC_PASS`, but host-side output verification failed. For QEMU profiling,
 drop `ignore_loglevel loglevel=8` and use coarse or disabled heartbeat after
 `LINX_SPEC_START`; the verbose diagnostic shape above is for failure
 classification, not speed measurement.
