@@ -142,6 +142,37 @@ Additional focused diagnostics:
   (`oom_kill 0`), so this supersedes the 420 second live-timeout classification
   for `541`: atomic recursion is closed, and the next blocker is allocator
   metadata corruption, codegen, or mmap/free-path correctness.
+- `workloads/generated/specint-541-mallocng-faultregs-20260702-r1/test/qemu_matrix_summary.json`
+  reran the mallocng binary with QEMU fault-register filters around
+  `0x1555615580..0x15556155b0`; the trap did not reproduce and the row stayed
+  live through the 300 second cap.
+- `workloads/generated/specint-541-mallocng-pcwatch-ring-20260702-r1/test/qemu_matrix_summary.json`
+  tried to capture a late PC-watch ring, but an earlier null-address mallocng
+  assert fired first at `tpc=0x1555616858`, count `1082228490`. That runtime PC
+  maps to ELF `0x400c1858`, the `a_crash()` path for mallocng `queue()` and
+  `assert(!m->next)` in the `alloc_slot()` path.
+- `workloads/generated/specint-541-mallocng-queue-meta-20260702-r1/test/qemu_matrix_summary.json`
+  narrowed the PC-watch count window around that `queue()` assert, but the
+  failure did not reproduce in the 120 second cap. Treat the mallocng asserts
+  as nondeterministic metadata corruption until a focused memory trace proves
+  whether the owner is libc, codegen, or QEMU/Linux VM behavior.
+- `MALLOC_IMPL=oldmalloc MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh`
+  rebuilt phase-b musl with oldmalloc, `bash tools/build_linx_llvm_cpp_runtimes.sh
+  --profile spec --mode phase-b` refreshed the C++ overlay, and
+  `workloads/generated/specint-build-541-oldmalloc-20260702-r1/build_manifest.json`
+  records a successful static relink of `541.leela_r`.
+- `workloads/generated/specint-541-oldmalloc-20260702-r1/test/qemu_matrix_summary.json`
+  reran oldmalloc-linked `541` with 4096 MiB and `--stack-limit 2G`. It stayed
+  live through 420 seconds with BPC/site progress, count `45000000008`, recent
+  count delta `6999999990`, eight recent unique BPC sites, no trap, no panic,
+  and `oom_kill 0`.
+- `workloads/generated/specint-541-oldmalloc-long-20260702-r1/test/qemu_matrix_summary.json`
+  reran the oldmalloc-linked `541` with a 1200 second cap. It remained a
+  heartbeat-backed `live-timeout`: elapsed `1200.376` seconds, count
+  `133000000000`, last BPC `0x1555592176`, recent count delta `7000000000`,
+  eight recent unique BPC sites, no trap, no panic, and `oom_kill 0`. This does
+  not make `541` correct or fast enough, but it cleanly splits the current
+  mallocng metadata asserts from the closed compiler-rt atomic recursion.
 
 ## Tool fixes in this loop
 
@@ -182,14 +213,16 @@ Hot paths seen in both profiles:
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
    2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
-   is now fixed. The next `541` blocker is the later mallocng `get_meta`
-   null-address `a_crash`; rerun with QEMU fault-register filters around
-   `0x1555615580..0x15556155b0` and add a focused metadata dump before changing
-   mallocng, compiler, or QEMU. Prior `520` did not reproduce SIGKILL and
-   showed `oom_kill 0`; keep it in live-timeout/performance triage unless a
-   fresh run proves otherwise. `523.xalancbmk_r` is unstable between user-trap
-   and live-timeout; rerun with fault trace filters around the user BPC if the
-   trap reproduces.
+   is now fixed. The next `541` blocker is mallocng-specific so far: the fixed
+   mallocng binary has hit both `get_meta` `assert(area->check == ctx.secret)`
+   and `queue()` `assert(!m->next)`, while the oldmalloc relink stays live
+   through 1200 seconds with no trap or OOM. Keep mallocng as the maintained
+   default, but use `MALLOC_IMPL=oldmalloc` as a bisection lane before changing
+   QEMU/compiler/libc for allocator metadata traps. Prior `520` did not
+   reproduce SIGKILL and showed `oom_kill 0`; keep it in live-timeout/
+   performance triage unless a fresh run proves otherwise. `523.xalancbmk_r` is
+   unstable between user-trap and live-timeout; rerun with fault trace filters
+   around the user BPC if the trap reproduces.
 8. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
 
 ## Verification
@@ -208,4 +241,12 @@ Hot paths seen in both profiles:
 - `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 541.leela_r --emit-manifest workloads/generated/specint-build-541-atomicfix-20260702-r1/build_manifest.json` (passed)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 420` (expected red, old `__atomic_load_1` user trap closed; classified `live-timeout` with heartbeat progress)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 1200` (expected red, old atomic recursion still closed; later mallocng `get_meta` assertion traps at `addr=0`)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --qemu-fault-trace-regs --qemu-fault-trace-addr 0 --qemu-fault-trace-pc-lo 0x1555615580 --qemu-fault-trace-pc-hi 0x15556155b0 --timeout 300` (expected red; mallocng trap did not reproduce, classified `live-timeout`)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --qemu-fault-trace-regs --qemu-fault-trace-addr 0 --timeout 900` (expected red; captured mallocng `queue()` assert at `0x1555616858`)
+- `MALLOC_IMPL=oldmalloc MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh` (passed; allocator bisection sysroot)
+- `bash tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b` (passed after oldmalloc sysroot refresh)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 541.leela_r --emit-manifest workloads/generated/specint-build-541-oldmalloc-20260702-r1/build_manifest.json` (passed; oldmalloc-linked `541`)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 420` against the oldmalloc-linked binary (expected red; `live-timeout`, no trap/panic/OOM)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 1200` against the oldmalloc-linked binary (expected red; `live-timeout`, count `133000000000`, no trap/panic/OOM)
 - `skill-evolve: update linx-compiler (record compiler-rt/C11 atomic recursion triage and fallback verification)`
+- `skill-evolve: update linx-lib (record oldmalloc bisection for mallocng metadata traps)`

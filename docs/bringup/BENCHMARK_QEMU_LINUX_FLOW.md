@@ -282,8 +282,17 @@ row to heartbeat-backed `live-timeout` through 420 seconds, count
 `45000000002`, no `LINX_USER_TRAP`, no panic, and `oom_kill 0`. A longer
 `workloads/generated/specint-541-atomicfix-long-20260702-r1/` run later trips a
 fresh null-address mallocng `a_crash` in `get_meta`, mapping to
-`assert(area->check == ctx.secret)`; route that as allocator metadata,
-codegen, or mmap/free-path correctness, not the closed atomic-recursion bug.
+`assert(area->check == ctx.secret)`. A second mallocng-focused run also exposed
+the `queue()` `assert(!m->next)` path at runtime PC `0x1555616858`. Before
+changing QEMU, compiler, or libc for these allocator metadata traps, run the
+oldmalloc bisection lane: rebuild with `MALLOC_IMPL=oldmalloc`, refresh the
+spec C++ runtime overlay, relink the target row, and compare the same QEMU
+matrix shape. For `541.leela_r`,
+`workloads/generated/specint-541-oldmalloc-long-20260702-r1/` stayed live
+through 1200 seconds, count `133000000000`, no trap, no panic, and `oom_kill 0`;
+route this as mallocng metadata/codegen/VM-path correctness, not the closed
+atomic-recursion bug. Oldmalloc remains a bisection aid, not the default
+phase-b allocator baseline.
 
 Run the promotion path only when the Linux path is green:
 

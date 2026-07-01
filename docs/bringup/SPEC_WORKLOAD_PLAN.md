@@ -219,8 +219,14 @@ As of 2026-07-01:
   `workloads/generated/specint-541-atomicfix-long-20260702-r1/` exposes the next
   blocker: a null-address mallocng `a_crash` at runtime PC `0x155561559c`,
   mapping to ELF `0x400c059c` in `get_meta` and
-  `assert(area->check == ctx.secret)`. The old atomic recursion is closed; the
-  next owner is allocator metadata corruption, codegen, or the mmap/free path.
+  `assert(area->check == ctx.secret)`. A second mallocng run reached the
+  `queue()` `assert(!m->next)` path at runtime PC `0x1555616858`. The oldmalloc
+  bisection under `workloads/generated/specint-541-oldmalloc-long-20260702-r1/`
+  stayed live through 1200 seconds, count `133000000000`, with no trap, panic,
+  or OOM. The old atomic recursion is closed; the next owner is mallocng
+  metadata corruption, codegen, or the mmap/free path. Keep mallocng as the
+  default phase-b allocator and use oldmalloc only as the focused bisection
+  lane for allocator-metadata traps.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup, and prior focused `999.specrand_ir` train-smoke
   evidence passes strict hash on this QEMU/kernel stack. In the current all-row
