@@ -181,15 +181,14 @@ As of 2026-07-01:
   `--profile train --suite train-all`, or `--profile test-train` for bounded
   all-row ledgers before any refrate-scale or broad promotion run.
 - Latest all-row evidence is
-  `workloads/generated/specint-test-train-all-mmiohole-qemu-20260701-r1/`: both
-  `test-all` and `train-all` attempted all ten supported rows with BPC
+  `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/`:
+  both `test-all` and `train-all` attempted all ten supported rows with BPC
   heartbeat on rebuilt QEMU `v10.2.0-989-g5cfb672a711` after the Linx `virt`
-  memory-node MMIO-hole fix. The run is red, but it supersedes the older
-  hashclass ledger: broad `500.perlbench_r` now classifies as live-progress
-  timeout on both inputs, `502.gcc_r` and `520.omnetpp_r` trap only on train,
-  `557.xz_r` is live-timeout on test and wrapper child-exit on train, and
-  `531.deepsjeng_r`/`999.specrand_ir` reach guest pass before host strict-hash
-  mismatch.
+  memory-node MMIO-hole fix and blockify rebuild. The run is red, but it
+  supersedes the older hashclass ledger: `502.gcc_r`, `557.xz_r`, and
+  `999.specrand_ir` pass on `test`; `999.specrand_ir` passes on `train`;
+  remaining red rows are live-progress timeouts, focused user traps, guest OOM
+  at 2 GiB, or the `525.x264_r` oversized-initramfs panic.
 - Focused `531.deepsjeng_r` follow-up is
   `workloads/generated/specint-531-test-filesys-trace-20260701-r1/`: cwd,
   executable preflight, and `execve()` are correct, but the child writes the
@@ -210,6 +209,18 @@ As of 2026-07-01:
   QEMU store helper. The same focused run remains red with a later addr-zero
   user trap at `tpc=0x1555622dba`, so the next owner is that later user fault,
   not stack-growth faulting, syscall return, or SPEC input packaging.
+- Focused `541.leela_r` follow-up is
+  `workloads/generated/specint-541-atomicfix-20260702-r1/`: the earlier 4 GiB
+  / `--stack-limit 2G` trap mapped to recursive compiler-rt
+  `__atomic_load_1` lowering. After rebuilding musl phase-b builtins, the
+  spec-profile C++ runtime overlay, and the `541` executable, the row no longer
+  traps or OOMs; it becomes a heartbeat-backed `live-timeout` through 420
+  seconds with `oom_kill 0`. A longer same-binary run under
+  `workloads/generated/specint-541-atomicfix-long-20260702-r1/` exposes the next
+  blocker: a null-address mallocng `a_crash` at runtime PC `0x155561559c`,
+  mapping to ELF `0x400c059c` in `get_meta` and
+  `assert(area->check == ctx.secret)`. The old atomic recursion is closed; the
+  next owner is allocator metadata corruption, codegen, or the mmap/free path.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup, and prior focused `999.specrand_ir` train-smoke
   evidence passes strict hash on this QEMU/kernel stack. In the current all-row
@@ -218,12 +229,11 @@ As of 2026-07-01:
   a cheap correctness sentinel.
 - `SPEC-M03` and `SPEC-M05` are active, not blocked by entry: current
   initramfs evidence reaches SPEC startup for every non-panic row. The current
-  train blockers are train-only user traps in `502.gcc_r` and `520.omnetpp_r`,
-  wrapper/benchmark child exits in `505.mcf_r` and train `557.xz_r`, strict
-  host-output hash mismatches in `531.deepsjeng_r` and `999.specrand_ir`,
-  live-progress timeouts in the remaining long rows, and the persistent
+  blockers are focused user traps, wrapper/benchmark child exits, confirmed
+  2 GiB guest OOM rows, live-progress timeouts, and the persistent
   `525.x264_r` initramfs VFS-root panic. The current all-ten ledger is
-  `workloads/generated/specint-test-train-all-mmiohole-qemu-20260701-r1/`.
+  `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/`,
+  with focused follow-up artifacts under `workloads/generated/specint-*-20260702-r1/`.
 - `SPEC-M04` remains separately open for the shared-runtime path.
 - `SPEC-M06` is not actionable until `SPEC-M05` train correctness and
   throughput lanes are green on the promoted static transport policy.

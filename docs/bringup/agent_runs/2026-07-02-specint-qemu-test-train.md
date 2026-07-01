@@ -104,6 +104,44 @@ Additional focused diagnostics:
   `spec-child-sigkill-oom`; guest memory fell from about 2046404 kB available
   to 16348 kB available before `oom_kill` incremented to 1, then wait status
   reported `signaled=1 sig=9`.
+- `workloads/generated/specint-541-mem4096-20260702-r1/test/qemu_matrix_summary.json`
+  reran `541.leela_r` with 4096 MiB and `--stack-limit 2G`, removing the
+  2 GiB OOM pressure. The old executable then failed with a user trap at
+  `addr=0x3f7ffffff8`, `sp=0x3f80000000`, and `tpc=0x15556253d6`. Correcting
+  the ET_DYN base maps this to ELF `0x400d03d6`, `__atomic_load_1`; disassembly
+  showed that the compiler-rt specialized helper called itself recursively.
+- `compiler/llvm/compiler-rt/lib/builtins/atomic.c` now has a Linx-only guard
+  that keeps compiler-rt atomic builtins away from `__c11_atomic_*`, because
+  the current Linx backend lowers those C11 atomics back to the same public
+  `__atomic_*` symbols. This is a bring-up fallback until native atomic
+  lowering exists.
+- Rebuild evidence:
+  - `MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh` passed and
+    refreshed `out/libc/musl/logs/phase-b-summary.txt`.
+  - `bash tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b`
+    passed and restored the spec-profile C++ runtime overlay into the phase-b
+    sysroot.
+  - `workloads/generated/specint-build-541-atomicfix-20260702-r1/build_manifest.json`
+    records a successful static phase-b rebuild of `541.leela_r`.
+  - `out/libc/musl/runtime/phase-b/obj/atomic.c.o` and the relinked Leela
+    executable both show direct `lbui/lhui/lwi/ldi` bodies for
+    `__atomic_load_{1,2,4,8}` rather than recursive calls.
+- `workloads/generated/specint-541-atomicfix-20260702-r1/test/qemu_matrix_summary.json`
+  reran the fixed `541.leela_r` binary with the same 4096 MiB /
+  `--stack-limit 2G` policy. The row no longer traps, panics, or OOMs; it
+  becomes `live-timeout` at 420 seconds with heartbeat site progress,
+  count `45000000002`, recent count delta `6999999998`, seven recent unique
+  BPC sites, `oom_kill 0`, and a small stack (`VmStk: 316 kB`).
+- `workloads/generated/specint-541-atomicfix-long-20260702-r1/test/qemu_matrix_summary.json`
+  reran the same fixed binary with a 1200 second cap. It now fails earlier with
+  a fresh user trap at `addr=0x0`, `tpc=0x155561559c`, `bpc=0x1555615598`,
+  `orig_tpc=0x15556171e6`, and `ra=0x15556152ca`. Using the ET_DYN base
+  `0x1551555000`, the trap maps to ELF `0x400c059c` in musl mallocng
+  `get_meta`, specifically the `a_crash()` path for
+  `assert(area->check == ctx.secret)`. Guest memory was not pressured
+  (`oom_kill 0`), so this supersedes the 420 second live-timeout classification
+  for `541`: atomic recursion is closed, and the next blocker is allocator
+  metadata corruption, codegen, or mmap/free-path correctness.
 
 ## Tool fixes in this loop
 
@@ -115,6 +153,10 @@ Additional focused diagnostics:
 - Split SIGKILL plus observed guest `oom_kill` into `spec-child-sigkill-oom`.
 - Added runner/matrix switches for QEMU's existing fault-register tracing:
   `--qemu-fault-trace-regs` and `--qemu-fault-trace-limit`.
+- Added runner/matrix pass-through for focused QEMU fault-trace filters:
+  `--qemu-fault-trace`, `--qemu-fault-trace-pc[-lo|-hi]`,
+  `--qemu-fault-trace-addr[-lo|-hi]`, `--qemu-fault-trace-count[-lo|-hi]`,
+  and `--qemu-fault-trace-trapnum`.
 
 ## Profile observations
 
@@ -139,8 +181,11 @@ Hot paths seen in both profiles:
 5. `525.x264_r`: do not use initramfs transport for full x264 inputs. The generated cpio is about 1.6 GB and panics before init. Use 9p/virtio payload transport or split input staging.
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
-   2 GiB and should be routed to workload-size/transport policy or memory
-   scaling, not QEMU correctness. Prior `520` did not reproduce SIGKILL and
+   2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
+   is now fixed. The next `541` blocker is the later mallocng `get_meta`
+   null-address `a_crash`; rerun with QEMU fault-register filters around
+   `0x1555615580..0x15556155b0` and add a focused metadata dump before changing
+   mallocng, compiler, or QEMU. Prior `520` did not reproduce SIGKILL and
    showed `oom_kill 0`; keep it in live-timeout/performance triage unless a
    fresh run proves otherwise. `523.xalancbmk_r` is unstable between user-trap
    and live-timeout; rerun with fault trace filters around the user BPC if the
@@ -158,3 +203,9 @@ Hot paths seen in both profiles:
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 523.xalancbmk_r --bench 541.leela_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `523` as `user-trap`, `541` as SIGKILL before OOM classifier)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 523.xalancbmk_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --qemu-fault-trace-regs --timeout 180` (expected red, verified QEMU fault-reg switch; rerun classified `live-timeout`)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `spec-child-sigkill-oom`)
+- `MODE=phase-b bash lib/musl/tools/linx/build_linx64_musl.sh` (passed after Linx compiler-rt atomic fallback)
+- `bash tools/build_linx_llvm_cpp_runtimes.sh --profile spec --mode phase-b` (passed, restored C++ overlay)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 541.leela_r --emit-manifest workloads/generated/specint-build-541-atomicfix-20260702-r1/build_manifest.json` (passed)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 420` (expected red, old `__atomic_load_1` user trap closed; classified `live-timeout` with heartbeat progress)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --memory-mb 4096 --stack-limit 2G --timeout 1200` (expected red, old atomic recursion still closed; later mallocng `get_meta` assertion traps at `addr=0`)
+- `skill-evolve: update linx-compiler (record compiler-rt/C11 atomic recursion triage and fallback verification)`

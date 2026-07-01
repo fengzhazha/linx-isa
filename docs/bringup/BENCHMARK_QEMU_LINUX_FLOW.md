@@ -27,19 +27,16 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-test-train-all-mmiohole-qemu-20260701-r1/` is
+- `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/` is
   the current all-SPECint bounded diagnostic ledger after the QEMU Linx `virt`
-  memory-node MMIO-hole fix. The run requested all ten SPECint rows on both
-  `test` and `train` inputs with initramfs, QEMU BPC heartbeat every 1B guest
-  instructions, and a `2G` stack limit on rebuilt QEMU
-  `v10.2.0-989-g5cfb672a711`. It is red, but the failure mix changed from the
-  pre-MMIO ledger: `500.perlbench_r` is live-progress timeout on both inputs;
-  `502.gcc_r` and `520.omnetpp_r` are live-timeout on test but train user-trap;
-  `505.mcf_r` exits through the wrapper with code 255; `557.xz_r` is
-  live-timeout on test and wrapper child-exit on train; `531.deepsjeng_r` and
-  `999.specrand_ir` reach guest pass but fail host hash/size validation;
-  `523.xalancbmk_r` and `541.leela_r` are heartbeat-backed live-timeout rows;
-  and `525.x264_r` still hits the early VFS rootfs panic in initramfs mode.
+  memory-node MMIO-hole fix and blockify rebuild. The run requested all ten
+  SPECint rows on both `test` and `train` inputs with initramfs, QEMU BPC
+  heartbeat every 1B guest instructions, and a `2G` stack limit on rebuilt QEMU
+  `v10.2.0-989-g5cfb672a711`. It is red, but the failure mix is now narrower:
+  `502.gcc_r`, `557.xz_r`, and `999.specrand_ir` pass on `test`;
+  `999.specrand_ir` passes on `train`; remaining red rows are live-progress
+  timeouts, focused user traps, guest OOM at 2 GiB, wrapper/benchmark exits, or
+  the persistent `525.x264_r` oversized-initramfs VFS-root panic.
 
 Inference:
 
@@ -276,10 +273,17 @@ QEMU memory bug. Use `--stack-limit <bytes|512M|1G|2G|unlimited>` on
 `run_int_rate_qemu.py`, `run_stage_qemu_matrix.py`, or
 `run_specint_fast_gate.py`, and keep an explicit `--timeout`; if the failure
 changes from `user-trap` to heartbeat-visible live progress, record it as stack
-policy first. The current `541.leela_r` evidence follows this shape: `512M`
-traps at `addr=0x3fdffffff8`, `1G` traps at `addr=0x3fbffffff8`, and `2G`
-reaches a 240s live timeout with count `41550000002`, changing BPCs, and no
-`LINX_USER_TRAP`.
+policy first. The `541.leela_r` follow-up refined this rule: small stack limits
+trap at `sp - 8`, but the 4 GiB / `--stack-limit 2G` user trap was compiler-rt
+`__atomic_load_1` self-recursion, not stack-growth or QEMU MMU behavior. After
+relinking against Linx compiler-rt builtins that avoid `__c11_atomic_*`
+recursion, `workloads/generated/specint-541-atomicfix-20260702-r1/` changes the
+row to heartbeat-backed `live-timeout` through 420 seconds, count
+`45000000002`, no `LINX_USER_TRAP`, no panic, and `oom_kill 0`. A longer
+`workloads/generated/specint-541-atomicfix-long-20260702-r1/` run later trips a
+fresh null-address mallocng `a_crash` in `get_meta`, mapping to
+`assert(area->check == ctx.secret)`; route that as allocator metadata,
+codegen, or mmap/free-path correctness, not the closed atomic-recursion bug.
 
 Run the promotion path only when the Linux path is green:
 
