@@ -21,7 +21,7 @@
   ],
   "headers": {
     "B.ITP": {
-      "assembly": "B.ITP SrcTile0<.reuse>, SrcTile1<.reuse>, <last>, src_pair",
+      "assembly": "B.ITP [Tsrc0<.reuse>, Tsrc1<.reuse>], <last>, src_pair",
       "fields": [
         {
           "bits": "31:24",
@@ -86,8 +86,8 @@
       ],
       "rules": [
         "src_pair selects operand slots src0/src1, src2/src3, src4/src5, or src6/src7.",
-        "Unused source slots must encode TZERO.",
-        "Any reuse bit attached to TZERO must be zero.",
+        "Unused source slots must encode T0/TZERO.",
+        "Any reuse bit attached to T0/TZERO must be zero.",
         "If the block has no output tile descriptor, the final B.ITP must set L=1.",
         "B.ITP does not encode source size, dtype, layout, shape, memory operands, or dependency tokens."
       ]
@@ -207,7 +207,7 @@
       ]
     },
     "B.OTA": {
-      "assembly": "B.OTA ->DstTile<CellCountM1>, <last>, dst_slot",
+      "assembly": "B.OTA ->Tdst<CellCountM1>, <last>, dst_slot",
       "cell_count_rule": "CELL_count = CellCountM1 + 1; TileBytes = CELL_count * 128.",
       "fields": [
         {
@@ -262,7 +262,7 @@
         }
       ],
       "rules": [
-        "DstTile=TZERO is illegal.",
+        "DstTile=T0/TZERO is illegal.",
         "dst_slot selects output slots dst0..dst3.",
         "For same-shape elementwise ops, CellCountM1 must match all source TileReg allocation sizes.",
         "For convert, reduce, expand, and matrix-like ops, opcode profile rules define legal source and destination size relationships."
@@ -272,6 +272,7 @@
   "isa": "LinxISA",
   "status": "current",
   "tile_register_namespace": {
+    "assembly_reference_syntax": "Direct TileReg references use T0 through T255.",
     "ordinary_range": {
       "end": 255,
       "start": 1

@@ -3,7 +3,8 @@
   "allocation_model": "unified_dynamic_cell_descriptor",
   "cell_bytes": 128,
   "count": 256,
-  "description": "v0.57 TileReg namespace. B.ITP and B.OTA encode an 8-bit architectural tile register id. TZERO is source-only and ordinary ids 0x01..0xff are dynamically allocated tiles with descriptor metadata.",
+  "assembly_reference_syntax": "Direct TileReg references use T0 through T255. T0 encodes id 0x00 and has TZERO source-only semantics. T1 through T255 are ordinary destination-capable TileReg ids.",
+  "description": "v0.57 TileReg namespace. B.ITP and B.OTA encode an 8-bit architectural tile register id. T0/TZERO is source-only and ordinary ids 0x01..0xff are dynamically allocated tiles with descriptor metadata.",
   "entries": [
     {
       "code": 0,
@@ -19,6 +20,6 @@
     "start": 1
   },
   "source_size_rule": "Source TileReg size is not repeated in B.ITP. Hardware reads source allocation metadata from the TileReg rename/allocation table.",
-  "tzero_rule": "TZERO reads as a zero/null tile. It may pad unused source slots. Any reuse bit associated with TZERO must be zero. TZERO is illegal as a destination.",
+  "tzero_rule": "T0/TZERO reads as a zero/null tile. It may pad unused source slots. Any reuse bit associated with T0/TZERO must be zero. T0/TZERO is illegal as a destination.",
   "version": "0.57.0"
 }

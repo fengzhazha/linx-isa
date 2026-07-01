@@ -195,7 +195,7 @@
         "Emit the v0.57 split tile descriptor surface."
       ],
       "completed_delta": [
-        "MC parsing and printing accepts v0.57 B.ITP and B.OTA descriptor syntax with 8-bit TileReg ids, TZERO, reuse hints, last bits, source-pair ids, destination slots, and CellCountM1 destination allocation.",
+        "MC parsing and printing accepts v0.57 B.ITP and B.OTA descriptor syntax with direct TileReg references T0 through T255, T0/TZERO source padding, reuse hints, last bits, source-pair ids, destination slots, and CellCountM1 destination allocation.",
         "BSTART.TMA, BSTART.CUBE, BSTART.FIXP, and BSTART.TEPL MachineInstr operands carry 8-bit block-local function/selectors where required by v0.57.",
         "Blockify emits B.ITP/B.OTA descriptor MachineInstrs for TLOAD, TSTORE, TMOV, CUBE TMATMUL, TEPL, VPAR local tile bases, and local scratch allocation.",
         "FIXP TMOV lowering uses BSTART.FIXP Function=TMOV instead of an unmerged TMA TMOV selector.",

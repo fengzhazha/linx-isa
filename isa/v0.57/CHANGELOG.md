@@ -9,6 +9,8 @@ v0.57 is the current LinxISA profile for PTO tile/data block execution.
   destination TileReg allocation.
 - Added `TZERO` as TileReg id `0x00`; it is source-only and is illegal as a
   destination.
+- Defined direct TileReg reference syntax as `T0` through `T255`; `T0` is the
+  direct spelling of the `TZERO` source-only id.
 - Moved destination allocation size into `B.OTA.CellCountM1` using 128-byte
   CELL units.
 - Kept source TileReg size out of `B.ITP`; hardware reads source allocation
