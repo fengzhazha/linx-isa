@@ -2844,6 +2844,14 @@ def _classify_qemu_result(
                 "evidence": evidence,
                 **base,
             }
+        internal_error = _spec_stderr_internal_error(text)
+        if internal_error:
+            evidence = f"{internal_error}; {_spec_wrapper_failure_evidence(text)}"[:512]
+            return {
+                "class": "spec-benchmark-internal-error",
+                "evidence": evidence,
+                **base,
+            }
         return {
             "class": "spec-wrapper-fail",
             "evidence": _spec_wrapper_failure_evidence(text),
@@ -2884,6 +2892,29 @@ def _spec_wrapper_failure_evidence(text: str) -> str:
     if not wait:
         return fail
     return f"{fail}; {wait}"[:512]
+
+
+def _spec_stderr_internal_error(text: str) -> str:
+    match = re.search(
+        r"LINX_SPEC_STDERR_BEGIN\n(?P<body>.*?)\nLINX_SPEC_STDERR_END",
+        text,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return ""
+    needles = (
+        "benchmark internal error",
+        "internal compiler error",
+        "has encountered an internal error",
+    )
+    for raw in match.group("body").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        lowered = line.lower()
+        if any(needle in lowered for needle in needles):
+            return line[:512]
+    return ""
 
 
 def _spec_child_signal(text: str) -> int | None:

@@ -53,6 +53,29 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("code=1", result["evidence"])
         self.assertIn("signaled=0", result["evidence"])
 
+    def test_child_exit_with_benchmark_internal_error_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_SPEC_STDERR_BEGIN\n"
+                "200.c: In function 'postpr_':\n"
+                "200.c:63888:3: benchmark internal error: in ?, at tree-into-ssa.c:942\n"
+                "The 502.gcc_r benchmark binary 'cpugcc_r' has encountered an internal error.\n"
+                "LINX_SPEC_STDERR_END\n"
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=6 "
+                "fallback=0 status=0x0000000000000400 exited=1 code=4 "
+                "signaled=0 sig=-1\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-benchmark-internal-error")
+        self.assertIn("benchmark internal error", result["evidence"])
+        self.assertIn("code=4", result["evidence"])
+
     def test_child_sigkill_is_classified(self) -> None:
         result = runner._classify_qemu_result(
             text=(
