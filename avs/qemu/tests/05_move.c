@@ -212,6 +212,27 @@ static void test_csel_cond_ge(void) {
     TEST_EQ(result, 100, 0xE123);
 }
 
+static uint64_t csel_literal(uint64_t pred, uint64_t src_l, uint64_t src_r) {
+    uint64_t out;
+    __asm__ volatile("csel %1, %2, %3, ->%0"
+                     : "=r"(out)
+                     : "r"(pred), "r"(src_l), "r"(src_r)
+                     : "memory");
+    return out;
+}
+
+static void test_csel_literal_true_src_l(void) {
+    uint64_t result = csel_literal(1, 0x1111222233334444ULL,
+                                   0xaaaabbbbccccddddULL);
+    TEST_EQ64(result, 0x1111222233334444ULL, 0xE124);
+}
+
+static void test_csel_literal_false_src_r(void) {
+    uint64_t result = csel_literal(0, 0x1111222233334444ULL,
+                                   0xaaaabbbbccccddddULL);
+    TEST_EQ64(result, 0xaaaabbbbccccddddULL, 0xE125);
+}
+
 /* Test sign/zero extension */
 static void test_sext_byte(void) {
     int8_t src = -1;  /* 0xFF */
@@ -294,6 +315,8 @@ void run_move_tests(void) {
     RUN_TEST(test_csel_cond_ne, 0xE121);
     RUN_TEST(test_csel_cond_lt, 0xE122);
     RUN_TEST(test_csel_cond_ge, 0xE123);
+    RUN_TEST(test_csel_literal_true_src_l, 0xE124);
+    RUN_TEST(test_csel_literal_false_src_r, 0xE125);
     
     /* Extension tests */
     RUN_TEST(test_sext_byte, 0xE130);
@@ -301,5 +324,5 @@ void run_move_tests(void) {
     RUN_TEST(test_zext_byte, 0xE140);
     RUN_TEST(test_zext_half, 0xE141);
     
-    test_suite_end(31, 31);
+    test_suite_end(33, 33);
 }
