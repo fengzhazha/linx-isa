@@ -912,6 +912,35 @@ drop `ignore_loglevel loglevel=8` and use coarse or disabled heartbeat after
 `LINX_SPEC_START`; the verbose diagnostic shape above is for failure
 classification, not speed measurement.
 
+Post-MMIO-hole all-row rerun (2026-07-01): the current broad ledger is
+`workloads/generated/specint-test-train-all-mmiohole-qemu-20260701-r1/`, using
+rebuilt QEMU `v10.2.0-989-g5cfb672a711`, initramfs transport,
+`SPECINT_TEST_ALL_TIMEOUT=120`, `SPECINT_TRAIN_ALL_TIMEOUT=180`,
+`SPEC_QEMU_HEARTBEAT_INTERVAL=1000000000`,
+`LINX_QEMU_HEARTBEAT_SAME_SITE_WARN=4`, 2 GiB guest memory, and
+`--stack-limit 2G`. It completed in `1815.369s` (`test-all` `760.983s`,
+`train-all` `1054.386s`) and attempted all ten rows in both suites. It remains
+red, but the failure mix changed materially from the pre-MMIO-hole ledger:
+
+| Bench | `test` result | `train` result | Current owner |
+| --- | --- | --- | --- |
+| `500.perlbench_r` | `live-timeout`, BPC site progress at `0xffffffff800f515c` | `live-timeout`, BPC site progress at `0xffffffff8011217c` | Throughput/live-progress lane. The old stack-MMIO null-RA path is closed; keep focused user-fault symbolization for the later 500 trap from `specint-500-mmio-hole-fix-normal-store-20260701-r1/`, but the broad bounded row is now live-slow. |
+| `502.gcc_r` | `live-timeout`, BPC site progress at `0xffffffff803e4288` | `user-trap`, `addr=0x16556734c2`, `tpc=0x155608c714`, `bpc=0x155608c710` | Train correctness lane. Symbolize the static PIE PC and trace TLB/protection state around the final user access; test input is currently live-slow, not trapping. |
+| `505.mcf_r` | wrapper child exit, code 255, `inp.out` hash `0xfa8752d1` size 249 | wrapper child exit, code 255, same short `inp.out` | Wrapper/runtime exit-status lane. Add focused child stderr/output prefix and syscall tracing before changing QEMU semantics. |
+| `520.omnetpp_r` | `live-timeout`, BPC site progress at `0xffffffff800f9354` | `user-trap`, `addr=0x16555d2c57`, `tpc=0x15557e5abc`, `bpc=0x15557e5ab8` | Train correctness lane, likely shared with 502's late user-access fault class. |
+| `523.xalancbmk_r` | `live-timeout`, BPC site progress at `0xffffffff803e47a6` | `live-timeout`, BPC site progress at `0xffffffff800fe658` | Throughput/live-progress lane; heartbeat proves execution is moving, not deadlocked. |
+| `525.x264_r` | VFS root panic before SPEC start | VFS root panic before SPEC start | Transport/rootfs lane. Do not keep pushing this through large initramfs; use 9p or a block-backed SPEC root for large inputs. |
+| `531.deepsjeng_r` | guest `LINX_SPEC_PASS`, host `test.out` hash mismatch: 102 bytes `0xd442eeea` vs 3611 bytes `0x391c9299` | guest `LINX_SPEC_PASS`, host `train.out` hash mismatch: 102 bytes `0xd442eeea` vs 35012 bytes `0x0aa753bf` | Output/runtime correctness lane; focused trace still points at C++ runtime/codegen rather than input packaging. |
+| `541.leela_r` | `live-timeout`, BPC site progress at `0xffffffff803e3112` | `live-timeout`, BPC site progress at `0xffffffff800fcce8` | Throughput/live-progress lane. |
+| `557.xz_r` | `live-timeout`, BPC site progress at `0xffffffff803e3112` | wrapper child exit, code 1, `input.combined-40-8.out` hash `0xa80f31ed` size 37 | Split lane: test input is live-slow; train input needs wrapper/benchmark stderr and child-failure tracing. |
+| `999.specrand_ir` | guest `LINX_SPEC_PASS`, host `rand.24239.out` hash mismatch: 310 bytes `0xc38a3bc5` vs 616074 bytes `0x64732c02` | guest `LINX_SPEC_PASS`, host `rand.11.out` hash mismatch: 310 bytes `0xc38a3bc5` vs 871 bytes `0x973dcfc2` | Strict output-validation lane; guest execution passes, so keep separate from QEMU/user-trap correctness. |
+
+This rerun confirms the BPC heartbeat switch is useful for triage: every
+`live-timeout` row reports `running/site-progress site-change`, so those rows
+are slow/profiling work rather than proven deadlocks. The immediate correctness
+targets are train `502.gcc_r` and train `520.omnetpp_r`; the immediate harness
+targets are `505.mcf_r`, train `557.xz_r`, and the strict-hash output rows.
+
 Focused 500 MMIO-hole update (2026-07-01): the final
 `FRET.STK [ra ~ s5], sp!, 80` null-RA failure was rooted in the Linx `virt`
 device tree exposing the virtio-mmio page as allocatable RAM when SPEC runs

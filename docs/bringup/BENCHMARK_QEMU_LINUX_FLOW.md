@@ -27,17 +27,19 @@ Evidence:
   than mixed into every cheap regression check.
 - `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md` records the current QEMU
   SPECint profile and the prioritized speedups for the Linx target.
-- `workloads/generated/specint-test-train-all-hashclass-20260701-r1/` is the
-  current all-SPECint bounded diagnostic ledger. The run requested all ten
-  SPECint rows on both `test` and `train` inputs with initramfs, QEMU BPC
-  heartbeat every 1B guest instructions, and a `2G` stack limit on rebuilt QEMU
-  `v10.2.0-987-g08783bb4572`. It is red: `500.perlbench_r`, `502.gcc_r`,
-  `520.omnetpp_r`, and `557.xz_r` trap at addr 0 on both inputs; `505.mcf_r`
-  exits through the wrapper with code 255; `531.deepsjeng_r` reaches guest pass
-  but fails host hash/size validation; `523.xalancbmk_r` and train
-  `999.specrand_ir` are heartbeat-backed live-timeout rows; `541.leela_r` is
-  live-timeout on test and signal-9 child-exit on train; and `525.x264_r` hits
-  the early VFS rootfs panic in initramfs mode.
+- `workloads/generated/specint-test-train-all-mmiohole-qemu-20260701-r1/` is
+  the current all-SPECint bounded diagnostic ledger after the QEMU Linx `virt`
+  memory-node MMIO-hole fix. The run requested all ten SPECint rows on both
+  `test` and `train` inputs with initramfs, QEMU BPC heartbeat every 1B guest
+  instructions, and a `2G` stack limit on rebuilt QEMU
+  `v10.2.0-989-g5cfb672a711`. It is red, but the failure mix changed from the
+  pre-MMIO ledger: `500.perlbench_r` is live-progress timeout on both inputs;
+  `502.gcc_r` and `520.omnetpp_r` are live-timeout on test but train user-trap;
+  `505.mcf_r` exits through the wrapper with code 255; `557.xz_r` is
+  live-timeout on test and wrapper child-exit on train; `531.deepsjeng_r` and
+  `999.specrand_ir` reach guest pass but fail host hash/size validation;
+  `523.xalancbmk_r` and `541.leela_r` are heartbeat-backed live-timeout rows;
+  and `525.x264_r` still hits the early VFS rootfs panic in initramfs mode.
 
 Inference:
 
