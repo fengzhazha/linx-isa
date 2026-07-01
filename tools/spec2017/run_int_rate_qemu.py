@@ -649,16 +649,44 @@ def _apply_qemu_debug_env(
     qemu_env: dict[str, str],
     *,
     qemu_heartbeat_interval: int,
+    qemu_fault_trace: bool = False,
     qemu_fault_trace_regs: bool,
     qemu_fault_trace_limit: int,
+    qemu_fault_trace_filters: dict[str, str] | None = None,
 ) -> None:
     if qemu_heartbeat_interval > 0:
         qemu_env["LINX_HEARTBEAT_INTERVAL"] = str(qemu_heartbeat_interval)
-    if qemu_fault_trace_regs:
+    filters = {k: v for k, v in (qemu_fault_trace_filters or {}).items() if str(v).strip()}
+    if qemu_fault_trace or qemu_fault_trace_regs or filters:
         qemu_env["LINX_QEMU_FAULT_TRACE"] = "1"
-        qemu_env["LINX_QEMU_FAULT_TRACE_REGS"] = "1"
+        for name, value in filters.items():
+            qemu_env[name] = str(value).strip()
         if qemu_fault_trace_limit > 0:
             qemu_env["LINX_QEMU_FAULT_TRACE_LIMIT"] = str(qemu_fault_trace_limit)
+    if qemu_fault_trace_regs:
+        qemu_env["LINX_QEMU_FAULT_TRACE_REGS"] = "1"
+
+
+QEMU_FAULT_TRACE_FILTER_ARGS = {
+    "qemu_fault_trace_pc": "LINX_QEMU_FAULT_TRACE_PC",
+    "qemu_fault_trace_pc_lo": "LINX_QEMU_FAULT_TRACE_PC_LO",
+    "qemu_fault_trace_pc_hi": "LINX_QEMU_FAULT_TRACE_PC_HI",
+    "qemu_fault_trace_addr": "LINX_QEMU_FAULT_TRACE_ADDR",
+    "qemu_fault_trace_addr_lo": "LINX_QEMU_FAULT_TRACE_ADDR_LO",
+    "qemu_fault_trace_addr_hi": "LINX_QEMU_FAULT_TRACE_ADDR_HI",
+    "qemu_fault_trace_count_lo": "LINX_QEMU_FAULT_TRACE_COUNT_LO",
+    "qemu_fault_trace_count_hi": "LINX_QEMU_FAULT_TRACE_COUNT_HI",
+    "qemu_fault_trace_trapnum": "LINX_QEMU_FAULT_TRACE_TRAPNUM",
+}
+
+
+def _qemu_fault_trace_filters_from_args(args: argparse.Namespace) -> dict[str, str]:
+    filters: dict[str, str] = {}
+    for attr, env_name in QEMU_FAULT_TRACE_FILTER_ARGS.items():
+        value = str(getattr(args, attr, "") or "").strip()
+        if value:
+            filters[env_name] = value
+    return filters
 
 
 def _find_gen_init_cpio(linux_root: Path, out_dir: Path) -> Path:
@@ -2390,8 +2418,10 @@ def _run_qemu(
     no_progress_timeout: float,
     append_extra: str,
     symbolize_heartbeat: bool,
+    qemu_fault_trace: bool,
     qemu_fault_trace_regs: bool,
     qemu_fault_trace_limit: int,
+    qemu_fault_trace_filters: dict[str, str],
 ) -> dict[str, Any]:
     append = _build_kernel_append(transport, append_extra)
 
@@ -2436,8 +2466,10 @@ def _run_qemu(
     _apply_qemu_debug_env(
         qemu_env,
         qemu_heartbeat_interval=qemu_heartbeat_interval,
+        qemu_fault_trace=qemu_fault_trace,
         qemu_fault_trace_regs=qemu_fault_trace_regs,
         qemu_fault_trace_limit=qemu_fault_trace_limit,
+        qemu_fault_trace_filters=qemu_fault_trace_filters,
     )
 
     proc = subprocess.Popen(
@@ -3396,6 +3428,12 @@ def main(argv: list[str]) -> int:
         help="Set LINX_HEARTBEAT_INTERVAL for QEMU BPC progress logging (0 disables).",
     )
     parser.add_argument(
+        "--qemu-fault-trace",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE", False),
+        help="Enable QEMU fault tracing without forcing a full GPR dump.",
+    )
+    parser.add_argument(
         "--qemu-fault-trace-regs",
         action="store_true",
         default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE_REGS", False),
@@ -3407,6 +3445,15 @@ def main(argv: list[str]) -> int:
         default=int(os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_LIMIT", "1")),
         help="Set LINX_QEMU_FAULT_TRACE_LIMIT when fault trace registers are enabled (0 disables limit).",
     )
+    parser.add_argument("--qemu-fault-trace-pc", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC", ""))
+    parser.add_argument("--qemu-fault-trace-pc-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC_LO", ""))
+    parser.add_argument("--qemu-fault-trace-pc-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC_HI", ""))
+    parser.add_argument("--qemu-fault-trace-addr", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR", ""))
+    parser.add_argument("--qemu-fault-trace-addr-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR_LO", ""))
+    parser.add_argument("--qemu-fault-trace-addr-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR_HI", ""))
+    parser.add_argument("--qemu-fault-trace-count-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_COUNT_LO", ""))
+    parser.add_argument("--qemu-fault-trace-count-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_COUNT_HI", ""))
+    parser.add_argument("--qemu-fault-trace-trapnum", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_TRAPNUM", ""))
     parser.add_argument(
         "--guest-heartbeat-sec",
         type=int,
@@ -3489,6 +3536,7 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --no-progress-timeout must be >= 0")
     if args.dump_prefix_bytes < 0:
         raise SystemExit("error: --dump-prefix-bytes must be >= 0")
+    qemu_fault_trace_filters = _qemu_fault_trace_filters_from_args(args)
 
     spec_dir = Path(os.path.expanduser(args.spec_dir)).resolve()
     qemu = _check_exe(Path(os.path.expanduser(args.qemu)).resolve(), "qemu-system-linx64")
@@ -3527,8 +3575,10 @@ def main(argv: list[str]) -> int:
         "stack_limit_defines": _spec_stack_limit_defines(),
         "heartbeat_sec": args.heartbeat_sec,
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
+        "qemu_fault_trace": bool(args.qemu_fault_trace or qemu_fault_trace_filters),
         "qemu_fault_trace_regs": bool(args.qemu_fault_trace_regs),
         "qemu_fault_trace_limit": args.qemu_fault_trace_limit,
+        "qemu_fault_trace_filters": qemu_fault_trace_filters,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "no_progress_timeout": args.no_progress_timeout,
@@ -3622,8 +3672,10 @@ def main(argv: list[str]) -> int:
                     args.no_progress_timeout,
                     args.append_extra,
                     args.symbolize_heartbeat,
+                    args.qemu_fault_trace,
                     args.qemu_fault_trace_regs,
                     args.qemu_fault_trace_limit,
+                    qemu_fault_trace_filters,
                 )
                 qemu_info["run_index"] = run_idx
                 qemu_info["stdout"] = run_cfg.get("stdout")

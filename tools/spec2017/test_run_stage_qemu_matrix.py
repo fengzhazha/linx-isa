@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 import unittest
 
 import run_stage_qemu_matrix as matrix
@@ -68,6 +70,41 @@ class StageQemuMatrixTests(unittest.TestCase):
                 matrix._transport_failure_details(summary)
             ),
         )
+
+    def test_markdown_records_qemu_fault_filters(self) -> None:
+        summary = {
+            "stage": "b",
+            "input_set": "test",
+            "strict": True,
+            "transports": ["initramfs"],
+            "timeout_sec": 180,
+            "memory_mb": 2048,
+            "stack_limit": "2G",
+            "append_extra": "norandmaps",
+            "qemu_heartbeat_interval": 1000000000,
+            "qemu_fault_trace": True,
+            "qemu_fault_trace_regs": True,
+            "qemu_fault_trace_limit": 1,
+            "qemu_fault_trace_filters": {
+                "LINX_QEMU_FAULT_TRACE_PC_LO": "0x15559efe00",
+                "LINX_QEMU_FAULT_TRACE_PC_HI": "0x15559efe40",
+            },
+            "guest_heartbeat_sec": 10,
+            "bench_override": ["523.xalancbmk_r"],
+            "ok": False,
+            "elapsed_sec": 1.0,
+            "results": [],
+            "failed_transports": [],
+        }
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "summary.md"
+            matrix._write_md(path, summary)
+            text = path.read_text()
+
+        self.assertIn("qemu_fault_trace: `true`", text)
+        self.assertIn("LINX_QEMU_FAULT_TRACE_PC_LO=0x15559efe00", text)
+        self.assertIn("LINX_QEMU_FAULT_TRACE_PC_HI=0x15559efe40", text)
 
 
 if __name__ == "__main__":

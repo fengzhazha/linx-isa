@@ -129,6 +129,27 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(env["LINX_QEMU_FAULT_TRACE_REGS"], "1")
         self.assertEqual(env["LINX_QEMU_FAULT_TRACE_LIMIT"], "3")
 
+    def test_qemu_fault_trace_filters_env_enable_trace(self) -> None:
+        env: dict[str, str] = {}
+        runner._apply_qemu_debug_env(
+            env,
+            qemu_heartbeat_interval=0,
+            qemu_fault_trace_regs=False,
+            qemu_fault_trace_limit=7,
+            qemu_fault_trace_filters={
+                "LINX_QEMU_FAULT_TRACE_PC_LO": "0x15559efe00",
+                "LINX_QEMU_FAULT_TRACE_PC_HI": "0x15559efe40",
+                "LINX_QEMU_FAULT_TRACE_TRAPNUM": "5",
+            },
+        )
+
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE"], "1")
+        self.assertNotIn("LINX_QEMU_FAULT_TRACE_REGS", env)
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_LIMIT"], "7")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_PC_LO"], "0x15559efe00")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_PC_HI"], "0x15559efe40")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_TRAPNUM"], "5")
+
     def test_chdir_failure_evidence_includes_9p_errno(self) -> None:
         result = runner._classify_qemu_result(
             text=(

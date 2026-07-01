@@ -14,6 +14,17 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 RUNNER = SCRIPT_DIR / "run_int_rate_qemu.py"
+QEMU_FAULT_TRACE_FILTER_ARGS = {
+    "qemu_fault_trace_pc": "LINX_QEMU_FAULT_TRACE_PC",
+    "qemu_fault_trace_pc_lo": "LINX_QEMU_FAULT_TRACE_PC_LO",
+    "qemu_fault_trace_pc_hi": "LINX_QEMU_FAULT_TRACE_PC_HI",
+    "qemu_fault_trace_addr": "LINX_QEMU_FAULT_TRACE_ADDR",
+    "qemu_fault_trace_addr_lo": "LINX_QEMU_FAULT_TRACE_ADDR_LO",
+    "qemu_fault_trace_addr_hi": "LINX_QEMU_FAULT_TRACE_ADDR_HI",
+    "qemu_fault_trace_count_lo": "LINX_QEMU_FAULT_TRACE_COUNT_LO",
+    "qemu_fault_trace_count_hi": "LINX_QEMU_FAULT_TRACE_COUNT_HI",
+    "qemu_fault_trace_trapnum": "LINX_QEMU_FAULT_TRACE_TRAPNUM",
+}
 
 
 def _default_qemu() -> str:
@@ -271,8 +282,13 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
     lines.append(f"- qemu_heartbeat_interval: `{summary['qemu_heartbeat_interval']}`")
+    lines.append(f"- qemu_fault_trace: `{str(bool(summary.get('qemu_fault_trace', False))).lower()}`")
     lines.append(f"- qemu_fault_trace_regs: `{str(bool(summary.get('qemu_fault_trace_regs', False))).lower()}`")
     lines.append(f"- qemu_fault_trace_limit: `{summary.get('qemu_fault_trace_limit', 1)}`")
+    filters = summary.get("qemu_fault_trace_filters") or {}
+    if filters:
+        filter_text = ", ".join(f"{k}={v}" for k, v in sorted(filters.items()))
+        lines.append(f"- qemu_fault_trace_filters: `{filter_text}`")
     lines.append(f"- guest_heartbeat_sec: `{summary['guest_heartbeat_sec']}`")
     if summary.get("bench_override"):
         benches = ", ".join(summary["bench_override"])
@@ -377,6 +393,12 @@ def main(argv: list[str]) -> int:
         help="QEMU BPC heartbeat interval passed through to the per-transport runner (0 disables).",
     )
     ap.add_argument(
+        "--qemu-fault-trace",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE", False),
+        help="Enable QEMU fault tracing in per-transport runners without forcing GPR dumps.",
+    )
+    ap.add_argument(
         "--qemu-fault-trace-regs",
         action="store_true",
         default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE_REGS", False),
@@ -388,6 +410,15 @@ def main(argv: list[str]) -> int:
         default=_env_int("LINX_SPEC_QEMU_FAULT_TRACE_LIMIT", 1),
         help="QEMU fault trace limit passed through when fault trace regs are enabled (0 disables limit).",
     )
+    ap.add_argument("--qemu-fault-trace-pc", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC", ""))
+    ap.add_argument("--qemu-fault-trace-pc-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC_LO", ""))
+    ap.add_argument("--qemu-fault-trace-pc-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_PC_HI", ""))
+    ap.add_argument("--qemu-fault-trace-addr", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR", ""))
+    ap.add_argument("--qemu-fault-trace-addr-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR_LO", ""))
+    ap.add_argument("--qemu-fault-trace-addr-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_ADDR_HI", ""))
+    ap.add_argument("--qemu-fault-trace-count-lo", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_COUNT_LO", ""))
+    ap.add_argument("--qemu-fault-trace-count-hi", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_COUNT_HI", ""))
+    ap.add_argument("--qemu-fault-trace-trapnum", default=os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_TRAPNUM", ""))
     ap.add_argument(
         "--no-progress-timeout",
         type=float,
@@ -451,6 +482,11 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --guest-heartbeat-sec must be >= 0")
     if args.dump_prefix_bytes < 0:
         raise SystemExit("error: --dump-prefix-bytes must be >= 0")
+    qemu_fault_trace_filters = {
+        env_name: str(getattr(args, attr, "") or "").strip()
+        for attr, env_name in QEMU_FAULT_TRACE_FILTER_ARGS.items()
+        if str(getattr(args, attr, "") or "").strip()
+    }
 
     transports = _parse_transports(args.transports) if args.transports else _default_transports(args.stage)
     benches = list(args.bench or [])
@@ -510,8 +546,14 @@ def main(argv: list[str]) -> int:
         ]
         if args.symbolize_heartbeat:
             cmd.append("--symbolize-heartbeat")
+        if args.qemu_fault_trace:
+            cmd.append("--qemu-fault-trace")
         if args.qemu_fault_trace_regs:
             cmd.append("--qemu-fault-trace-regs")
+        for attr in QEMU_FAULT_TRACE_FILTER_ARGS:
+            value = str(getattr(args, attr, "") or "").strip()
+            if value:
+                cmd.extend(["--" + attr.replace("_", "-"), value])
         if args.fail_9p_timeout:
             cmd.append("--fail-9p-timeout")
         if args.stack_limit.strip():
@@ -571,8 +613,10 @@ def main(argv: list[str]) -> int:
         "stack_limit": args.stack_limit.strip() or "default",
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
+        "qemu_fault_trace": bool(args.qemu_fault_trace or qemu_fault_trace_filters),
         "qemu_fault_trace_regs": bool(args.qemu_fault_trace_regs),
         "qemu_fault_trace_limit": int(args.qemu_fault_trace_limit),
+        "qemu_fault_trace_filters": qemu_fault_trace_filters,
         "no_progress_timeout": float(args.no_progress_timeout),
         "fail_9p_timeout": bool(args.fail_9p_timeout),
         "guest_heartbeat_sec": int(args.guest_heartbeat_sec),
