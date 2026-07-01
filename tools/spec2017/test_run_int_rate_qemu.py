@@ -182,6 +182,25 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(result["class"], "pc-watch-exit")
         self.assertIn("0xffffffff80001574", result["evidence"])
 
+    def test_pc_watch_does_not_mask_spec_child_exit(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "linx_pc_watch: pc=0x155604f424 hit=1 count=42 bpc=0x155604f414\n"
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=6 "
+                "fallback=0 status=0x0000000000000400 exited=1 code=4 "
+                "signaled=0 sig=-1\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-wrapper-fail")
+        self.assertIn("LINX_SPEC_FAIL child-exit", result["evidence"])
+        self.assertIn("code=4", result["evidence"])
+
     def test_hash_mismatch_annotates_none_qemu_result(self) -> None:
         qemu_info = {"failure_class": "none", "failure_evidence": ""}
         runner._annotate_hash_mismatch(
@@ -263,6 +282,38 @@ class RunIntRateQemuTests(unittest.TestCase):
         )
         self.assertEqual(runs[0]["stdout"], "t1.opts-O3_-finline-limit_50000.out")
         self.assertEqual(runs[0]["verify_outputs"], ["t1.opts-O3_-finline-limit_50000.s"])
+
+    def test_select_run_indices_keeps_matching_compares(self) -> None:
+        cfg = {
+            "runs": [
+                {"argv": ["./b", "a.c"], "verify_outputs": ["a.s"]},
+                {"argv": ["./b", "b.c"], "verify_outputs": ["b.s"]},
+                {"argv": ["./b", "c.c"], "verify_outputs": ["c.s"]},
+            ],
+            "compares": [
+                {"out": "a.s"},
+                {"out": "b.s"},
+                {"out": "c.s"},
+                {"out": "unrelated.s"},
+            ],
+        }
+
+        selected = runner._select_run_indices(cfg, [2])
+
+        self.assertEqual(len(selected["runs"]), 1)
+        self.assertEqual(selected["runs"][0]["argv"], ["./b", "b.c"])
+        self.assertEqual(selected["runs"][0]["source_run_index"], 2)
+        self.assertEqual(selected["compares"], [{"out": "b.s"}])
+        self.assertEqual(selected["selected_run_indices"], [2])
+
+    def test_select_run_indices_rejects_out_of_range(self) -> None:
+        cfg = {
+            "runs": [{"argv": ["./b", "a.c"], "verify_outputs": ["a.s"]}],
+            "compares": [{"out": "a.s"}],
+        }
+
+        with self.assertRaises(SystemExit):
+            runner._select_run_indices(cfg, [2])
 
     def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
         text = "\n".join(

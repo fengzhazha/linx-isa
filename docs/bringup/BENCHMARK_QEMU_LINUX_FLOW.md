@@ -184,6 +184,12 @@ Leave `--transports` unset in these wrapper commands so the gate can split
 `525.x264_r` to 9p while keeping the remaining all-row benches on initramfs.
 Use an explicit `--transports` override only for focused transport bisection.
 
+Use `run_int_rate_qemu.py --run-index <n>` for focused SPEC command-row
+debugging after an all-row report identifies one failing invocation. The
+selector is 1-based, can be repeated, records `source_run_index` in the QEMU
+run summary, and filters compare checks to the selected row's declared outputs
+so a single-row probe does not fail against unexecuted sibling outputs.
+
 Use `LINX_TP_TRACE=1 LINX_TP_TRACE_LIMIT=<n>` only for focused TP/TLS
 diagnosis. Use `LINX_TP_TRACE_SSR=1` or `LINX_TP_TRACE_READS=1` only after a
 focused run identifies a TP handoff window; those switches are too noisy for

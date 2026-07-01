@@ -475,6 +475,38 @@ def _resolve_cfg(spec_dir: Path, bench: str, input_set: str) -> dict[str, Any]:
     }
 
 
+def _select_run_indices(cfg: dict[str, Any], selected_indices: list[int]) -> dict[str, Any]:
+    if not selected_indices:
+        return cfg
+
+    runs = list(cfg.get("runs", []))
+    unique_indices = list(dict.fromkeys(selected_indices))
+    invalid = [idx for idx in unique_indices if idx < 1 or idx > len(runs)]
+    if invalid:
+        raise SystemExit(
+            "error: --run-index out of range: "
+            + ", ".join(str(idx) for idx in invalid)
+            + f" (available: 1..{len(runs)})"
+        )
+
+    selected_runs: list[dict[str, Any]] = []
+    selected_outputs: set[str] = set()
+    for idx in unique_indices:
+        run_cfg = dict(runs[idx - 1])
+        run_cfg["source_run_index"] = idx
+        selected_runs.append(run_cfg)
+        selected_outputs.update(str(name) for name in run_cfg.get("verify_outputs", []))
+
+    selected_compares = [
+        cmp_cfg for cmp_cfg in cfg.get("compares", []) if cmp_cfg.get("out") in selected_outputs
+    ]
+    out = dict(cfg)
+    out["runs"] = selected_runs
+    out["compares"] = selected_compares
+    out["selected_run_indices"] = unique_indices
+    return out
+
+
 def _check_exe(path: Path, what: str) -> Path:
     if path.exists():
         if not os.access(path, os.X_OK):
@@ -2724,14 +2756,6 @@ def _classify_qemu_result(
             **base,
         }
 
-    pc_watch = _first_matching_line(text, ("linx_pc_watch:", "LINX_CALL_TRACE_RING reason=pc_watch"))
-    if pc_watch:
-        return {
-            "class": "pc-watch-exit",
-            "evidence": pc_watch,
-            **base,
-        }
-
     if stalled:
         return {
             "class": "no-progress-timeout",
@@ -2804,6 +2828,14 @@ def _classify_qemu_result(
         return {
             "class": "spec-wrapper-fail",
             "evidence": _spec_wrapper_failure_evidence(text),
+            **base,
+        }
+
+    pc_watch = _first_matching_line(text, ("linx_pc_watch:", "LINX_CALL_TRACE_RING reason=pc_watch"))
+    if pc_watch:
+        return {
+            "class": "pc-watch-exit",
+            "evidence": pc_watch,
             **base,
         }
 
@@ -3515,6 +3547,16 @@ def main(argv: list[str]) -> int:
         help="Optional benchmark override. Repeat to run multiple.",
     )
     parser.add_argument(
+        "--run-index",
+        action="append",
+        type=int,
+        default=[],
+        help=(
+            "Optional 1-based SPEC command row selector for focused debug runs. "
+            "Repeat to run multiple rows; default runs every row."
+        ),
+    )
+    parser.add_argument(
         "--out-dir",
         default="",
         help="Directory for logs/json (default: <spec-dir>/tmp/linx-qemu-results).",
@@ -3586,6 +3628,7 @@ def main(argv: list[str]) -> int:
         "append_extra": args.append_extra,
         "dump_prefix_bytes": args.dump_prefix_bytes,
         "strict_hash": strict_hash,
+        "run_indices": args.run_index,
         "started_at_utc": started_at_utc,
         "results": {},
     }
@@ -3593,6 +3636,7 @@ def main(argv: list[str]) -> int:
     overall_ok = True
     for bench in benches:
         cfg = _resolve_cfg(spec_dir, bench, args.input_set)
+        cfg = _select_run_indices(cfg, args.run_index)
         bench_out = out_dir / bench.replace(".", "_")
         bench_out.mkdir(parents=True, exist_ok=True)
 
@@ -3602,6 +3646,7 @@ def main(argv: list[str]) -> int:
             "run_dir": "",
             "qemu": [],
             "run_count": len(cfg.get("runs", [])),
+            "selected_run_indices": cfg.get("selected_run_indices", []),
             "specdiff": {},
         }
 
@@ -3678,6 +3723,7 @@ def main(argv: list[str]) -> int:
                     qemu_fault_trace_filters,
                 )
                 qemu_info["run_index"] = run_idx
+                qemu_info["source_run_index"] = run_cfg.get("source_run_index", run_idx)
                 qemu_info["stdout"] = run_cfg.get("stdout")
                 qemu_info["stderr"] = run_cfg.get("stderr")
                 qemu_info["initramfs"] = str(initramfs)
