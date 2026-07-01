@@ -185,11 +185,18 @@ def _runs_perlbench(bench_root: Path, input_set: str, exe: str) -> list[dict[str
     if not input_dir.exists():
         raise SystemExit(f"error: missing input dir: {input_dir}")
 
+    output_dir = bench_root / "data" / input_set / "output"
+    script_by_name: dict[str, Path] = {}
+    for script_dir in (bench_root / "data" / "all" / "input", input_dir):
+        if not script_dir.exists():
+            continue
+        for path in sorted(script_dir.iterdir()):
+            if path.is_file() and path.suffix in {".t", ".pl"}:
+                script_by_name[path.name] = path
+
     runs: list[dict[str, Any]] = []
     special = {"splitmail", "perfect", "diffmail", "checkspam"}
-    for path in sorted(input_dir.iterdir()):
-        if not path.is_file() or path.suffix not in {".t", ".pl"}:
-            continue
+    for path in sorted(script_by_name.values(), key=lambda p: p.name):
         name = path.stem
         if name in special:
             params_file = input_dir / f"{name}.in"
@@ -211,7 +218,16 @@ def _runs_perlbench(bench_root: Path, input_set: str, exe: str) -> list[dict[str
             continue
 
         stdin = f"{name}.in" if (input_dir / f"{name}.in").exists() else None
-        run = _mk_run([f"./{exe}", "-I.", "-I./lib", path.name], f"{name}.out", f"{name}.err", stdin=stdin)
+        verify_outputs = [f"{name}.out"]
+        if name == "suns" and (output_dir / "validate").exists():
+            verify_outputs.append("validate")
+        run = _mk_run(
+            [f"./{exe}", "-I.", "-I./lib", path.name],
+            f"{name}.out",
+            f"{name}.err",
+            stdin=stdin,
+            verify_outputs=verify_outputs,
+        )
         runs.append(run)
 
     if not runs:
@@ -743,13 +759,7 @@ def _find_gen_init_cpio(linux_root: Path, out_dir: Path) -> Path:
     return out
 
 
-def _overlay_input_set(bench_root: Path, dst_run: Path, input_set: str) -> None:
-    if input_set == "refrate":
-        return
-    input_dir = bench_root / "data" / input_set / "input"
-    if not input_dir.exists():
-        return
-
+def _copy_input_overlay(input_dir: Path, dst_run: Path) -> None:
     for src in sorted(input_dir.rglob("*")):
         rel = src.relative_to(input_dir)
         dst = dst_run / rel
@@ -763,6 +773,15 @@ def _overlay_input_set(bench_root: Path, dst_run: Path, input_set: str) -> None:
             os.symlink(os.readlink(src), dst)
         else:
             shutil.copy2(src, dst)
+
+
+def _overlay_input_set(bench_root: Path, dst_run: Path, input_set: str) -> None:
+    if input_set == "refrate":
+        return
+
+    for input_dir in (bench_root / "data" / "all" / "input", bench_root / "data" / input_set / "input"):
+        if input_dir.exists():
+            _copy_input_overlay(input_dir, dst_run)
 
 
 def _prepare_run_dir(

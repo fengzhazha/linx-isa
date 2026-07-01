@@ -283,6 +283,72 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(runs[0]["stdout"], "t1.opts-O3_-finline-limit_50000.out")
         self.assertEqual(runs[0]["verify_outputs"], ["t1.opts-O3_-finline-limit_50000.s"])
 
+    def test_perlbench_train_uses_shared_scripts_and_side_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            bench_root = Path(td)
+            all_input = bench_root / "data" / "all" / "input"
+            train_input = bench_root / "data" / "train" / "input"
+            train_output = bench_root / "data" / "train" / "output"
+            all_input.mkdir(parents=True)
+            train_input.mkdir(parents=True)
+            train_output.mkdir(parents=True)
+
+            (all_input / "diffmail.pl").write_text("", encoding="utf-8")
+            (all_input / "splitmail.pl").write_text("", encoding="utf-8")
+            (train_input / "diffmail.in").write_text("2 550 15 24 23 100\n", encoding="utf-8")
+            (train_input / "splitmail.in").write_text("535 13 25 24 1091 1\n", encoding="utf-8")
+            (train_input / "perfect.pl").write_text("", encoding="utf-8")
+            (train_input / "perfect.in").write_text("b 3\n", encoding="utf-8")
+            (train_input / "scrabbl.pl").write_text("", encoding="utf-8")
+            (train_input / "scrabbl.in").write_text("letters\n", encoding="utf-8")
+            (train_input / "suns.pl").write_text("", encoding="utf-8")
+            (train_output / "validate").write_text("", encoding="utf-8")
+
+            runs = runner._runs_perlbench(bench_root, "train", "perlbench_r_base.mytest-m64")
+
+        self.assertEqual([run["stdout"] for run in runs], [
+            "diffmail.2.550.15.24.23.100.out",
+            "perfect.b.3.out",
+            "scrabbl.out",
+            "splitmail.535.13.25.24.1091.1.out",
+            "suns.out",
+        ])
+        self.assertEqual(runs[0]["argv"], [
+            "./perlbench_r_base.mytest-m64",
+            "-I./lib",
+            "diffmail.pl",
+            "2",
+            "550",
+            "15",
+            "24",
+            "23",
+            "100",
+        ])
+        self.assertEqual(runs[3]["argv"][2], "splitmail.pl")
+        self.assertEqual(runs[4]["verify_outputs"], ["suns.out", "validate"])
+
+    def test_overlay_input_set_applies_shared_inputs_before_selected_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            bench_root = Path(td) / "bench"
+            dst_run = Path(td) / "run"
+            all_input = bench_root / "data" / "all" / "input"
+            train_input = bench_root / "data" / "train" / "input"
+            all_input.mkdir(parents=True)
+            train_input.mkdir(parents=True)
+            dst_run.mkdir()
+
+            (all_input / "shared.pl").write_text("all", encoding="utf-8")
+            (all_input / "lib").mkdir()
+            (all_input / "lib" / "helper.pm").write_text("lib", encoding="utf-8")
+            (train_input / "shared.pl").write_text("train", encoding="utf-8")
+            (train_input / "train.in").write_text("input", encoding="utf-8")
+
+            runner._overlay_input_set(bench_root, dst_run, "train")
+
+            self.assertEqual((dst_run / "shared.pl").read_text(encoding="utf-8"), "train")
+            self.assertEqual((dst_run / "lib" / "helper.pm").read_text(encoding="utf-8"), "lib")
+            self.assertEqual((dst_run / "train.in").read_text(encoding="utf-8"), "input")
+
     def test_select_run_indices_keeps_matching_compares(self) -> None:
         cfg = {
             "runs": [
