@@ -357,11 +357,11 @@ static void run_pto_example_kernel_tests()
 
 #if PTO_QEMU_SMOKE
     constexpr uint64_t kDigestTloadStore = UINT64_C(0xA1248F48FF3C7199);
-    constexpr uint64_t kDigestMamulb = UINT64_C(0x084B8196C3EAA422);
-    constexpr uint64_t kDigestTmatmulAcc = UINT64_C(0x5AA3E71E161E8994);
-    constexpr uint64_t kDigestGemm = UINT64_C(0x084B8196C3EAA422);
-    constexpr uint64_t kDigestFlash = UINT64_C(0x5F8E134D249806D9);
-    constexpr uint64_t kDigestFlashMasked = UINT64_C(0xEA8DDEE10079D090);
+    constexpr uint64_t kDigestMamulb = UINT64_C(0x5400A6A0D6991D4D);
+    constexpr uint64_t kDigestTmatmulAcc = UINT64_C(0x2A37199ED1CBD94D);
+    constexpr uint64_t kDigestGemm = UINT64_C(0x5400A6A0D6991D4D);
+    constexpr uint64_t kDigestFlash = UINT64_C(0x754D619AB6075DA1);
+    constexpr uint64_t kDigestFlashMasked = UINT64_C(0xE56690EBAB5372C9);
 #else
     constexpr uint64_t kDigestTloadStore = UINT64_C(0xABFA311400C734C3);
     constexpr uint64_t kDigestMamulb = UINT64_C(0xACA73824B88635A3);

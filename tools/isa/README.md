@@ -40,3 +40,19 @@ Run the active canonical-content guard:
 ```bash
 python3 tools/isa/check_canonical_v056.py --root .
 ```
+
+## Proposed v0.57 Checks
+
+The v0.57 PTO block-encoding map is not the active generator default. Validate
+it with:
+
+```bash
+python3 tools/isa/check_pto_v057_encoding.py --spec isa/v0.57/state/pto_encoding.json
+```
+
+Audit downstream migration blockers with:
+
+```bash
+python3 tools/isa/check_pto_v057_downstream.py
+python3 tools/isa/check_pto_v057_downstream.py --strict
+```

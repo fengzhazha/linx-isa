@@ -1,0 +1,386 @@
+{
+  "$schema": "https://docs.openclaw.ai/schemas/linxisa/v057_downstream_migration.v0.json",
+  "isa": "LinxISA",
+  "version": "0.57.0",
+  "status": "open",
+  "summary": "Checked downstream delta required to make the v0.57 PTO block encoding executable across benchmarks, TileOP API, LLVM, QEMU, tools/model, and GFSIM.",
+  "completion_rule": "The downstream migration is complete only when tools/isa/check_pto_v057_downstream.py --strict reports no stale patterns and the benchmark flow passes with v0.57 descriptors and opcode ids.",
+  "required_api_forms": [
+    "pto.tadd",
+    "pto.tadds",
+    "pto.tci",
+    "pto.tcolmax",
+    "pto.tcolprod",
+    "pto.tcolsum",
+    "pto.tconcat",
+    "pto.tconcatidx",
+    "pto.tcvt",
+    "pto.tdivs",
+    "pto.texp",
+    "pto.texpands",
+    "pto.tfillpad",
+    "pto.tfillpad_expand",
+    "pto.tfillpad_inplace",
+    "pto.tinsert",
+    "pto.tinsert_fp",
+    "pto.tload",
+    "pto.tmax",
+    "pto.tmaxs",
+    "pto.tmins",
+    "pto.mgather",
+    "pto.mscatter",
+    "pto.tmov",
+    "pto.tmul",
+    "pto.tmuls",
+    "pto.trecip",
+    "pto.trems",
+    "pto.trowexpand",
+    "pto.trowmax",
+    "pto.trowprod",
+    "pto.trowsum",
+    "pto.tstore",
+    "pto.tstore_fp",
+    "pto.tsub",
+    "pto.ttrans"
+  ],
+  "excluded_api_surfaces": [
+    "sync",
+    "communication",
+    "pipe lifecycle",
+    "pipe synchronization",
+    "IR virtual/view/debug"
+  ],
+  "targets": [
+    {
+      "name": "SuperNPUBench inline tile asm",
+      "state": "open",
+      "required_delta": [
+        "Replace combined B.IOT tile descriptors with v0.57 B.ITP source descriptors and B.OTA destination descriptors.",
+        "Replace old hardcoded TMA MGATHER/MSCATTER function ids with v0.57 TMA.Function ids.",
+        "Replace old hardcoded TEPL ids with v0.57 TEPL.TileOpcode ids from isa/v0.57/state/pto_encoding.json.",
+        "Use B.META for element-domain shape and valid-region metadata instead of encoding shape through C.B.DIMI-only tile shims."
+      ],
+      "path_globs": [
+        "workloads/SuperNPUBench/benchmark-ptoisa/test/common/template_asm.h",
+        "workloads/SuperNPUBench/benchmark-linxisa/test/common/template_asm.h"
+      ],
+      "stale_patterns": [
+        {
+          "pattern": "B.IOT",
+          "expected_delta": "B.ITP for sources plus B.OTA for destinations"
+        },
+        {
+          "pattern": "BSTART.TMA 4",
+          "expected_delta": "BSTART.TMA 0 for MGATHER"
+        },
+        {
+          "pattern": "BSTART.TMA 5",
+          "expected_delta": "BSTART.TMA 1 for MSCATTER"
+        },
+        {
+          "pattern": "BSTART.TEPL 0,",
+          "expected_delta": "BSTART.TEPL 0x01 for TADD"
+        },
+        {
+          "pattern": "BSTART.TEPL 1,",
+          "expected_delta": "BSTART.TEPL 0x55 for TSUB"
+        },
+        {
+          "pattern": "BSTART.TEPL 2,",
+          "expected_delta": "BSTART.TEPL 0x2A for TMUL"
+        },
+        {
+          "pattern": "BSTART.TEPL 11",
+          "expected_delta": "BSTART.TEPL 0x25 for TMAX"
+        },
+        {
+          "pattern": "BSTART.TEPL 18",
+          "expected_delta": "BSTART.TEPL 0x1C for TEXP"
+        },
+        {
+          "pattern": "BSTART.TEPL 20",
+          "expected_delta": "BSTART.TEPL 0x39 for TRECIP"
+        },
+        {
+          "pattern": "BSTART.TEPL 27",
+          "expected_delta": "BSTART.TEPL 0x19 for TCVT"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b0100010",
+          "expected_delta": "BSTART.TEPL 0x2B for TMULS"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b0111011",
+          "expected_delta": "BSTART.TEPL 0x1D for TEXPANDS"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1000000",
+          "expected_delta": "BSTART.TEPL 0x4A for TROWSUM"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1000001",
+          "expected_delta": "BSTART.TEPL 0x47 for TROWMAX"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1000100",
+          "expected_delta": "BSTART.TEPL 0x3F for TROWEXPAND"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1010000",
+          "expected_delta": "BSTART.TEPL 0x18 for TCOLSUM"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1010001",
+          "expected_delta": "BSTART.TEPL 0x15 for TCOLMAX"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1010110",
+          "expected_delta": "BSTART.TEPL 0x14 for TCOLEXPANDSUB"
+        },
+        {
+          "pattern": "BSTART.TEPL 0b1010111",
+          "expected_delta": "BSTART.TEPL 0x13 for TCOLEXPANDMUL"
+        }
+      ],
+      "completed_delta": [
+        "benchmark-linxisa and benchmark-ptoisa template_asm.h emit B.ITP source descriptors and B.OTA destination descriptors.",
+        "Template allocation uses v0.57 B.OTA CellCountM1 and enforces at least one 128-byte CELL.",
+        "TLOAD and TSTORE templates use the v0.57 TMA.Function ids consumed by the LLVM and QEMU updates."
+      ]
+    },
+    {
+      "name": "TileOP Linx convenience API",
+      "state": "open",
+      "required_delta": [
+        "Expose the issue #14 TileOP API forms with signatures that match benchmark callsites.",
+        "Keep real PTO instruction forms such as TSTORE_FP, TINSERT, TCONCAT, and TFILLPAD assigned to concrete instruction families; expose TileOP wrappers when compiler lowering exists.",
+        "Map merged forms such as TSTORE/TSTORE_FP, TINSERT/TINSERT_FP, TCONCAT/TCONCATIDX, and the TFILLPAD family through form fields instead of new opcode ids.",
+        "Replace the temporary generic-FIXP gaps with real TINSERT/TTRANS/TCONCAT/TFILLPAD lowering after the compiler FIXP intrinsic surface is added.",
+        "Do not add sync, communication, pipe-sync, or IR virtual forms as block-encoded TileOP instructions."
+      ],
+      "completed_delta": [
+        "Linx TEPL convenience constants in workloads/pto_kernels/include/common/pto_tileop.hpp match the v0.57 TEPL.TileOpcode map and are checked by tools/isa/check_pto_v057_downstream.py.",
+        "common/pto_tileop.hpp exposes benchmark-facing v0.57 wrappers for TREMS, TCOLMAX, TCOLPROD, TCOLSUM, TROWPROD, TMOV, MGATHER, MSCATTER, TCVT, TDIVS, TEXP, TRECIP, TROWMAX, TROWSUM, TLOAD, TSTORE, TSTORE_FP, TEXPANDS, and TROWEXPAND.",
+        "TCONCAT and TCONCATIDX are exposed in workloads/pto_kernels/include/pto/common/pto_instr.hpp, implemented for CPU simulation in workloads/pto_kernels/include/pto/cpu/TConcat.hpp, and have __LINXISA__ hooks in workloads/pto_kernels/include/pto/linx/impl/PtoInstrImpl.hpp.",
+        "PTO-AS emits TCONCATIDX for pto.tconcatidx instead of overloading the plain TCONCAT call name.",
+        "PTO-AS no longer emits an instruction-looking scale-address helper for pto.tget_scale_addr; that op remains an IR/view operation with no LinxISA v0.57 EmitC instruction lowering."
+      ],
+      "path_globs": [
+        "workloads/pto_kernels/include/common/pto_tileop.hpp",
+        "workloads/pto_kernels/include/pto/common/pto_instr.hpp",
+        "workloads/pto_kernels/include/pto/common/pto_instr_impl.hpp",
+        "workloads/pto_kernels/include/pto/cpu/TConcat.hpp",
+        "workloads/pto_kernels/include/pto/linx/impl/PtoInstrImpl.hpp",
+        "compiler/ptoas/lib/PTO/Transforms/PTOToEmitC.cpp"
+      ],
+      "required_patterns": [
+        {
+          "pattern": "TSTORE_FP",
+          "expected_delta": "TileOP API exposes TSTORE_FP as a form of TMA.Function.TSTORE"
+        },
+        {
+          "pattern": "MGATHER",
+          "expected_delta": "TileOP API exposes MGATHER"
+        },
+        {
+          "pattern": "MSCATTER",
+          "expected_delta": "TileOP API exposes MSCATTER"
+        }
+      ],
+      "stale_patterns": []
+    },
+    {
+      "name": "LLVM Linx backend",
+      "state": "open",
+      "required_delta": [
+        "Teach MC asm parsing and printing to accept v0.57 B.ITP, B.OTA, and B.META descriptor syntax.",
+        "Lower TileOP/CUBE/TMA/FIXP operations using v0.57 opcode ids and merged form bits.",
+        "Change BSTART.TMA, BSTART.CUBE, BSTART.TEPL, and BSTART.FIXP local operation fields to the v0.57 8-bit opcode spaces.",
+        "Retire B.IOT/B.IOTI as the emitted v0.57 tile descriptor surface."
+      ],
+      "completed_delta": [
+        "MC parsing and printing accepts v0.57 B.ITP and B.OTA descriptor syntax with 8-bit TileReg ids, TZERO, reuse hints, last bits, source-pair ids, destination slots, and CellCountM1 destination allocation.",
+        "BSTART.TMA, BSTART.CUBE, BSTART.FIXP, and BSTART.TEPL MachineInstr operands carry 8-bit block-local function/selectors where required by v0.57.",
+        "Blockify emits B.ITP/B.OTA descriptor MachineInstrs for TLOAD, TSTORE, TMOV, CUBE TMATMUL, TEPL, VPAR local tile bases, and local scratch allocation.",
+        "FIXP TMOV lowering uses BSTART.FIXP Function=TMOV instead of an unmerged TMA TMOV selector.",
+        "CUBE TMATMUL and suffix forms lower through merged BSTART.CUBE Function=TMATMUL plus B.ARG form selection.",
+        "Old B.IOT/B.IOTI parser, printer, MachineInstr, and opcode-table forms are removed from the LLVM target surface.",
+        "ninja -C compiler/llvm/build-linxisa-clang clang llvm-mc llvm-objdump -j10 passes after the descriptor split."
+      ],
+      "path_globs": [
+        "compiler/llvm/llvm/lib/Target/LinxISA/AsmParser/LinxISAAsmParser.cpp",
+        "compiler/llvm/llvm/lib/Target/LinxISA/MCTargetDesc/LinxISAInstPrinter.cpp",
+        "compiler/llvm/llvm/lib/Target/LinxISA/LinxISAInstrInfo.td",
+        "compiler/llvm/llvm/lib/Target/LinxISA/LinxISABlockify.cpp"
+      ],
+      "stale_patterns": [
+        {
+          "pattern": "B.IOT",
+          "expected_delta": "B.ITP/B.OTA descriptor support"
+        },
+        {
+          "pattern": "B.IOTI",
+          "expected_delta": "B.OTA destination allocation support"
+        },
+        {
+          "pattern": "def BSTART_TMA  : LinxISAInst<(outs), (ins uimm5:$dtype, uimm5:$func)",
+          "expected_delta": "BSTART.TMA function field must carry v0.57 TMA.Function u8 ids"
+        },
+        {
+          "pattern": "def BSTART_CUBE : LinxISAInst<(outs), (ins uimm5:$dtype, uimm5:$func)",
+          "expected_delta": "BSTART.CUBE function field must carry v0.57 CUBE.Function u8 ids"
+        },
+        {
+          "pattern": "def BSTART_TEPL : LinxISAInst<(outs), (ins uimm5:$dtype, uimm10:$tileop)",
+          "expected_delta": "BSTART.TEPL tile opcode field must carry v0.57 TEPL.TileOpcode u8 ids"
+        }
+      ]
+    },
+    {
+      "name": "QEMU Linx target",
+      "state": "open",
+      "required_delta": [
+        "Decode v0.57 B.ITP and B.OTA descriptors with 8-bit TileReg ids.",
+        "Update tile execution dispatch to v0.57 TEPL, CUBE, TMA, and FIXP opcode spaces.",
+        "Decode merged CUBE and TMA/FIXP forms through B.ARG/form fields instead of distinct old function ids.",
+        "Remove old masks that truncate CUBE/TMA/FIXP to 5-bit local functions and TEPL to 10-bit TileOp fields."
+      ],
+      "completed_delta": [
+        "BSTART.TMA, BSTART.CUBE, BSTART.FIXP, and BSTART.TEPL translation begins direct v0.57 tile headers instead of remapping packed PAR-era TileOp values.",
+        "TMA dispatch uses v0.57 ids: MGATHER=0, MSCATTER=1, TLOAD=2, TPREFETCH=3, and TSTORE/TSTORE_FP=4; the removed TCVT compatibility slot is no longer decoded as TMA.",
+        "CUBE dispatch uses merged v0.57 ids: TGEMV=0 and TMATMUL=1; old accumulate/conversion selector rows are removed from active dispatch.",
+        "QEMU decodes B.ITP and B.OTA directly, with split source-pair and destination-allocation descriptor state and 8-bit TileReg ids.",
+        "TLOAD consumes B.OTA CellCountM1 allocation; TSTORE consumes B.ITP sources and obtains source size from tracked TileReg allocation metadata.",
+        "Vector local tile bases now derive TA/TB/TC/TD from B.ITP and TO/TS from B.OTA.",
+        "qemu-system-linx64 builds successfully with ninja -C emulator/qemu/build-linx qemu-system-linx64 after the descriptor split."
+      ],
+      "path_globs": [
+        "emulator/qemu/target/linx/helper.c",
+        "emulator/qemu/target/linx/translate.c",
+        "emulator/qemu/target/linx/cpu.h"
+      ],
+      "stale_patterns": [
+        {
+          "pattern": "LINX_TILE_IOT",
+          "expected_delta": "v0.57 B.ITP/B.OTA tile descriptor state"
+        },
+        {
+          "pattern": "tile_iot_desc",
+          "expected_delta": "separate source and destination tile descriptor state"
+        },
+        {
+          "pattern": "%TileFunc 20:5",
+          "expected_delta": "v0.57 block-local opcode fields are u8"
+        },
+        {
+          "pattern": "%TileOp10 15:10",
+          "expected_delta": "v0.57 TEPL.TileOpcode is a u8 local opcode id"
+        },
+        {
+          "pattern": "func & 0x1f",
+          "expected_delta": "dispatch on full v0.57 u8 TMA/CUBE/FIXP ids"
+        },
+        {
+          "pattern": "op & 0x3ff",
+          "expected_delta": "dispatch on full v0.57 u8 TEPL ids"
+        },
+        {
+          "pattern": "LINX_TMA_TCVT_COMPAT",
+          "expected_delta": "TCVT is TEPL.TileOpcode.TCVT, not a TMA compatibility id"
+        },
+        {
+          "pattern": "LINX_CUBE_ACCCVT",
+          "expected_delta": "CUBE conversion/accumulate suffixes are B.ARG forms of merged CUBE rows"
+        }
+      ]
+    },
+    {
+      "name": "tools/model ISA executor",
+      "state": "open",
+      "required_delta": [
+        "Recognize v0.57 BSTART.FIXP and BSTART.TSTORE as tile/data block starts.",
+        "Regenerate generated ISA tables after v0.57 descriptor and opcode changes.",
+        "Remove unmerged generated aliases for TMATMUL suffixes, TMOV, and TSTORE when those forms are selected by v0.57 opcode family plus B.ARG."
+      ],
+      "path_globs": [
+        "tools/model/src/emulator/reference_executor.cpp",
+        "tools/model/src/isa/generated_tables.cpp"
+      ],
+      "stale_patterns": [
+        {
+          "pattern": "BSTART.TMOV",
+          "expected_delta": "TMOV is FIXP.Function.TMOV with form selection"
+        },
+        {
+          "pattern": "BSTART.TMATMUL.ACC",
+          "expected_delta": "TMATMUL.ACC is selected inside CUBE.Function.TMATMUL"
+        },
+        {
+          "pattern": "BSTART.TSTORE",
+          "expected_delta": "TSTORE/TSTORE_FP share TMA.Function.TSTORE with form selection"
+        },
+        {
+          "pattern": "B.IOT",
+          "expected_delta": "B.ITP/B.OTA descriptor rows"
+        },
+        {
+          "pattern": "B.IOTI",
+          "expected_delta": "B.OTA destination allocation descriptor rows"
+        }
+      ],
+      "completed_delta": [
+        "generated_tables.cpp exposes B.ITP and B.OTA descriptor rows instead of B.IOT/B.IOTI rows.",
+        "Generated BSTART table labels use merged v0.57 selector surfaces: BSTART.TMA, BSTART.CUBE, and BSTART.FIXP Function/DataType forms.",
+        "Unmerged generated aliases for BSTART.TMOV, BSTART.TMATMUL.ACC, and BSTART.TSTORE are removed from the table surface."
+      ]
+    },
+    {
+      "name": "GFSIM BlockISA model",
+      "state": "open",
+      "required_delta": [
+        "Decode v0.57 B.ITP and B.OTA descriptors with 8-bit TileReg ids.",
+        "Replace old TEPL mode/function splitting with direct v0.57 TEPL.TileOpcode dispatch.",
+        "Update TMA/CUBE/FIXP function dispatch to merged v0.57 opcode families and B.ARG form selection.",
+        "Add FIXP execution paths for TCONCAT, TFILLPAD, TINSERT, TTRANS, TMOV, and related real PTO instruction families."
+      ],
+      "completed_delta": [
+        "TMA function dispatch uses v0.57 ids: MGATHER=0, MSCATTER=1, TLOAD=2, TPREFETCH=3, and TSTORE/TSTORE_FP=4.",
+        "CUBE function dispatch uses merged v0.57 ids: TGEMV=0 and TMATMUL=1; suffix variants are no longer separate BSTART function ids.",
+        "TEPL decode detects the v0.57 BSTART.TEPL match pattern and dispatches directly from the TEPL.TileOpcode byte.",
+        "FIXP decode recognizes TDEQUANT, TEXTRACT, TINSERT, TMOV, TCONCAT, TFILLPAD, TQUANT, and TTRANS as real FIXP.Function ids.",
+        "The old B.IOT block-argument size calculator is removed because v0.57 source descriptors no longer encode allocation size.",
+        "FIXP TMOV reuses the existing tile-move execution path; TPREFETCH is treated as a no-op hint in the TMA engine.",
+        "GFSIM block type metadata includes FIXP and cmake --build build --target gfsim -j10 passes in model/LinxCoreModel."
+      ],
+      "path_globs": [
+        "model/LinxCoreModel/isa/ISACommon/TileOpManager.h",
+        "model/LinxCoreModel/isa/ISACommon/TileOpManager.cpp",
+        "model/LinxCoreModel/isa/Block.cpp",
+        "model/LinxCoreModel/isa/Block.h",
+        "model/LinxCoreModel/isa/ISACommon/BlockType.h",
+        "model/LinxCoreModel/isa/calculate/blockArgs/BlockArgs.cpp",
+        "model/LinxCoreModel/emulator/SoftCore.cpp",
+        "model/LinxCoreModel/emulator/engine/TMAEngine.cpp",
+        "model/LinxCoreModel/emulator/engine/TEPLEngine.cpp"
+      ],
+      "stale_patterns": [
+        {
+          "pattern": "OP_B_IOT",
+          "expected_delta": "v0.57 B.ITP/B.OTA opcodes"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "strict_downstream_gate": "python3 tools/isa/check_pto_v057_downstream.py --strict",
+    "strict_downstream_gate_result": "OK",
+    "encoding_gate": "python3 tools/isa/check_pto_v057_encoding.py --spec isa/v0.57/state/pto_encoding.json",
+    "encoding_gate_result": "OK",
+    "llvm_build": "ninja -C compiler/llvm/build-linxisa-clang clang llvm-mc llvm-objdump -j10",
+    "llvm_build_result": "OK",
+    "qemu_build": "ninja -C emulator/qemu/build-linx qemu-system-linx64",
+    "qemu_build_result": "OK",
+    "gfsim_build": "cmake --build build --target gfsim -j10 (cwd: model/LinxCoreModel)",
+    "gfsim_build_result": "OK"
+  }
+}

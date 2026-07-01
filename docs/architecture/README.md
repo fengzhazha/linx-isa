@@ -12,6 +12,11 @@ Architecture-facing documentation lives under `docs/architecture/`.
 - `docs/architecture/v0.56-rendering-kernel-authoring.md`
 - `docs/architecture/v0.56-rendering-pto-contract.md`
 - `docs/architecture/v0.56-rendering-command-contract.md`
+- proposed next-profile pages:
+  - `docs/architecture/v0.57-architecture-contract.md`
+  - `docs/architecture/v0.57-block-definition.md`
+  - `docs/architecture/v0.57-pto-encoding.md`
+  - `docs/architecture/v0.57-downstream-migration.md`
 - published LinxCore mirrors:
   - `docs/architecture/linxcore/overview.md`
   - `docs/architecture/linxcore/microarchitecture.md`

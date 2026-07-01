@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.openclaw.ai/schemas/linxisa/tile_reg.v0.json",
+  "allocation_model": "unified_dynamic_cell_descriptor",
+  "cell_bytes": 128,
+  "count": 256,
+  "description": "v0.57 TileReg namespace. B.ITP and B.OTA encode an 8-bit architectural tile register id. TZERO is source-only and ordinary ids 0x01..0xff are dynamically allocated tiles with descriptor metadata.",
+  "entries": [
+    {
+      "code": 0,
+      "destination_allowed": false,
+      "name": "TZERO",
+      "source_allowed": true
+    }
+  ],
+  "ordinary_range": {
+    "destination_allowed": true,
+    "end": 255,
+    "source_allowed": true,
+    "start": 1
+  },
+  "source_size_rule": "Source TileReg size is not repeated in B.ITP. Hardware reads source allocation metadata from the TileReg rename/allocation table.",
+  "tzero_rule": "TZERO reads as a zero/null tile. It may pad unused source slots. Any reuse bit associated with TZERO must be zero. TZERO is illegal as a destination.",
+  "version": "0.57.0"
+}
