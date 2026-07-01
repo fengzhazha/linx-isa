@@ -90,9 +90,13 @@ The runner stops on the first red hard-break stage unless
   `PTO_ATTENTION_*` plus `PTO_FLASH_TILE_*` micro-shape flags to keep the
   prefix model-runnable. Current evidence proves source, compiler, QEMU,
   model-smoke, and plain `gfsim -f <elf>` through the
-  `flash_attention_softmax` digest. Keep `avs-pto-parity` as the full
-  smoke-sized maturity row; do not treat the micro-profiled softmax prefix as a
-  substitute for full-row closure. The promoted masked-attention prefix is
+  `flash_attention_softmax` digest. The 2x bridge case
+  `avs-pto-parity-prefix-flash-attention-softmax-2x` uses the same stop point
+  with `PTO_ATTENTION_*` set to `2` and `PTO_FLASH_TILE_*` set to `1`, proving
+  a larger scalar soft-float softmax prefix through QEMU and plain
+  `gfsim -f <elf>`. Keep `avs-pto-parity` as the full smoke-sized maturity row;
+  do not treat the micro-profiled softmax prefixes as substitutes for full-row
+  closure. The promoted masked-attention prefix is
   `avs-pto-parity-prefix-flash-attention-masked`, which stops after
   `PTO_PARITY_STAGE_FLASH_ATTENTION_MASKED` and adds
   `PTO_ATTENTION_MASKED_SMOKE_*` micro-shape flags; current evidence proves it
@@ -124,7 +128,7 @@ The runner stops on the first red hard-break stage unless
   agents can isolate the first red model boundary without changing the full-row
   target. Current full-row evidence reaches `flash_attention_softmax` and times
   out in `flash_attention_demo_f32` soft-float helper code at BROB BPC
-  `0x17eaa` after QEMU pass; classify similar QEMU-passing full-shape timeouts
+  `0x18348` after QEMU pass; classify similar QEMU-passing full-shape timeouts
   as model-owned unless static legality evidence proves otherwise. Earlier
   `tanh` crash, `softmax`
   local-pipe stall, and

@@ -1,6 +1,6 @@
 # QEMU Opcode Sync Audit
 
-- Generated (UTC): `2026-06-18 01:51:27Z`
+- Generated (UTC): `2026-06-28 10:26:06Z`
 - Result: `qemu_opcode_meta_sync_ok`
 - OK: `true`
 - Decode forms (unique): `652`

@@ -160,6 +160,25 @@ class AiWorkloadFlowTests(unittest.TestCase):
             model_case.metadata["avs_extra_cflags"],
         )
 
+    def test_avs_softmax_2x_prefix_case_is_model_eligible(self) -> None:
+        cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
+        case = next(
+            case
+            for case in cases
+            if case.id == "avs-pto-parity-prefix-flash-attention-softmax-2x"
+        )
+
+        self.assertEqual(case.tier, 1)
+        self.assertTrue(case.model_eligible)
+        self.assertTrue(case.produces_elf)
+        self.assertIn("-DPTO_ATTENTION_SMOKE_SEQ=2", case.metadata["avs_extra_cflags"])
+        self.assertIn("-DPTO_ATTENTION_LARGE_SMOKE_SEQ=2", case.metadata["avs_extra_cflags"])
+        self.assertIn("-DPTO_FLASH_TILE_M=1", case.metadata["avs_extra_cflags"])
+        self.assertIn(
+            "-DPTO_PARITY_STOP_AFTER_STAGE=PTO_PARITY_STAGE_FLASH_ATTENTION_SOFTMAX",
+            case.metadata["avs_extra_cflags"],
+        )
+
     def test_model_smoke_is_not_applicable_without_model_cases(self) -> None:
         cases = run_ai_workload_flow.discover_cases(run_ai_workload_flow.repo_root())
         qemu_case = next(case for case in cases if case.id == "avs-pto-parity")

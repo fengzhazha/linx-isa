@@ -74,6 +74,7 @@
       "tsvc-qemu-hardbreak",
       "linux-userspace-entry",
       "libc-hosted-runtime",
+      "specint-fast-gate",
       "full-benchmarks"
     ],
     "stage_owners": {
@@ -83,6 +84,7 @@
       "tsvc-qemu-hardbreak": "integration",
       "linux-userspace-entry": "linux",
       "libc-hosted-runtime": "libc",
+      "specint-fast-gate": "integration",
       "full-benchmarks": "integration"
     }
   },
@@ -488,13 +490,13 @@
     "compiler_llvm.md": ["LLVM-001", "LLVM-002", "LLVM-003", "LLVM-004", "LLVM-005", "LLVM-006", "LLVM-007", "LLVM-008"],
     "emulator_qemu.md": ["QEMU-001", "QEMU-002", "QEMU-003", "QEMU-004", "QEMU-005", "QEMU-005A", "QEMU-005B", "QEMU-006", "QEMU-007", "QEMU-008"],
     "kernel_linux.md": ["LINUX-001", "LINUX-002", "LINUX-003", "LINUX-004", "LINUX-005"],
-    "libc_runtime.md": ["LIBC-001", "LIBC-002", "LIBC-003", "LIBC-004", "LIBC-005", "LIBC-006"],
+    "libc_runtime.md": ["LIBC-001", "LIBC-005", "LIBC-002", "LIBC-003", "LIBC-007", "LIBC-009", "LIBC-008", "LIBC-004", "LIBC-006"],
     "linxcore_rtl.md": ["LC-001", "LC-002", "LC-003", "LC-004", "LC-005", "LC-006", "LC-007", "LC-008", "LC-009"],
     "pycircuit_model.md": ["PYC-001", "PYC-002", "PYC-003", "PYC-004", "PYC-005", "PYC-006", "PYC-007"],
-    "specint_qemu.md": ["SPEC-M01", "SPEC-M02", "SPEC-M03", "SPEC-M04", "SPEC-M05", "SPEC-M06", "SPEC-P01"],
+    "specint_qemu.md": ["SPEC-M05-9P-STORAGEINIT-AUTO-20260630", "SPEC-M05-TILECOMMIT-GUARD-20260630", "SPEC-M05-TLBIV-PAGEFLUSH-20260630", "SPEC-M05-MPROTECT-NOMERGE-20260630", "SPEC-M05-HBSTALL-VMTRACE-20260630", "SPEC-M05-TRAIN-ALL-TLBFILL-20260630", "SPEC-M01F", "SPEC-M05-9P-TRAIN-ALL-FAST-20260630", "SPEC-M05-LATEST-QEMU-TRAIN-ALL-STATIC-20260630", "SPEC-M05-HIGHMEM-PANIC-20260630", "SPEC-M05-LATEST-TRAIN-ALL-20260629", "SPEC-MATRIX-AGG-001", "SPEC-M05-STACKLIMIT-SYSCALL", "SPEC-M05-MATRIX-MEMORY", "SPEC-M05-MALLOCNG-DEFAULT", "SPEC-M05-LATEST-TRAIN-ALL-20260628", "SPEC-QEMU-HB-001", "SPEC-QEMU-FCMP-DBG-001", "SPEC-QEMU-TP-DBG-001", "SPEC-QEMU-SYSCALL-DBG-001", "SPEC-QEMU-FAULT-DBG-001", "SPEC-QEMU-PCWATCH-DBG-001", "SPEC-QEMU-MEMTRACE-DBG-001", "SPEC-QEMU-FALL-CALL-001", "SPEC-M05-SMOKE", "SPEC-M05-GTOD-502", "SPEC-M05-EXECVE-500", "SPEC-M05-FIXUP-500", "SPEC-M05-KMALLOC-500", "SPEC-M05-DLOOKUP-500", "SPEC-M05-BIGINT-500", "SPEC-M05-USERTRAP-500-SCRABBL", "SPEC-M05-FD-502", "SPEC-M05-MALLOC-502", "SPEC-M05-LIVE-SLOW", "SPEC-M05-USERTRAP-502-541", "SPEC-M05-OLDMALLOC-CPP", "SPEC-M05-CPP-STARTUP", "SPEC-M05-CPP-RUNTIME", "SPEC-M05-PANIC-525", "SPEC-M05-SHARED-RUNTIME", "SPEC-M01", "SPEC-M02", "SPEC-M03", "SPEC-M04", "SPEC-M05", "SPEC-M06", "SPEC-P01"],
     "testbench_verif.md": ["TB-001", "TB-002", "TB-003", "TB-004"],
     "trace_linxtrace.md": ["TRACE-001", "TRACE-002", "TRACE-003", "TRACE-004", "TRACE-005", "TRACE-006"],
-    "integration_release.md": ["INT-001", "INT-002", "INT-003", "INT-004", "INT-005", "INT-006", "INT-007", "INT-008", "INT-009", "INT-010", "INT-011", "INT-012", "INT-013", "INT-014", "INT-015", "INT-016", "INT-017", "INT-018", "INT-019", "INT-020", "INT-021", "INT-022", "INT-023", "INT-024", "INT-025", "INT-026", "INT-027"]
+    "integration_release.md": ["INT-001", "INT-016", "INT-002", "INT-003", "INT-004", "INT-005", "INT-006", "INT-007", "INT-008", "INT-009", "INT-010", "INT-011", "INT-012", "INT-013", "INT-014", "INT-015", "INT-017", "INT-018", "INT-019", "INT-020", "INT-021", "INT-022", "INT-023", "INT-024", "INT-025", "INT-027", "INT-026"]
   },
   "spec_policy": {
     "bringup_subset": ["999.specrand_ir", "505.mcf_r", "531.deepsjeng_r"],
