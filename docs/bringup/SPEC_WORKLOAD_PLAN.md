@@ -186,6 +186,15 @@ As of 2026-07-01:
   is red and is the active failure ledger for addr-zero user traps, wrapper
   exits, VFS-root transport panic, live-timeout rows, and strict host-output
   hash mismatches.
+- Focused `531.deepsjeng_r` follow-up is
+  `workloads/generated/specint-531-test-filesys-trace-20260701-r1/`: cwd,
+  executable preflight, and `execve()` are correct, but the child writes the
+  short `Allocated Workload not found` output without issuing a traced file
+  syscall for `test.txt`. Static C musl `file_stdio` and `printf_string_arg`
+  controls pass while static `cpp17_smoke` traps in
+  `workloads/generated/musl-control-stdio-cpp-20260701-r1/`, so this row is
+  currently a C++ runtime/codegen correctness blocker rather than a SPEC input
+  packaging blocker.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup and `999.specrand_ir` passes strict train hash on the
   active QEMU/kernel stack.

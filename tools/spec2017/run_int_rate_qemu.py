@@ -171,6 +171,15 @@ def _mk_run(
     return run
 
 
+def _apply_argv_overrides(argv: list[str]) -> list[str]:
+    out = list(argv)
+    for idx in range(len(out)):
+        val = os.environ.get(f"LINX_SPEC_ARGV{idx}_OVERRIDE", "").strip()
+        if val:
+            out[idx] = val
+    return out
+
+
 def _runs_perlbench(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
     input_dir = bench_root / "data" / input_set / "input"
     if not input_dir.exists():
@@ -713,10 +722,7 @@ def _build_init_for_run(
     if guest_heartbeat_sec < 0:
         raise SystemExit("error: guest_heartbeat_sec must be >= 0")
 
-    argv = list(run_cfg["argv"])
-    argv2_override = os.environ.get("LINX_SPEC_ARGV2_OVERRIDE", "").strip()
-    if argv2_override and len(argv) > 2:
-        argv[2] = argv2_override
+    argv = _apply_argv_overrides(list(run_cfg["argv"]))
     argv_items = "\n".join(f'    "{_c_escape(arg)}",' for arg in argv)
     stdout_rel = str(run_cfg["stdout"])
     stderr_rel = str(run_cfg["stderr"])
@@ -744,6 +750,7 @@ def _build_init_for_run(
     }
     use_vfork_default = "0" if transport == "initramfs" else "0"
     use_vfork = os.environ.get("LINX_SPEC_USE_VFORK", use_vfork_default).lower() in {"1", "true", "yes"}
+    trace_cwd = os.environ.get("LINX_SPEC_CWD_TRACE", "").lower() in {"1", "true", "yes"}
     direct_initramfs = transport == "initramfs" and os.environ.get(
         "LINX_SPEC_DIRECT_INITRAMFS", ""
     ).lower() in {"1", "true", "yes"}
@@ -858,6 +865,7 @@ def _build_init_for_run(
       LOG_LIT("LINX_SPEC_DBG step=child-enter\\n");
 {child_stdio_setup}
     LOG_LIT("LINX_SPEC_DBG step=child-before-exec\\n");
+    log_cwd_probe("child-before-exec");
     log_preexec_probe(argv[0]);
     log_preexec_probe(kExecPath);
     /*
@@ -1399,6 +1407,7 @@ static const int kMirrorLogToStdout = {1 if mirror_log_stdout else 0};
 static const int kSetupConsole = {1 if setup_console else 0};
 static const int kUseVfork = {1 if use_vfork else 0};
 static const int kUseKmsgLog = {1 if use_kmsg_log else 0};
+static const int kTraceCwd = {1 if trace_cwd else 0};
 static const unsigned int kGuestHeartbeatSec = {guest_heartbeat_sec}u;
 
 __attribute__((noinline, returns_twice)) static pid_t spawn_child_process(void) {{
@@ -1548,6 +1557,26 @@ static void write_log_s64_dec(long long v) {{
   }} else {{
     write_log_u64_dec((unsigned long long)v);
   }}
+}}
+
+static void log_cwd_probe(const char *tag) {{
+  if (!kTraceCwd)
+    return;
+
+  char cwd[256];
+  errno = 0;
+  char *p = getcwd(cwd, sizeof(cwd));
+  int err = errno;
+  write_log_cstr("LINX_SPEC_CWD tag=");
+  write_log_cstr(tag);
+  write_log_cstr(" path=");
+  if (p) {{
+    write_log_cstr(cwd);
+  }} else {{
+    write_log_cstr("<error> errno=");
+    write_log_s64_dec((long long)err);
+  }}
+  write_log_cstr("\\n");
 }}
 
 static void set_spec_stack_limit(void) {{
@@ -2024,6 +2053,7 @@ int main(void) {{
     poweroff_now();
   }}
   LOG_LIT("LINX_SPEC_DBG step=chdir-ok\\n");
+  log_cwd_probe("parent-after-chdir");
 
 {run_block}
 }}

@@ -114,6 +114,18 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(qemu_info["failure_class"], "user-trap")
         self.assertEqual(qemu_info["failure_evidence"], "trap")
 
+    def test_indexed_argv_override_targets_requested_argument(self) -> None:
+        with mock.patch.dict(os.environ, {"LINX_SPEC_ARGV1_OVERRIDE": "/spec-run/test.txt"}, clear=True):
+            argv = runner._apply_argv_overrides(["./bench", "test.txt"])
+
+        self.assertEqual(argv, ["./bench", "/spec-run/test.txt"])
+
+    def test_indexed_argv_override_leaves_unset_arguments_unchanged(self) -> None:
+        with mock.patch.dict(os.environ, {"LINX_SPEC_ARGV2_OVERRIDE": "patched"}, clear=True):
+            argv = runner._apply_argv_overrides(["./bench", "input", "old"])
+
+        self.assertEqual(argv, ["./bench", "input", "patched"])
+
     def test_heartbeat_kernel_addresses_keep_recent_kernel_sites(self) -> None:
         text = "\n".join(
             [

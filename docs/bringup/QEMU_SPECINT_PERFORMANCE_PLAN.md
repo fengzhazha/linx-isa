@@ -472,8 +472,8 @@ Additional opt-in QEMU debug switches used during this pass:
   suspicion.
 - `LINX_SYSCALL_TRACE=1` logs Linx hosted syscall entry and ACRE return pairs
   with syscall number, BPC/TPC, arguments, return value, and cstate. Narrow
-  with `LINX_SYSCALL_TRACE_NR`, `LINX_SYSCALL_TRACE_LIMIT`, and
-  `LINX_SYSCALL_TRACE_PC_LO/HI`.
+  with `LINX_SYSCALL_TRACE_NR` as one number or a comma-separated list,
+  `LINX_SYSCALL_TRACE_LIMIT`, and `LINX_SYSCALL_TRACE_PC_LO/HI`.
 - `LINX_SYSCALL_TRACE_STRINGS=1` augments syscall tracing with separate
   `LINX_SYSCALL_ARGSTR` records for pathname arguments. Bound reads with
   `LINX_SYSCALL_TRACE_STRING_MAX=<1..255>` so path/fd failures can be
@@ -889,7 +889,7 @@ attempted all ten rows in both suites. It is intentionally red:
 | `520.omnetpp_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: same addr-zero class as 500/502. |
 | `523.xalancbmk_r` | live timeout, heartbeat site progress plus same-site warning | live timeout, heartbeat site progress | Throughput; the same-site warning did not prove deadlock. |
 | `525.x264_r` | VFS root panic before SPEC start | VFS root panic before SPEC start | Transport/rootfs: use 9p or block-backed SPEC root for large inputs. |
-| `531.deepsjeng_r` | guest pass, host hash mismatch (`test.out`, 102 bytes vs 3611) | guest pass, host hash mismatch (`train.out`, 102 bytes vs 35012) | Output validation/wrapper collection; future summaries classify as `hash-mismatch`. |
+| `531.deepsjeng_r` | guest pass, host hash mismatch (`test.out`, 102 bytes vs 3611) | guest pass, host hash mismatch (`train.out`, 102 bytes vs 35012) | C++ runtime/codegen correctness. Focused trace shows exec succeeds but the child emits `Allocated Workload not found` without a child-side file syscall for `test.txt`; C stdio controls pass while static C++ smoke traps. |
 | `541.leela_r` | live timeout, heartbeat site progress | wrapper child exit, signal 9, same-site warning observed | Resource/kill-cause plus throughput lane. |
 | `557.xz_r` | live timeout, heartbeat site progress | `user-trap`, addr 0 | Correctness for train; throughput for test. |
 | `999.specrand_ir` | guest pass, host hash mismatch (`rand.24239.out`, 310 bytes vs 616074) | live timeout, heartbeat site progress | Recheck under no host contention; keep as cheap strict-hash sentinel when stable. |
@@ -901,6 +901,16 @@ rows separately from guest execution failures: the guest reached
 drop `ignore_loglevel loglevel=8` and use coarse or disabled heartbeat after
 `LINX_SPEC_START`; the verbose diagnostic shape above is for failure
 classification, not speed measurement.
+
+Focused 531 update (2026-07-01): the narrowed filesystem trace under
+`workloads/generated/specint-531-test-filesys-trace-20260701-r1/` used
+`LINX_SYSCALL_TRACE_NR=48,56,78,79,221,291` and showed wrapper cwd/pre-exec
+state is correct, `execve("/spec-run/deepsjeng_r_base.mytest-m64", ...)`
+enters the child, and no child-side `openat`/`newfstatat`/`faccessat` for
+`test.txt` occurs before the short output. A musl control run under
+`workloads/generated/musl-control-stdio-cpp-20260701-r1/` passes static C
+`file_stdio` and `printf_string_arg` but fails static `cpp17_smoke` with a user
+trap. Keep 531 in the C++ runtime/codegen lane until that control lane is green.
 
 Focused `525.x264_r` follow-up split that panic-path probe into transport work.
 The initramfs train lane builds a 1.6 GiB CPIO and never reaches

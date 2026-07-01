@@ -203,11 +203,12 @@ preferred discriminator when a syscall such as `mprotect()` appears to succeed
 but the next access still faults.
 
 Use `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` with
-`LINX_SYSCALL_TRACE_NR=<nr>` for focused syscall copyout checks. Pair it with
-`LINX_SYSCALL_TRACE_DUMP_BYTES=<n>` to cap the returned buffer dump; leave the
-variable unset for normal train-all runs. This is the preferred next step when
-the symptom is `errno`/fd/path corruption but `LINX_SYSCALL_RETURN` does not
-show the reported errno.
+`LINX_SYSCALL_TRACE_NR=<nr>` or a comma-separated list such as
+`LINX_SYSCALL_TRACE_NR=48,56,79,221` for focused syscall copyout checks. Pair it
+with `LINX_SYSCALL_TRACE_DUMP_BYTES=<n>` to cap the returned buffer dump; leave
+the variable unset for normal train-all runs. This is the preferred next step
+when the symptom is `errno`/fd/path corruption but `LINX_SYSCALL_RETURN` does
+not show the reported errno.
 
 Use `LINX_MEM_TRACE_CONTEXT=1` when a memory trace must prove whether two
 stores come from the same guest address space. Pair it with
