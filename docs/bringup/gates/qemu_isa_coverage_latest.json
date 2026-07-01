@@ -1,10 +1,10 @@
 {
-  "coverage_count": 615,
-  "coverage_ratio_percent": 86.62,
+  "coverage_count": 614,
+  "coverage_ratio_percent": 86.48,
   "form_coverage_count": 614,
   "form_coverage_ratio_percent": 82.97,
   "form_missing_count": 126,
-  "generated_at_utc": "2026-06-28 10:42:41Z",
+  "generated_at_utc": "2026-07-01 11:15:04Z",
   "legal_form_count": 740,
   "legal_mnemonic_count": 710,
   "mapped_by_prefix": {
@@ -20,7 +20,7 @@
     "ANDIW": 1,
     "ANDW": 1,
     "ASSERT": 1,
-    "B": 14,
+    "B": 13,
     "BC": 2,
     "BCNT": 1,
     "BIC": 1,
@@ -398,9 +398,6 @@
     ],
     "b_ior": [
       "B.IOR"
-    ],
-    "b_iot": [
-      "B.IOT"
     ],
     "b_lt": [
       "B.LT"
@@ -2265,12 +2262,12 @@
     ]
   },
   "missing_by_prefix": {
-    "B": 3,
+    "B": 4,
     "C": 1,
     "V": 90,
     "XB": 1
   },
-  "missing_count": 95,
+  "missing_count": 96,
   "missing_forms_by_prefix": {
     "B": 8,
     "BSTART": 14,
@@ -2413,6 +2410,7 @@
     "B.CATR",
     "B.DATR",
     "B.DIM",
+    "B.IOT",
     "C.SETRET",
     "V.LB",
     "V.LBI",
@@ -2507,13 +2505,13 @@
     "XB"
   ],
   "qemu_mapped_spec_forms": 614,
-  "qemu_mapped_spec_mnemonics": 615,
-  "qemu_meta_mnemonics": 651,
+  "qemu_mapped_spec_mnemonics": 614,
+  "qemu_meta_mnemonics": 652,
   "qemu_meta_path": "/Users/zhoubot/linx-isa/emulator/qemu/target/linx/linx_opcode_meta_gen.h",
   "qemu_root": "/Users/zhoubot/linx-isa/emulator/qemu",
   "qemu_source_kind": "decode",
-  "qemu_unique_forms": 652,
-  "qemu_unique_mnemonics": 652,
+  "qemu_unique_forms": 653,
+  "qemu_unique_mnemonics": 653,
   "reserved_form_count": 0,
   "reserved_mnemonic_count": 0,
   "result": {
@@ -2529,7 +2527,9 @@
     "b_dim_lb0",
     "b_dim_lb1",
     "b_dim_lb2",
-    "b_ioti",
+    "b_itp",
+    "b_meta",
+    "b_ota",
     "bstart_fall",
     "bstart_split_cond",
     "bstart_split_direct",

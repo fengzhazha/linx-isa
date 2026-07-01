@@ -1,13 +1,13 @@
 # QEMU Opcode Sync Audit
 
-- Generated (UTC): `2026-06-28 10:26:06Z`
+- Generated (UTC): `2026-07-01 11:15:04Z`
 - Result: `qemu_opcode_meta_sync_ok`
 - OK: `true`
-- Decode forms (unique): `652`
-- Meta mnemonics (unique, non-internal): `651`
+- Decode forms (unique): `653`
+- Meta mnemonics (unique, non-internal): `652`
 
 ## Drift Summary
 
 - Decode-only (unexpected): `0`
 - Meta-only (unexpected): `0`
-- Enum/meta op-id mismatch count: `0`
+- Enum/meta op-id mismatch count: `1`
