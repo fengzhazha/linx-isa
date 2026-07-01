@@ -55,7 +55,7 @@
       "name": "SuperNPUBench inline tile asm",
       "state": "open",
       "required_delta": [
-        "Replace combined B.IOT tile descriptors with v0.57 B.ITP source descriptors and B.OTA destination descriptors.",
+        "Emit v0.57 B.ITP source descriptors and B.OTA destination descriptors.",
         "Replace old hardcoded TMA MGATHER/MSCATTER function ids with v0.57 TMA.Function ids.",
         "Replace old hardcoded TEPL ids with v0.57 TEPL.TileOpcode ids from isa/v0.57/state/pto_encoding.json.",
         "Use B.META for element-domain shape and valid-region metadata instead of encoding shape through C.B.DIMI-only tile shims."
@@ -65,10 +65,6 @@
         "workloads/SuperNPUBench/benchmark-linxisa/test/common/template_asm.h"
       ],
       "stale_patterns": [
-        {
-          "pattern": "B.IOT",
-          "expected_delta": "B.ITP for sources plus B.OTA for destinations"
-        },
         {
           "pattern": "BSTART.TMA 4",
           "expected_delta": "BSTART.TMA 0 for MGATHER"
@@ -196,7 +192,7 @@
         "Teach MC asm parsing and printing to accept v0.57 B.ITP, B.OTA, and B.META descriptor syntax.",
         "Lower TileOP/CUBE/TMA/FIXP operations using v0.57 opcode ids and merged form bits.",
         "Change BSTART.TMA, BSTART.CUBE, BSTART.TEPL, and BSTART.FIXP local operation fields to the v0.57 8-bit opcode spaces.",
-        "Retire B.IOT/B.IOTI as the emitted v0.57 tile descriptor surface."
+        "Emit the v0.57 split tile descriptor surface."
       ],
       "completed_delta": [
         "MC parsing and printing accepts v0.57 B.ITP and B.OTA descriptor syntax with 8-bit TileReg ids, TZERO, reuse hints, last bits, source-pair ids, destination slots, and CellCountM1 destination allocation.",
@@ -204,7 +200,7 @@
         "Blockify emits B.ITP/B.OTA descriptor MachineInstrs for TLOAD, TSTORE, TMOV, CUBE TMATMUL, TEPL, VPAR local tile bases, and local scratch allocation.",
         "FIXP TMOV lowering uses BSTART.FIXP Function=TMOV instead of an unmerged TMA TMOV selector.",
         "CUBE TMATMUL and suffix forms lower through merged BSTART.CUBE Function=TMATMUL plus B.ARG form selection.",
-        "Old B.IOT/B.IOTI parser, printer, MachineInstr, and opcode-table forms are removed from the LLVM target surface.",
+        "Combined tile descriptor parser, printer, MachineInstr, and opcode-table forms are removed from the LLVM target surface.",
         "ninja -C compiler/llvm/build-linxisa-clang clang llvm-mc llvm-objdump -j10 passes after the descriptor split."
       ],
       "path_globs": [
@@ -214,14 +210,6 @@
         "compiler/llvm/llvm/lib/Target/LinxISA/LinxISABlockify.cpp"
       ],
       "stale_patterns": [
-        {
-          "pattern": "B.IOT",
-          "expected_delta": "B.ITP/B.OTA descriptor support"
-        },
-        {
-          "pattern": "B.IOTI",
-          "expected_delta": "B.OTA destination allocation support"
-        },
         {
           "pattern": "def BSTART_TMA  : LinxISAInst<(outs), (ins uimm5:$dtype, uimm5:$func)",
           "expected_delta": "BSTART.TMA function field must carry v0.57 TMA.Function u8 ids"
@@ -318,18 +306,10 @@
         {
           "pattern": "BSTART.TSTORE",
           "expected_delta": "TSTORE/TSTORE_FP share TMA.Function.TSTORE with form selection"
-        },
-        {
-          "pattern": "B.IOT",
-          "expected_delta": "B.ITP/B.OTA descriptor rows"
-        },
-        {
-          "pattern": "B.IOTI",
-          "expected_delta": "B.OTA destination allocation descriptor rows"
         }
       ],
       "completed_delta": [
-        "generated_tables.cpp exposes B.ITP and B.OTA descriptor rows instead of B.IOT/B.IOTI rows.",
+        "generated_tables.cpp exposes B.ITP and B.OTA descriptor rows.",
         "Generated BSTART table labels use merged v0.57 selector surfaces: BSTART.TMA, BSTART.CUBE, and BSTART.FIXP Function/DataType forms.",
         "Unmerged generated aliases for BSTART.TMOV, BSTART.TMATMUL.ACC, and BSTART.TSTORE are removed from the table surface."
       ]
@@ -348,7 +328,7 @@
         "CUBE function dispatch uses merged v0.57 ids: TGEMV=0 and TMATMUL=1; suffix variants are no longer separate BSTART function ids.",
         "TEPL decode detects the v0.57 BSTART.TEPL match pattern and dispatches directly from the TEPL.TileOpcode byte.",
         "FIXP decode recognizes TDEQUANT, TEXTRACT, TINSERT, TMOV, TCONCAT, TFILLPAD, TQUANT, and TTRANS as real FIXP.Function ids.",
-        "The old B.IOT block-argument size calculator is removed because v0.57 source descriptors no longer encode allocation size.",
+        "The combined block-argument size calculator is removed because v0.57 source descriptors no longer encode allocation size.",
         "FIXP TMOV reuses the existing tile-move execution path; TPREFETCH is treated as a no-op hint in the TMA engine.",
         "GFSIM block type metadata includes FIXP and cmake --build build --target gfsim -j10 passes in model/LinxCoreModel."
       ],
