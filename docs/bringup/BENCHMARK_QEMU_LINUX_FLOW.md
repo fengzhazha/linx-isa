@@ -200,6 +200,15 @@ fault cause, PC/BPC/TPC, and the legacy leaf descriptor decision. This is the
 preferred discriminator when a syscall such as `mprotect()` appears to succeed
 but the next access still faults.
 
+Use `LINX_FENTRY_TRACE=1` or `LINX_QEMU_FENTRY_TRACE=1` only for focused frame
+save windows. Narrow with `LINX_FENTRY_TRACE_PC`, `LINX_FENTRY_TRACE_RA`,
+`LINX_FENTRY_TRACE_SP`, `LINX_FENTRY_TRACE_NEW_SP`, or the `COUNT_LO/HI`
+filters, and cap output with `LINX_FENTRY_TRACE_LIMIT`. Each slot record prints
+the save address, value, MMU readback, direct host pointer/readback when the
+translation is RAM-backed, and debug readback. This is the preferred next step
+when `FRET.STK` restores a stale or zero register and the producer frame save
+must be proven.
+
 Use `LINX_SYSCALL_TRACE_DUMP_ARG=<0..5>` with
 `LINX_SYSCALL_TRACE_NR=<nr>` or a comma-separated list such as
 `LINX_SYSCALL_TRACE_NR=48,56,79,221` for focused syscall copyout checks. Pair it

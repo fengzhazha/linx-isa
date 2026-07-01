@@ -892,7 +892,7 @@ suites. It is intentionally red:
 
 | Bench | `test` result | `train` result | Current owner |
 | --- | --- | --- | --- |
-| `500.perlbench_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: static-PIE/user branch or signal-return target. |
+| `500.perlbench_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: focused rerun closed the final null-RA frame-restore cause; the remaining failure is a later addr-zero user trap. |
 | `502.gcc_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: rerun with focused fault/TLB trace and user slide symbols. |
 | `505.mcf_r` | wrapper child exit, code 255 | wrapper child exit, code 255 | Wrapper/runtime exit-status lane. |
 | `520.omnetpp_r` | `user-trap`, addr 0 | `user-trap`, addr 0 | Correctness: same addr-zero class as 500/502. |
@@ -911,6 +911,26 @@ reached `LINX_SPEC_PASS`, but host-side output verification failed. For QEMU pro
 drop `ignore_loglevel loglevel=8` and use coarse or disabled heartbeat after
 `LINX_SPEC_START`; the verbose diagnostic shape above is for failure
 classification, not speed measurement.
+
+Focused 500 MMIO-hole update (2026-07-01): the final
+`FRET.STK [ra ~ s5], sp!, 80` null-RA failure was rooted in the Linx `virt`
+device tree exposing the virtio-mmio page as allocatable RAM when SPEC runs
+with large guest memory. The focused evidence is
+`workloads/generated/specint-500-tlb-fill-stackpage-20260701-r1/`: the stack
+page refill mapped the user stack page to PA `0x30001000`, which is
+`LINX_VIRTIO_MMIO_BASE`, so `probe_write()` returned no RAM host pointer and
+the saved RA read back as zero. QEMU now splits `/memory@0/reg` around the
+UART/exit, test-finisher, and full virtio-mmio windows, rounded to 4 KiB page
+boundaries. The validation rerun is
+`workloads/generated/specint-500-mmio-hole-fix-normal-store-20260701-r1/`; the
+formerly bad FENTRY slot now records `ra@0x3fdd764798 = 0x15558292f0` with
+matching `mmu_readback`, `host_readback`, and debug readback while the frame
+store still uses the normal QEMU store helper. That run still fails, but the
+new failure is later: `LINX_FAULT_TRACE` reports an addr-zero user trap at
+`tpc=0x1555622dba`, `bpc=0x1555622db2`, after BPC heartbeat progress to
+35.0B guest instructions. Next 500 owner: symbolize the new user PC and trace
+the store/load or call path around that later addr-zero fault; do not reopen
+the old stack-page MMIO corruption unless it reproduces.
 
 Focused 531 update (2026-07-01): the narrowed filesystem trace under
 `workloads/generated/specint-531-test-filesys-trace-20260701-r1/` used

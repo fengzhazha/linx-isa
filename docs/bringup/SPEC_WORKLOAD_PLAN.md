@@ -197,16 +197,16 @@ As of 2026-07-01:
   currently a C++ runtime/codegen correctness blocker rather than a SPEC input
   packaging blocker.
 - Focused `500.perlbench_r` addr-zero follow-up is
-  `workloads/generated/specint-500-fret-stk-trace-20260701-r2/`: syscall trace
-  already proved the preceding `mprotect` syscall returns to
-  `0x155582ea44`; the new `LINX_FRET_STK_TRACE` evidence proves the final
-  `FRET.STK [ra ~ s5], sp!, 80` at `0x1555828d20` computes restore slot
-  `ra@0x3fdd764798 = 0` while incoming `ra` is still `0x15558292f0`. A
-  translated user-store memtrace on `0x3fdd764750..0x3fdd76479f` produced no
-  `LINX_MEM_TRACE` records in
-  `workloads/generated/specint-500-fret-frame-memtrace-20260701-r1/`, so the
-  next owner is QEMU/template stack-save or stack-growth fault semantics, not
-  Linux syscall return or SPEC input packaging.
+  `workloads/generated/specint-500-mmio-hole-fix-normal-store-20260701-r1/`:
+  the earlier final `FRET.STK [ra ~ s5], sp!, 80` null-RA cause is closed. The
+  root cause was the Linx `virt` DT memory node exposing the virtio-mmio page as
+  allocatable RAM under large `-m` runs; QEMU now excludes UART/exit,
+  test-finisher, and virtio-mmio pages from `/memory@0/reg`. The formerly bad
+  FENTRY save at `ra@0x3fdd764798` now reads back `0x15558292f0` through MMU,
+  host pointer, and debug readback while the frame store still uses the normal
+  QEMU store helper. The same focused run remains red with a later addr-zero
+  user trap at `tpc=0x1555622dba`, so the next owner is that later user fault,
+  not stack-growth faulting, syscall return, or SPEC input packaging.
 - `SPEC-M02` is resolved for the SPEC initramfs userspace path: the wrapper
   reaches SPEC startup, and prior focused `999.specrand_ir` train-smoke
   evidence passes strict hash on this QEMU/kernel stack. The current all-row
