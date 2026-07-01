@@ -12,6 +12,12 @@ def create_fp8_svg(filepath, width, height, title, exp_bits, mant_bits, extra_la
     box_height = 80
     bit_width = 24
     total_bits = 1 + exp_bits + mant_bits
+    extra_text = (
+        f'<text x="{width//2}" y="{height-10}" text-anchor="middle" class="label">'
+        f"{extra_label}</text>"
+        if extra_label
+        else ""
+    )
 
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
@@ -48,7 +54,7 @@ def create_fp8_svg(filepath, width, height, title, exp_bits, mant_bits, extra_la
   </g>
 
   <!-- Extra label if provided -->
-  {"<text x=\"" + str(width//2) + "\" y=\"" + str(height-10) + "\" text-anchor=\"middle\" class=\"label\">" + extra_label + "</text>" if extra_label else ""}
+  {extra_text}
 </svg>'''
 
     with open(filepath, 'w', encoding='utf-8') as f:
