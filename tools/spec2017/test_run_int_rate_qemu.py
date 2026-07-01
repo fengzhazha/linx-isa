@@ -70,6 +70,25 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(result["class"], "spec-child-sigkill")
         self.assertIn("sig=9", result["evidence"])
 
+    def test_child_sigkill_with_oom_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "oom_kill 0\n"
+                "oom_kill 1\n"
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=7 "
+                "fallback=0 status=0x0000000000000009 exited=0 code=-1 "
+                "signaled=1 sig=9\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-child-sigkill-oom")
+        self.assertIn("oom_kill=1", result["evidence"])
+
     def test_child_sigsegv_is_classified(self) -> None:
         result = runner._classify_qemu_result(
             text=(
@@ -95,6 +114,20 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("LINX_SPEC_MEMINFO_BEGIN", block)
         self.assertIn("LINX_SPEC_VMSTAT_BEGIN", block)
         self.assertIn("LINX_SPEC_PRESSURE_MEMORY_OPEN_FAIL", block)
+
+    def test_qemu_fault_trace_regs_env_enables_trace(self) -> None:
+        env: dict[str, str] = {}
+        runner._apply_qemu_debug_env(
+            env,
+            qemu_heartbeat_interval=100,
+            qemu_fault_trace_regs=True,
+            qemu_fault_trace_limit=3,
+        )
+
+        self.assertEqual(env["LINX_HEARTBEAT_INTERVAL"], "100")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE"], "1")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_REGS"], "1")
+        self.assertEqual(env["LINX_QEMU_FAULT_TRACE_LIMIT"], "3")
 
     def test_chdir_failure_evidence_includes_9p_errno(self) -> None:
         result = runner._classify_qemu_result(

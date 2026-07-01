@@ -645,6 +645,22 @@ def _env_bool(name: str, default: bool = False) -> bool:
     raise SystemExit(f"error: {name} must be a boolean, got {value!r}")
 
 
+def _apply_qemu_debug_env(
+    qemu_env: dict[str, str],
+    *,
+    qemu_heartbeat_interval: int,
+    qemu_fault_trace_regs: bool,
+    qemu_fault_trace_limit: int,
+) -> None:
+    if qemu_heartbeat_interval > 0:
+        qemu_env["LINX_HEARTBEAT_INTERVAL"] = str(qemu_heartbeat_interval)
+    if qemu_fault_trace_regs:
+        qemu_env["LINX_QEMU_FAULT_TRACE"] = "1"
+        qemu_env["LINX_QEMU_FAULT_TRACE_REGS"] = "1"
+        if qemu_fault_trace_limit > 0:
+            qemu_env["LINX_QEMU_FAULT_TRACE_LIMIT"] = str(qemu_fault_trace_limit)
+
+
 def _find_gen_init_cpio(linux_root: Path, out_dir: Path) -> Path:
     cands = [
         linux_root / "build-linx-fixed" / "usr" / "gen_init_cpio",
@@ -2374,6 +2390,8 @@ def _run_qemu(
     no_progress_timeout: float,
     append_extra: str,
     symbolize_heartbeat: bool,
+    qemu_fault_trace_regs: bool,
+    qemu_fault_trace_limit: int,
 ) -> dict[str, Any]:
     append = _build_kernel_append(transport, append_extra)
 
@@ -2415,8 +2433,12 @@ def _run_qemu(
         ]
 
     qemu_env = os.environ.copy()
-    if qemu_heartbeat_interval > 0:
-        qemu_env["LINX_HEARTBEAT_INTERVAL"] = str(qemu_heartbeat_interval)
+    _apply_qemu_debug_env(
+        qemu_env,
+        qemu_heartbeat_interval=qemu_heartbeat_interval,
+        qemu_fault_trace_regs=qemu_fault_trace_regs,
+        qemu_fault_trace_limit=qemu_fault_trace_limit,
+    )
 
     proc = subprocess.Popen(
         cmd,
@@ -2730,15 +2752,21 @@ def _classify_qemu_result(
     if fail_marker:
         signal = _spec_child_signal(text)
         if signal is not None:
-            if signal == 9:
+            oom = _spec_oom_evidence(text)
+            if signal == 9 and oom:
+                cls = "spec-child-sigkill-oom"
+            elif signal == 9:
                 cls = "spec-child-sigkill"
             elif signal == 11:
                 cls = "spec-child-sigsegv"
             else:
                 cls = "spec-child-signal"
+            evidence = _spec_wrapper_failure_evidence(text)
+            if oom:
+                evidence = f"{evidence}; {oom}"[:512]
             return {
                 "class": cls,
-                "evidence": _spec_wrapper_failure_evidence(text),
+                "evidence": evidence,
                 **base,
             }
         return {
@@ -2783,6 +2811,14 @@ def _spec_child_signal(text: str) -> int | None:
     if not match:
         return None
     return int(match.group(1))
+
+
+def _spec_oom_evidence(text: str) -> str:
+    values = [int(value) for value in re.findall(r"^oom_kill\s+([0-9]+)\s*$", text, flags=re.MULTILINE)]
+    if values and max(values) > 0:
+        return f"oom_kill={values[-1]}"
+    line = _first_matching_line(text, ("Out of memory", "Killed process"))
+    return line
 
 
 def _set_output_failure_class(qemu_info: dict[str, Any], cls: str, evidence: str) -> None:
@@ -3360,6 +3396,18 @@ def main(argv: list[str]) -> int:
         help="Set LINX_HEARTBEAT_INTERVAL for QEMU BPC progress logging (0 disables).",
     )
     parser.add_argument(
+        "--qemu-fault-trace-regs",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE_REGS", False),
+        help="Enable QEMU fault tracing and full GPR dump on traps.",
+    )
+    parser.add_argument(
+        "--qemu-fault-trace-limit",
+        type=int,
+        default=int(os.environ.get("LINX_SPEC_QEMU_FAULT_TRACE_LIMIT", "1")),
+        help="Set LINX_QEMU_FAULT_TRACE_LIMIT when fault trace registers are enabled (0 disables limit).",
+    )
+    parser.add_argument(
         "--guest-heartbeat-sec",
         type=int,
         default=int(os.environ.get("LINX_SPEC_GUEST_HEARTBEAT_SEC", "0")),
@@ -3433,6 +3481,8 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
     if args.qemu_heartbeat_interval < 0:
         raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.qemu_fault_trace_limit < 0:
+        raise SystemExit("error: --qemu-fault-trace-limit must be >= 0")
     if args.guest_heartbeat_sec < 0:
         raise SystemExit("error: --guest-heartbeat-sec must be >= 0")
     if args.no_progress_timeout < 0:
@@ -3477,6 +3527,8 @@ def main(argv: list[str]) -> int:
         "stack_limit_defines": _spec_stack_limit_defines(),
         "heartbeat_sec": args.heartbeat_sec,
         "qemu_heartbeat_interval": args.qemu_heartbeat_interval,
+        "qemu_fault_trace_regs": bool(args.qemu_fault_trace_regs),
+        "qemu_fault_trace_limit": args.qemu_fault_trace_limit,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "no_progress_timeout": args.no_progress_timeout,
@@ -3570,6 +3622,8 @@ def main(argv: list[str]) -> int:
                     args.no_progress_timeout,
                     args.append_extra,
                     args.symbolize_heartbeat,
+                    args.qemu_fault_trace_regs,
+                    args.qemu_fault_trace_limit,
                 )
                 qemu_info["run_index"] = run_idx
                 qemu_info["stdout"] = run_cfg.get("stdout")

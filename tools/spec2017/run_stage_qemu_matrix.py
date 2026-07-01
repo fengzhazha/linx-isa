@@ -270,6 +270,9 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
     lines.append(f"- memory_mb: `{summary['memory_mb']}`")
     lines.append(f"- stack_limit: `{summary['stack_limit']}`")
     lines.append(f"- append_extra: `{summary['append_extra'] or '-'}`")
+    lines.append(f"- qemu_heartbeat_interval: `{summary['qemu_heartbeat_interval']}`")
+    lines.append(f"- qemu_fault_trace_regs: `{str(bool(summary.get('qemu_fault_trace_regs', False))).lower()}`")
+    lines.append(f"- qemu_fault_trace_limit: `{summary.get('qemu_fault_trace_limit', 1)}`")
     lines.append(f"- guest_heartbeat_sec: `{summary['guest_heartbeat_sec']}`")
     if summary.get("bench_override"):
         benches = ", ".join(summary["bench_override"])
@@ -374,6 +377,18 @@ def main(argv: list[str]) -> int:
         help="QEMU BPC heartbeat interval passed through to the per-transport runner (0 disables).",
     )
     ap.add_argument(
+        "--qemu-fault-trace-regs",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_QEMU_FAULT_TRACE_REGS", False),
+        help="Enable QEMU fault tracing plus full GPR dumps in per-transport runners.",
+    )
+    ap.add_argument(
+        "--qemu-fault-trace-limit",
+        type=int,
+        default=_env_int("LINX_SPEC_QEMU_FAULT_TRACE_LIMIT", 1),
+        help="QEMU fault trace limit passed through when fault trace regs are enabled (0 disables limit).",
+    )
+    ap.add_argument(
         "--no-progress-timeout",
         type=float,
         default=_env_float("LINX_SPEC_NO_PROGRESS_TIMEOUT", 0.0),
@@ -428,6 +443,8 @@ def main(argv: list[str]) -> int:
         raise SystemExit("error: --heartbeat-sec must be >= 0")
     if args.qemu_heartbeat_interval < 0:
         raise SystemExit("error: --qemu-heartbeat-interval must be >= 0")
+    if args.qemu_fault_trace_limit < 0:
+        raise SystemExit("error: --qemu-fault-trace-limit must be >= 0")
     if args.no_progress_timeout < 0:
         raise SystemExit("error: --no-progress-timeout must be >= 0")
     if args.guest_heartbeat_sec < 0:
@@ -480,6 +497,8 @@ def main(argv: list[str]) -> int:
             str(args.heartbeat_sec),
             "--qemu-heartbeat-interval",
             str(args.qemu_heartbeat_interval),
+            "--qemu-fault-trace-limit",
+            str(args.qemu_fault_trace_limit),
             "--no-progress-timeout",
             str(args.no_progress_timeout),
             "--guest-heartbeat-sec",
@@ -491,6 +510,8 @@ def main(argv: list[str]) -> int:
         ]
         if args.symbolize_heartbeat:
             cmd.append("--symbolize-heartbeat")
+        if args.qemu_fault_trace_regs:
+            cmd.append("--qemu-fault-trace-regs")
         if args.fail_9p_timeout:
             cmd.append("--fail-9p-timeout")
         if args.stack_limit.strip():
@@ -550,6 +571,8 @@ def main(argv: list[str]) -> int:
         "stack_limit": args.stack_limit.strip() or "default",
         "heartbeat_sec": float(args.heartbeat_sec),
         "qemu_heartbeat_interval": int(args.qemu_heartbeat_interval),
+        "qemu_fault_trace_regs": bool(args.qemu_fault_trace_regs),
+        "qemu_fault_trace_limit": int(args.qemu_fault_trace_limit),
         "no_progress_timeout": float(args.no_progress_timeout),
         "fail_9p_timeout": bool(args.fail_9p_timeout),
         "guest_heartbeat_sec": int(args.guest_heartbeat_sec),

@@ -86,6 +86,25 @@ Wrapper compile/run smoke after the diagnostics change:
 - Artifact: `workloads/generated/specint-999-guestdiag-compile-20260702-r1/test/qemu_matrix_summary.json`
 - Result: `999.specrand_ir` test/initramfs passed in 19.328 seconds under strict hash validation.
 
+Additional focused diagnostics:
+
+- `workloads/generated/specint-523-541-guestdiag-20260702-r1/test/qemu_matrix_summary.json`
+  reran `523.xalancbmk_r` and `541.leela_r` with guest heartbeat sampling.
+- `523.xalancbmk_r` first rerun: `user-trap`, not SIGKILL. Runtime BPC
+  `0x15559efe1a` maps to ELF `0x404afe1a`, `.LBB24_28` in `locale.cpp`, at
+  the libc++ `num_get` indirect-call path. Guest memory snapshot showed
+  `MemAvailable: 1975216 kB` and `oom_kill 0`.
+- `workloads/generated/specint-523-faultregs-20260702-r1/test/qemu_matrix_summary.json`
+  reran `523.xalancbmk_r` with QEMU fault-register tracing enabled through the
+  SPEC runner. The switch worked and emitted `LINX_FAULT_TRACE` plus
+  `LINX_FAULT_REGS`, but this rerun did not reproduce the user trap; it became
+  a `live-timeout` with BPC/site progress through 180 seconds.
+- `workloads/generated/specint-541-oomclass-20260702-r1/test/qemu_matrix_summary.json`
+  reran `541.leela_r` after the classifier update. It now reports
+  `spec-child-sigkill-oom`; guest memory fell from about 2046404 kB available
+  to 16348 kB available before `oom_kill` incremented to 1, then wait status
+  reported `signaled=1 sig=9`.
+
 ## Tool fixes in this loop
 
 - Fixed the GCC test input verifier to compare the generated `.s` output instead of a nonexistent `.out`.
@@ -93,6 +112,9 @@ Wrapper compile/run smoke after the diagnostics change:
 - Fixed a false-red path where exact strict host hashes were overwritten by host `specdiff` rc=2. The train `500.perlbench_r` run artifact predates this fix, so its JSON still shows `specdiff-mismatch` even though every output hash matches.
 - Added guest heartbeat process/memory sampling for initramfs child runs: `/proc/$pid/status`, `/proc/meminfo`, `/proc/vmstat`, and optional `/proc/pressure/memory`.
 - Split child SIGKILL/SIGSEGV rows into explicit JSON failure classes (`spec-child-sigkill`, `spec-child-sigsegv`) instead of generic `spec-wrapper-fail`.
+- Split SIGKILL plus observed guest `oom_kill` into `spec-child-sigkill-oom`.
+- Added runner/matrix switches for QEMU's existing fault-register tracing:
+  `--qemu-fault-trace-regs` and `--qemu-fault-trace-limit`.
 
 ## Profile observations
 
@@ -116,7 +138,13 @@ Hot paths seen in both profiles:
 4. SPEC gate: classify `live-timeout` as a performance failure distinct from correctness failures. Keep the correctness gate on hash-matching rows, and run timeout rows in a separate throughput budget.
 5. `525.x264_r`: do not use initramfs transport for full x264 inputs. The generated cpio is about 1.6 GB and panics before init. Use 9p/virtio payload transport or split input staging.
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
-7. SIGKILL rows (`523`, `541`, and prior `520` artifacts): rerun with guest heartbeat enabled and `/proc/$pid/status` sampling to distinguish guest OOM, resource limit, or kernel kill path. The focused `520` rerun did not reproduce SIGKILL and showed `oom_kill 0`.
+7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
+   2 GiB and should be routed to workload-size/transport policy or memory
+   scaling, not QEMU correctness. Prior `520` did not reproduce SIGKILL and
+   showed `oom_kill 0`; keep it in live-timeout/performance triage unless a
+   fresh run proves otherwise. `523.xalancbmk_r` is unstable between user-trap
+   and live-timeout; rerun with fault trace filters around the user BPC if the
+   trap reproduces.
 8. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
 
 ## Verification
@@ -127,3 +155,6 @@ Hot paths seen in both profiles:
 - `python3 -m unittest test_run_int_rate_qemu.py` from `tools/spec2017`
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 520.omnetpp_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `live-timeout`)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 999.specrand_ir --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 180` (passed)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 523.xalancbmk_r --bench 541.leela_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `523` as `user-trap`, `541` as SIGKILL before OOM classifier)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 523.xalancbmk_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --qemu-fault-trace-regs --timeout 180` (expected red, verified QEMU fault-reg switch; rerun classified `live-timeout`)
+- `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 541.leela_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `spec-child-sigkill-oom`)
