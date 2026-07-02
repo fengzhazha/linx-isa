@@ -259,6 +259,68 @@ Focused `502.gcc_r` classifier proof:
 - Result: `spec-benchmark-internal-error`
 - Evidence: `200.c:63888:3: benchmark internal error: in ?, at tree-into-ssa.c:942; LINX_SPEC_FAIL child-exit; ... code=4`
 
+## Current all-train rerun with QEMU helper-elision profile
+
+Artifact root:
+
+- `workloads/generated/specint-train-all-current-20260702-r1`
+
+Version context:
+
+- QEMU before the local helper-elision patch: `5cfb672a711b`
+- Kernel: `kernel/linux/build-linx-fixed/vmlinux`
+- Sysroot: `out/libc/musl/install/phase-b`
+
+Command shape:
+
+```bash
+python3 tools/bringup/run_specint_fast_gate.py --profile train \
+  --out-dir workloads/generated/specint-train-all-current-20260702-r1 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --qemu-heartbeat-interval 1000000000 \
+  --qemu-heartbeat-same-site-warn 4 \
+  --no-progress-timeout 180 \
+  --stack-limit 2G \
+  --continue-on-fail
+```
+
+The run covers every supported SPECint train row. It is red overall, but the
+heartbeat records keep the failure classes separated:
+
+| Bench | Transport | Result | Evidence |
+|---|---|---|---|
+| `500.perlbench_r` | initramfs | `live-timeout` | count `43000000006`, last BPC `0x15556d950a`, site progress |
+| `502.gcc_r` | initramfs | `live-timeout` | count `22000000001`, last BPC `0xffffffff803f0644`, site progress |
+| `505.mcf_r` | initramfs | `live-timeout` | count `46000000012`, last BPC `0x155555c4be`, recent site progress despite final same-site bucket |
+| `520.omnetpp_r` | initramfs | `user-trap` | null-address trap at TPC `0x155577ec76`, BPC `0x155577ec6a` |
+| `523.xalancbmk_r` | initramfs | `user-trap` | null-address trap at TPC `0x15559efe26`, BPC `0x15559efe1a` |
+| `525.x264_r` | 9p | `live-timeout` | count `23000000000`, last BPC `0xffffffff801121ba`, site progress |
+| `531.deepsjeng_r` | initramfs | `live-timeout` | count `47000000000`, last BPC `0x155555b7ac`, site progress |
+| `541.leela_r` | initramfs | `live-timeout` | count `19000000005`, last BPC `0x1555585efe`, site progress |
+| `557.xz_r` | initramfs | `live-timeout` | count `37000000010`, last BPC `0x155558d6ae`, site progress |
+| `999.specrand_ir` | initramfs | pass | train output hash matched |
+
+Machine-readable summaries:
+
+- `workloads/generated/specint-train-all-current-20260702-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-current-20260702-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-current-20260702-r1/train-all-large-9p/qemu_matrix_summary.json`
+
+Host sampling during this run showed two avoidable per-block helpers in the
+scalar SPEC hot path:
+
+- `workloads/generated/specint-train-all-current-20260702-r1/profile/qemu-500-perlbench.sample.txt`
+- `workloads/generated/specint-train-all-current-20260702-r1/profile/qemu-502-gcc.sample.txt`
+
+The new local QEMU patch replaces the translated block prologue calls to
+`helper_linx_tile_set_attr(0)` and `helper_linx_tile_reset_block()` with direct
+TCG stores. Focused validation after rebuilding
+`emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `python3 avs/qemu/run_tests.py --suite system --require-test-id 0x110F --timeout 15 --qemu emulator/qemu/build-linx/qemu-system-linx64` passed.
+- `workloads/generated/specint-999-patched-qemu-20260702-r1/qemu_matrix_summary.json` passed `999.specrand_ir` train hashcheck.
+- `workloads/generated/specint-500-patched-profile-20260702-r1/profile/qemu-500-patched-qemu.sample.txt` no longer samples `helper_linx_tile_set_attr` or `helper_linx_tile_reset_block`; remaining sampled QEMU owners include `helper_linx_template_step`, `helper_linx_check_bstart_target`, `linx_is_bstart_at_addr`, `probe_access_internal`, and `mmu_lookup1`.
+
 This repro also closed a runner-reporting bug: QEMU output carries carriage
 returns in the SPEC stderr marker block, so the classifier now normalizes QEMU
 log bytes before matching `LINX_SPEC_STDERR_BEGIN/END`. Without that

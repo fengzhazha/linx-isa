@@ -485,6 +485,44 @@ Immediate speed hypotheses:
    reset traffic in SPEC loops; if attributes are unchanged, cache the no-op or
    move validation out of repeated helper calls.
 
+2026-07-02 helper-elision update: host samples from
+`workloads/generated/specint-train-all-current-20260702-r1/` showed
+`helper_linx_tile_set_attr` and `helper_linx_tile_reset_block` in the scalar
+SPEC hot path. These helpers were emitted at every translated Linx block start
+even though scalar SPEC normally needs only the architectural zero/default tile
+state. QEMU now emits equivalent direct TCG stores for that block-prologue reset
+state instead of calling the two helpers.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `python3 avs/qemu/run_tests.py --suite system --require-test-id 0x110F --timeout 15 --qemu emulator/qemu/build-linx/qemu-system-linx64` passed.
+- `workloads/generated/specint-999-patched-qemu-20260702-r1/qemu_matrix_summary.json` passed `999.specrand_ir` train hashcheck.
+- `workloads/generated/specint-500-patched-profile-20260702-r1/profile/qemu-500-patched-qemu.sample.txt` has zero samples in `helper_linx_tile_set_attr` and `helper_linx_tile_reset_block`.
+
+The remaining sampled QEMU owners in the patched `500.perlbench_r` profile are
+now the expected next targets:
+
+| Frame | Samples |
+| --- | ---: |
+| `helper_linx_template_step` | 297 |
+| `helper_linx_check_bstart_target` | 123 |
+| `linx_is_bstart_at_addr` | 93 |
+| `probe_access_internal` | 83 |
+| `mmu_lookup1` | 59 |
+| `pthread_jit_write_protect_np` | 4 |
+
+Next implementation loops:
+
+1. Make the template-step helper conditional or split it into a no-template
+   fast path so scalar blocks do not pay for cold template/debug behavior.
+2. Extend BSTART legality caching beyond the current direct-mapped cache. The
+   profiler still shows repeated target checks and text probes in stable code.
+3. Revisit TLB-fill map-size handling. `linx_mmu_translate()` can return large
+   block mappings, but `linx_cpu_tlb_fill()` still clamps oversized mappings to
+   `TARGET_PAGE_SIZE`; this may amplify MMU/TLB churn on large SPEC working
+   sets. Any change must first audit permission-changing paths such as
+   `mprotect()`, page faults, and page invalidations.
+
 Additional opt-in QEMU debug switches used during this pass:
 
 - `LINX_TLB_TRACE=1` records Linx TLB invalidation helpers with translated PC,

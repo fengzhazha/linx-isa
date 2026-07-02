@@ -196,6 +196,14 @@ As of 2026-07-01:
   `train` as heartbeat-backed `live-timeout`, so future all-row ledgers should
   use the wrapper's default `*-large-9p` split rather than recording the
   oversized-initramfs panic as a benchmark result.
+- Latest train-only performance ledger is
+  `workloads/generated/specint-train-all-current-20260702-r1/`: the generated
+  profile again covers every supported train row, routes `525.x264_r` through
+  the large-payload 9p shard, passes `999.specrand_ir`, classifies `520` and
+  `523` as current null-address user traps, and keeps all remaining failed rows
+  in heartbeat-backed live-timeout rather than deadlock. The same pass produced
+  the QEMU helper-elision profile used by
+  `docs/bringup/QEMU_SPECINT_PERFORMANCE_PLAN.md`.
 - Focused `531.deepsjeng_r` follow-up is
   `workloads/generated/specint-531-test-filesys-trace-20260701-r1/`: cwd,
   executable preflight, and `execve()` are correct, but the child writes the
