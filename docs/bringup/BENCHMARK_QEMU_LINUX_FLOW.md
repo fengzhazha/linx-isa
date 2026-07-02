@@ -50,6 +50,12 @@ Evidence:
   now classifies as `live-timeout` with `heartbeat_running=true`,
   `heartbeat_site_progress=true`, and BPC `0x1555764ecc` instead of the earlier
   guest-diagnostic-induced user trap.
+- `workloads/generated/specint-train-all-current-qemu-20260702-r1/` is the
+  current all-SPECint train ledger on QEMU `v10.2.0-991-g5754b39fb76` with the
+  split initramfs/9p suite. It is red but no longer shows user traps or kernel
+  panics: `999.specrand_ir` passes, `502.gcc_r` exits with the SPEC GCC
+  `tree-into-ssa.c:942` benchmark internal error, and every other row is a
+  heartbeat-backed live-timeout.
 
 Inference:
 

@@ -499,6 +499,29 @@ Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
 - `workloads/generated/specint-999-patched-qemu-20260702-r1/qemu_matrix_summary.json` passed `999.specrand_ir` train hashcheck.
 - `workloads/generated/specint-500-patched-profile-20260702-r1/profile/qemu-500-patched-qemu.sample.txt` has zero samples in `helper_linx_tile_set_attr` and `helper_linx_tile_reset_block`.
 
+2026-07-02 current-QEMU all-train update:
+`workloads/generated/specint-train-all-current-qemu-20260702-r1/` reran the
+split train suite on QEMU `v10.2.0-991-g5754b39fb76`, phase-b musl, no guest
+heartbeat, QEMU BPC heartbeat every 1B guest instructions, `norandmaps`, and a
+2 GiB SPEC stack limit. The aggregate stayed red, but there were no
+`LINX_USER_TRAP` or kernel panic rows. `999.specrand_ir` passed strict train
+hash `0x973dcfc2`; `502.gcc_r` is the active correctness row with child exit
+code 4 and `tree-into-ssa.c:942`; every other row is heartbeat-backed live
+progress and should stay in the throughput lane.
+
+| Benchmark | Transport | Result | Last BPC | Count | HB running/progress |
+| --- | --- | --- | --- | ---: | --- |
+| `500.perlbench_r` | `initramfs` | `live-timeout` | `0x1555660652` | 48000000021 | true/true |
+| `502.gcc_r` | `initramfs` | `spec-benchmark-internal-error` | `0xffffffff803d359e` | 18000000000 | true/true |
+| `505.mcf_r` | `initramfs` | `live-timeout` | `0x155555cd12` | 47000000001 | true/true |
+| `520.omnetpp_r` | `initramfs` | `live-timeout` | `0x1555632e94` | 13000000003 | true/true |
+| `523.xalancbmk_r` | `initramfs` | `live-timeout` | `0x155567f3be` | 19000000003 | true/true |
+| `531.deepsjeng_r` | `initramfs` | `live-timeout` | `0x155556a7ca` | 45000000001 | true/true |
+| `541.leela_r` | `initramfs` | `live-timeout` | `0x155559bc92` | 18000000001 | true/true |
+| `557.xz_r` | `initramfs` | `live-timeout` | `0x155558d604` | 36000000008 | true/true |
+| `999.specrand_ir` | `initramfs` | pass | - | - | - |
+| `525.x264_r` | `9p` | `live-timeout` | `0xffffffff8010629c` | 22000000003 | true/true |
+
 The remaining sampled QEMU owners in the patched `500.perlbench_r` profile are
 now the expected next targets:
 
