@@ -535,25 +535,92 @@ BPC `0x1555766900`, and no `tree-into-ssa`, trap, or panic marker. This keeps
 the default 502 build as a deliberate regression-repro lane, not the canonical
 SPEC fast-gate build.
 
-The remaining sampled QEMU owners in the patched `500.perlbench_r` profile are
-now the expected next targets:
+2026-07-02 signed-wrap all-train refresh: the canonical all-row train build is
+now `workloads/generated/specint-build-all-flow-wrapv-20260702-r1/`, whose
+manifest records every supported SPECint binary built with the signed-wrap 502
+profile. The matching QEMU gate is
+`workloads/generated/specint-train-all-flow-wrapv-qemu-20260702-r1/`, using
+QEMU `v10.2.0-991-g5754b39fb76`, phase-b musl, no guest heartbeat, QEMU BPC
+heartbeat every 1B guest instructions, `norandmaps`, and a 2 GiB SPEC stack
+limit. The aggregate remains red on runtime, but the prior 502 correctness stop
+is closed in this flow: there are no `tree-into-ssa`, benchmark internal-error,
+trap, or panic signatures in the logs.
+
+| Benchmark | Transport | Result | Last BPC | HB progress |
+| --- | --- | --- | --- | --- |
+| `500.perlbench_r` | `initramfs` | `live-timeout` | `0x1555670cb8` | site-change |
+| `502.gcc_r` | `initramfs` | `live-timeout` | `0x1555c751a6` | site-change |
+| `505.mcf_r` | `initramfs` | `live-timeout` | `0x155555cbac` | site-change |
+| `520.omnetpp_r` | `initramfs` | `live-timeout` | `0x15555f7258` | site-change |
+| `523.xalancbmk_r` | `initramfs` | `live-timeout` | `0x15559493a8` | site-change |
+| `531.deepsjeng_r` | `initramfs` | `live-timeout` | `0x155556da62` | site-change, earlier same-site warning |
+| `541.leela_r` | `initramfs` | `live-timeout` | `0x15555709ee` | site-change |
+| `557.xz_r` | `initramfs` | `live-timeout` | `0x155558d6da` | same-site at final heartbeat, recent-site progress |
+| `999.specrand_ir` | `initramfs` | pass | - | strict hash `0x973dcfc2` |
+| `525.x264_r` | `9p` | `live-timeout` | `0xffffffff80112170` | site-change |
+
+2026-07-02 call-trace fast-disabled update: the focused current profile
+`workloads/generated/specint-qemu-profile-500-train-current-20260702-r1/`
+showed disabled call tracing still entering `linx_call_trace_init` from hot
+frame-template helpers. QEMU now keeps the slow call-trace emitter behind an
+inline fast-disabled check and removes two stale hardcoded PC-specific
+FENTRY/FRET.STK diagnostic log branches. This does not change architectural
+state; setting `LINX_CALL_TRACE=1` still takes the slow path.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `emulator/qemu/build-linx/qemu-system-linx64 --version` reports
+  `v10.2.0-992-g8188cc41328`.
+- `python3 avs/qemu/run_tests.py --all --timeout 20` passed.
+- `bash avs/qemu/check_system_strict.sh` passed.
+- `tools/bringup/run_specint_fast_gate.py --profile pr` passed both
+  `999.specrand_ir` test and train sentinels in
+  `workloads/generated/specint-pr-calltrace-fastpath-20260702-r1/`.
+- `LINX_CALL_TRACE=1 LINX_CALL_TRACE_LIMIT=1 run_stage_qemu_matrix.py ...`
+  passed `999.specrand_ir` and emitted a bounded `LINX_CALL_TRACE` record in
+  `workloads/generated/specint-999-calltrace-fastpath-enabled-20260702-r1/`.
+
+The before/after 30-second `500.perlbench_r` train samples remain
+heartbeat-backed live-timeouts with site progress. Stack-count extraction from
+the macOS `sample` reports shows the intended debug-path reduction:
+
+| Frame | Before | After |
+| --- | ---: | ---: |
+| `linx_call_trace_init` | 279 | 0 |
+| `linx_call_trace_emit*` | 450 | 356 |
+| `helper_linx_template_step` | 6006 | 5942 |
+| `helper_linx_check_bstart_target` | 2953 | 2932 |
+| `linx_is_bstart_at_addr` | 1856 | 1865 |
+| `probe_access_internal` | 1619 | 1725 |
+| `mmu_lookup1` | 1270 | 1327 |
+
+The remaining sampled QEMU owners after the call-trace fast-disabled patch are
+therefore still the expected next targets:
 
 | Frame | Samples |
 | --- | ---: |
-| `helper_linx_template_step` | 297 |
-| `helper_linx_check_bstart_target` | 123 |
-| `linx_is_bstart_at_addr` | 93 |
-| `probe_access_internal` | 83 |
-| `mmu_lookup1` | 59 |
-| `pthread_jit_write_protect_np` | 4 |
+| `helper_linx_template_step` | dominant |
+| `helper_linx_check_bstart_target` | dominant under returns |
+| `linx_is_bstart_at_addr` | repeated target text probes |
+| `probe_access_internal` / `probe_access_flags` | target/text and frame probes |
+| `mmu_lookup1` / `mmu_lookup` | frame memory and probe traffic |
+| `pthread_jit_write_protect_np` | translation/JIT write-protect churn |
 
 Next implementation loops:
 
-1. Make the template-step helper conditional or split it into a no-template
-   fast path so scalar blocks do not pay for cold template/debug behavior.
+1. Split frame-template helpers (`FENTRY`, `FEXIT`, `FRET.RA`, `FRET.STK`) from
+   restartable memory templates and move cold trace/debug decisions off the
+   no-trace path. Preserve the existing stack-growth/page-fault restart
+   contract: FENTRY probes save slots before SP commit, and restore templates
+   load all slots before SP/register commit.
 2. Extend BSTART legality caching beyond the current direct-mapped cache. The
-   profiler still shows repeated target checks and text probes in stable code.
-3. Revisit TLB-fill map-size handling. `linx_mmu_translate()` can return large
+   profiler still shows repeated target checks and text probes in stable code,
+   especially on template returns.
+3. Profile translation churn separately from execution churn. The
+   `pthread_jit_write_protect_np` samples may reflect TB generation during early
+   SPEC execution rather than steady-state execution; take a delayed sample
+   after boot and benchmark warm-up before changing TCG policy.
+4. Revisit TLB-fill map-size handling. `linx_mmu_translate()` can return large
    block mappings, but `linx_cpu_tlb_fill()` still clamps oversized mappings to
    `TARGET_PAGE_SIZE`; this may amplify MMU/TLB churn on large SPEC working
    sets. Any change must first audit permission-changing paths such as
