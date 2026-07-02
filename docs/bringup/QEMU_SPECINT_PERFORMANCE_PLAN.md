@@ -642,8 +642,57 @@ rate. The macOS `sample` comparison also showed the intended reduction:
 | `probe_access_flags` | 361 | 118 |
 | `helper_linx_template_fret_stk` | 513 | 472 |
 
-The remaining sampled QEMU owners after the wider BSTART cache patch are
-therefore still the expected next targets:
+2026-07-02 template trace fast-disabled update: the latest-QEMU focused
+`531.deepsjeng_r` test-input profile, with QEMU rebuilt at
+`v10.2.0-995-gcdb2a01e2bb`, showed disabled trace instrumentation still
+visible inside frame-template helpers. QEMU commit `8f6de68e091` caches the
+no-trace state in `CPULinxState` after the first commit/minst/cosim/log check,
+keeps disabled FENTRY/FRET.STK debug trace checks out of repeated scan paths,
+and forces the call-trace fast-disabled helper inline. Architectural frame
+save/restore, BSTART validation, and enabled trace behavior are unchanged.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `emulator/qemu/build-linx/qemu-system-linx64 --version` reports
+  `v10.2.0-995-gcdb2a01e2bb` before this local patch.
+- `python3 avs/qemu/run_tests.py --all --timeout 20 --qemu emulator/qemu/build-linx/qemu-system-linx64` passed.
+- `bash avs/qemu/check_system_strict.sh` passed when rerun sequentially; an
+  earlier parallel attempt overlapped `avs/qemu/out` and reproduced the known
+  shared-output undefined-symbol hazard.
+- `python3 avs/qemu/run_callret_contract.py` passed.
+- `tools/bringup/run_specint_fast_gate.py --profile pr` passed both
+  `999.specrand_ir` test and train sentinels in
+  `workloads/generated/specint-pr-trace-fast-disabled-20260702-r1/`.
+- `LINX_CALL_TRACE=1 LINX_CALL_TRACE_LIMIT=1 run_int_rate_qemu.py ... --bench
+  999.specrand_ir` passed in
+  `workloads/generated/specint-999-calltrace-enabled-trace-fast-disabled-20260702-r1/`
+  and emitted a bounded `LINX_CALL_TRACE` record, proving the enabled trace
+  path still reaches the slow emitter.
+
+Focused `531.deepsjeng_r` 180-second timing with 1B-instruction BPC heartbeat:
+
+| Run | Artifact | Count | Last BPC |
+| --- | --- | ---: | --- |
+| Pre-BSTART-cache baseline | `workloads/generated/specint-profile-531-test-20260702-r1/` | 46000000006 | `0x155556a8b4` |
+| Wider BSTART cache | `workloads/generated/specint-profile-531-test-bstart-cache-nostats-20260702-r1/` | 50000000021 | `0x155556a7ca` |
+| Trace fast-disabled | `workloads/generated/specint-profile-531-test-trace-fast-disabled-20260702-r1/` | 52000000005 | `0x15555683a2` |
+
+The sample comparison between
+`workloads/generated/specint-profile-531-test-latest-qemu-20260702-r2/qemu-sample-delayed-15s.txt`
+and
+`workloads/generated/specint-profile-531-test-trace-fast-disabled-20260702-r1/qemu-sample-15s.txt`
+shows the intended disabled-trace reduction:
+
+| Frame | Before trace fast-disabled | After trace fast-disabled |
+| --- | ---: | ---: |
+| `linx_trace_wb` | 109 | 0 |
+| `linx_call_trace_emit` | 82 | 0 |
+| `helper_linx_template_fret_stk` | 328 | 296 |
+| `helper_linx_template_fentry` | 302 | 270 |
+| `linx_frame_restore_commit` | 91 | 70 |
+
+The remaining sampled QEMU owners after the wider BSTART cache and trace
+fast-disabled patches are therefore still the expected next targets:
 
 | Frame | Samples |
 | --- | ---: |
