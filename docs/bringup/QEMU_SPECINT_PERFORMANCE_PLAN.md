@@ -522,6 +522,19 @@ progress and should stay in the throughput lane.
 | `999.specrand_ir` | `initramfs` | pass | - | - | - |
 | `525.x264_r` | `9p` | `live-timeout` | `0xffffffff8010629c` | 22000000003 | true/true |
 
+Signed-wrap build profile update: the benchmark flow now rebuilds SPEC with
+`LINX_SPEC_BENCH_OPTIMIZE` defaulting to
+`502.gcc_r=-O0 -fno-vectorize -fno-slp-vectorize -fwrapv`. The focused current
+verification
+`workloads/generated/specint-build-502-flow-wrapv-20260702-r1/build_manifest.json`
+records the 502-specific flags and source immutability; the matching QEMU run
+`workloads/generated/specint-502-flow-wrapv-train-row1-qemu-20260702-r1/stage_b_summary.json`
+moves train row 1 from `spec-benchmark-internal-error` to `live-timeout` with
+`heartbeat_running=true`, `heartbeat_site_progress=true`, count `24000000002`,
+BPC `0x1555766900`, and no `tree-into-ssa`, trap, or panic marker. This keeps
+the default 502 build as a deliberate regression-repro lane, not the canonical
+SPEC fast-gate build.
+
 The remaining sampled QEMU owners in the patched `500.perlbench_r` profile are
 now the expected next targets:
 

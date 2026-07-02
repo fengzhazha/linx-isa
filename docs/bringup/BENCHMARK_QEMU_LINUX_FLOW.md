@@ -56,6 +56,18 @@ Evidence:
   panics: `999.specrand_ir` passes, `502.gcc_r` exits with the SPEC GCC
   `tree-into-ssa.c:942` benchmark internal error, and every other row is a
   heartbeat-backed live-timeout.
+- The canonical SPEC build stages now default `LINX_SPEC_BENCH_OPTIMIZE` to
+  `502.gcc_r=-O0 -fno-vectorize -fno-slp-vectorize -fwrapv`. Focused evidence
+  under `workloads/generated/specint-build-502-benchopt-wrapv-20260702-r1/`
+  and `workloads/generated/specint-502-benchopt-wrapv-train-hb-20260702-r1/`
+  shows that profile removes the `tree-into-ssa.c:942` child-exit row and moves
+  `502.gcc_r` to heartbeat-backed live progress without traps or panics.
+  The flow-shaped recheck is
+  `workloads/generated/specint-build-502-flow-wrapv-20260702-r1/` plus
+  `workloads/generated/specint-502-flow-wrapv-train-row1-qemu-20260702-r1/`:
+  the manifest records the 502-specific flags, source immutability passes, and
+  train row 1 reaches `live-timeout` at count `24000000002`, BPC
+  `0x1555766900`, with no internal-error, trap, or panic marker.
 
 Inference:
 
@@ -143,6 +155,12 @@ python3 tools/bringup/run_benchmark_linux_flow.py \
   --stop-after specint-fast-gate \
   --report-out workloads/generated/flow-specint-fast/report.json
 ```
+
+The flow build command records the effective per-benchmark flags in the emitted
+manifest. Override the default signed-wrap profile only for deliberate
+regression reproduction, for example by setting
+`LINX_SPEC_BENCH_OPTIMIZE='502.gcc_r=-O0 -fno-vectorize -fno-slp-vectorize'`
+before the flow command.
 
 Run the bounded all-row test+train SPECint gate directly when the goal is to
 exercise every supported SPECint row without refrate input cost:
