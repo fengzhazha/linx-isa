@@ -179,11 +179,13 @@ def _stage(args: argparse.Namespace) -> None:
     out_dir = Path(args.out_dir).resolve()
     backup_dir = out_dir / "default-backup"
     variant_dir = out_dir / "variant"
+    mixed_object_dir = variant_dir / "mixed-objects"
     log = out_dir / "probe_502_mixed_flags.log"
     manifest_path = out_dir / "mixed_flags_manifest.json"
     out_dir.mkdir(parents=True, exist_ok=True)
     backup_dir.mkdir(parents=True, exist_ok=True)
     variant_dir.mkdir(parents=True, exist_ok=True)
+    mixed_object_dir.mkdir(parents=True, exist_ok=True)
 
     if manifest_path.exists() and not args.force:
         raise SystemExit(f"error: manifest already exists; pass --force to replace: {manifest_path}")
@@ -247,8 +249,12 @@ def _stage(args: argparse.Namespace) -> None:
 
         for entry in selected:
             obj_path = build_dir / entry["object"]
+            mixed_obj = mixed_object_dir / entry["object"]
+            mixed_obj.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(obj_path, mixed_obj)
             entry["mixed_sha256"] = _sha256(obj_path)
             entry["mixed_object_size"] = obj_path.stat().st_size
+            entry["mixed_object"] = str(mixed_obj)
 
         manifest = {
             "schema_version": "linx-spec-502-mixed-flags-v1",

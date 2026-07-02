@@ -363,16 +363,39 @@ Focused `502.gcc_r` mixed-object `-fwrapv` localization:
   `tree-inline.o` with `-fwrapv`. This four-object probe reached `live-timeout`
   under the 240 second cap, count `29000000003`, last BPC `0x1555ec8734`, with
   no trap, panic, or fail marker.
+- `workloads/generated/specint-502-mixed-tree-minus-inline-wrapv-20260702-r1/`
+  rebuilt `tree-into-ssa.o`, `tree-data-ref.o`, and `tree-dump.o` with
+  `-fwrapv`. This also reached `live-timeout`, count `32000000001`, last BPC
+  `0x1555cbeebc`, with no trap, panic, or fail marker.
+- `workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r1/`
+  rebuilt only `tree-into-ssa.o` and `tree-data-ref.o` with `-fwrapv`. This
+  two-object pair reached `live-timeout`, count `30000000001`, last BPC
+  `0x1555fb1c0c`, with no trap, panic, or fail marker.
+- `workloads/generated/specint-502-mixed-tree-dataref-only-wrapv-20260702-r1/`
+  rebuilt only `tree-data-ref.o` with `-fwrapv`. The row still reproduced the
+  same benchmark internal error at `tree-into-ssa.c:942`, count `23000000004`,
+  last BPC `0xffffffff80049b02`. Combined with the earlier `tree-into-ssa.o`
+  only failure, this makes `tree-into-ssa.o + tree-data-ref.o` the current
+  minimal sufficient pair under this probe set.
+- `workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r2/`
+  reran the pair staging after the helper was extended to preserve mixed
+  objects under `variant/mixed-objects/`; its variant hash
+  `71a98b2f0fb16339656b1919e020bbe499a42545a18440bd872ebfbc99de9638`
+  matches the QEMU-tested pair. Disassembly and symbol-size deltas are under
+  `asm-diff/`. `tree-into-ssa.o` changes only `compute_global_livein` size
+  (`444 -> 450` bytes); `tree-data-ref.o` changes only inline `omega.h`
+  helpers `omega_copy_eqn` (`106 -> 112`) and `omega_init_eqn_zero`
+  (`72 -> 80`).
 
 Interpretation: the whole-benchmark `-fwrapv` effect is now localized to a
-small 502 object cluster. `tree-into-ssa.o` alone delays but does not suppress
-the internal error; the four-object cluster `tree-into-ssa.o`,
-`tree-data-ref.o`, `tree-dump.o`, and `tree-inline.o` is sufficient to convert
-the row to heartbeat-backed `live-timeout` under the same cap. The next
-compiler loop should split this four-object set and then compare Linx assembly
-or LLVM IR for signed-overflow-sensitive arithmetic before changing QEMU,
-Linux, or libc. After every probe above, the default 502 executable was restored
-to digest `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`.
+minimal 502 object pair. `tree-into-ssa.o` alone and `tree-data-ref.o` alone
+both still fail with the same internal error; together they convert the row to
+heartbeat-backed `live-timeout` under the same cap. The next compiler loop
+should inspect the changed `compute_global_livein` and inline omega helper
+codegen, especially the signed-add-before-scale sequence in
+`compute_global_livein`, before changing QEMU, Linux, or libc. After every
+probe above, the default 502 executable was restored to digest
+`6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`.
 
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
 command and therefore ran all four generated x264 train invocations after the
@@ -398,7 +421,9 @@ future all-train gates stop this shard on the first heartbeat-backed timeout.
   `spec-benchmark-internal-error`, including CR-normalized QEMU log marker
   blocks such as the current `502.gcc_r` train failure.
 - Added `tools/spec2017/probe_502_mixed_flags.py` to stage and restore
-  selected-object 502 probe binaries without modifying SPEC sources.
+  selected-object 502 probe binaries without modifying SPEC sources. The helper
+  now also preserves the mixed object files under each generated variant
+  directory for disassembly/IR follow-up.
 - Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
   all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
   `train-all-large-9p`, while explicit `--transports` still forces a single
@@ -449,10 +474,11 @@ raising SPEC train timeouts.
    `tree-into-ssa.c:942`. A conservative rebuild suppresses that internal error
    for at least 600 seconds but only reaches `live-timeout`; follow-up bisection
    narrowed the first suppressing flag to `-fwrapv`, then mixed-object probes
-   narrowed a sufficient object set to `tree-into-ssa.o`, `tree-data-ref.o`,
-   `tree-dump.o`, and `tree-inline.o`. The next loop is to split that four
-   object set and compare generated Linx assembly/IR for signed-overflow-
-   sensitive arithmetic. This is not yet a correctness fix.
+   narrowed the sufficient set to the pair `tree-into-ssa.o` and
+   `tree-data-ref.o`. The next loop is to compare generated Linx assembly/IR
+   for `compute_global_livein` and the inline omega helpers, then decide whether
+   the wrong behavior is source UB exposure or Linx codegen/ABI lowering. This
+   is not yet a correctness fix.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
    2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
    is now fixed. The next `541` blocker is mallocng-specific so far: the fixed
@@ -522,5 +548,11 @@ raising SPEC train timeouts.
 - `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-changed7-wrapv-20260702-r1 --objects 'tree-data-ref.o tree-dump.o tree-inline.o tree-into-ssa.o tree-pretty-print.o tree-ssa-pre.o tree-ssa-reassoc.o' --jobs 10 --force` (passed; variant hash matches the all-`tree-*.o` probe)
 - `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-changed6-no-into-ssa-wrapv-20260702-r1 --objects 'tree-data-ref.o tree-dump.o tree-inline.o tree-pretty-print.o tree-ssa-pre.o tree-ssa-reassoc.o' --jobs 10 --force` plus the same QEMU row (expected red; classified `user-trap` at `addr=0x8`)
 - `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-into-plus-a3-wrapv-20260702-r1 --objects 'tree-into-ssa.o tree-data-ref.o tree-dump.o tree-inline.o' --jobs 10 --force` plus the same QEMU row (expected red; `live-timeout`, count `29000000003`, no internal error/trap/panic)
+- `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-minus-inline-wrapv-20260702-r1 --objects 'tree-into-ssa.o tree-data-ref.o tree-dump.o' --jobs 10 --force` plus the same QEMU row (expected red; `live-timeout`, count `32000000001`, no internal error/trap/panic)
+- `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r1 --objects 'tree-into-ssa.o tree-data-ref.o' --jobs 10 --force` plus the same QEMU row (expected red; `live-timeout`, count `30000000001`, no internal error/trap/panic)
+- `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-dataref-only-wrapv-20260702-r1 --objects 'tree-data-ref.o' --jobs 10 --force` plus the same QEMU row (expected red; same internal error at `tree-into-ssa.c:942`, count `23000000004`)
+- `python3 tools/spec2017/probe_502_mixed_flags.py stage --out-dir workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r2 --objects 'tree-into-ssa.o tree-data-ref.o' --jobs 10 --force` (passed; preserves mixed `.o` files and reproduces the QEMU-tested pair variant hash)
+- `compiler/llvm/build-linxisa-clang/bin/llvm-objdump -dr --no-show-raw-insn ...` on the pair baseline/mixed objects (generated `workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r2/asm-diff/*.diff.txt`)
+- `compiler/llvm/build-linxisa-clang/bin/llvm-nm -S --size-sort ...` on the pair baseline/mixed objects (generated `asm-diff/*.symbol-size-delta.tsv`)
 - `python3 tools/spec2017/probe_502_mixed_flags.py restore --out-dir <each mixed-object probe dir>` (passed; final default staged/build executable digest `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`
