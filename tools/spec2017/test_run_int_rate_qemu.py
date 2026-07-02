@@ -201,6 +201,13 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("LINX_SPEC_VMSTAT_BEGIN", block)
         self.assertIn("LINX_SPEC_PRESSURE_MEMORY_OPEN_FAIL", block)
 
+    def test_guest_proc_diagnostics_block_is_opt_in(self) -> None:
+        self.assertEqual(runner._guest_proc_diagnostics_block_if_enabled(False), "")
+        self.assertIn(
+            "LINX_SPEC_PRESSURE_MEMORY_OPEN_FAIL",
+            runner._guest_proc_diagnostics_block_if_enabled(True),
+        )
+
     def test_qemu_fault_trace_regs_env_enables_trace(self) -> None:
         env: dict[str, str] = {}
         runner._apply_qemu_debug_env(

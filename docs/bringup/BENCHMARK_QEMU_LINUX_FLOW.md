@@ -45,6 +45,11 @@ Evidence:
   `workloads/generated/specint-525-9p-current-20260702-r1/` and
   `workloads/generated/specint-525-9p-train-20260702-r1/` classifies x264 as
   live-progress timeout, not a boot transport failure.
+- `workloads/generated/specint-523-guesthb-light-qemu-20260702-r1/` proves the
+  SPEC guest heartbeat can run without the heavy `/proc` dumps: `523.xalancbmk_r`
+  now classifies as `live-timeout` with `heartbeat_running=true`,
+  `heartbeat_site_progress=true`, and BPC `0x1555764ecc` instead of the earlier
+  guest-diagnostic-induced user trap.
 
 Inference:
 
@@ -283,6 +288,12 @@ fault trace has identified the failing instruction-count window. The trace
 prints paired `phase=entry` and `phase=staged` records so the run can compare
 saved block/queue state before restore with the state actually staged for
 userspace.
+
+For SPEC initramfs waits, `--guest-heartbeat-sec <n>` is intended to stay
+lightweight: child liveness, output growth, and maps snapshots. Use
+`--guest-proc-diagnostics` or `LINX_SPEC_GUEST_PROC_DIAGNOSTICS=1` only for
+focused runs that need `/proc` status, meminfo, vmstat, or pressure dumps; those
+extra guest syscalls can perturb startup fault paths.
 
 When a null-branch fault comes from `FRET.STK` restoring `ra=0`, use
 `LINX_FRET_STK_TRACE=1` with `LINX_FRET_STK_TRACE_PC=<fret-pc>`,

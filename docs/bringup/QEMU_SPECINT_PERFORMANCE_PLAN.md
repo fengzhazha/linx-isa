@@ -593,6 +593,11 @@ Additional opt-in QEMU debug switches used during this pass:
   `LINX_ACRE_TRACE_CODE_BYTES=<n>` for focused register/code snapshots.
   Matching `LINX_QEMU_ACRE_TRACE_*` aliases are accepted. Use this instead of
   the older all-or-nothing `LINX_DEBUG_ACRE_STDERR=1` on SPEC rows.
+- `--guest-heartbeat-sec <n>` keeps guest-side child/output liveness logging
+  lightweight by default. Use `--guest-proc-diagnostics` or
+  `LINX_SPEC_GUEST_PROC_DIAGNOSTICS=1` only when `/proc/<pid>/status`,
+  `/proc/meminfo`, `/proc/vmstat`, and `/proc/pressure/memory` dumps are
+  needed, because those extra guest syscalls can perturb startup fault paths.
 - `LINX_FAULT_TRACE_REGS=1` prints a `LINX_FAULT_REGS` record after
   `LINX_FAULT_TRACE` reports a synchronous trap, again with the full GPR file.
 - `LINX_TRACE_REGS=1` enables both syscall and fault register records.
@@ -1578,6 +1583,15 @@ Current train-all live-progress evidence:
   helper families. The latest samples remove queue/scalar helper traffic and
   heartbeat overhead as active explanations; remaining cost is
   tile/template/BSTART/probe/TLB work.
+- `workloads/generated/specint-523-acre-finalwindow-reloc-ring-guesthb-qemu-20260702-r1/`
+  showed that the heavy guest heartbeat diagnostics could perturb `523` startup:
+  the final null store followed a trap-return from the guest `/proc` diagnostic
+  path. After making those `/proc` dumps opt-in,
+  `workloads/generated/specint-523-guesthb-light-qemu-20260702-r1/` reaches the
+  300s timeout as `live-timeout` with `heartbeat_running=true`,
+  `heartbeat_site_progress=true`, count `33000000001`, and BPC `0x1555764ecc`.
+  Keep 523 in the live-slow throughput lane unless a no-diagnostics run produces
+  a fresh user trap.
 
 Prioritized QEMU speedups:
 

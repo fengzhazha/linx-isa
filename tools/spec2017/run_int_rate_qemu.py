@@ -682,6 +682,10 @@ def _guest_proc_diagnostics_block() -> str:
 """
 
 
+def _guest_proc_diagnostics_block_if_enabled(enabled: bool) -> str:
+    return _guest_proc_diagnostics_block() if enabled else ""
+
+
 def _utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -858,6 +862,7 @@ def _build_init_for_run(
     transport: str,
     dump_prefix_bytes: int,
     guest_heartbeat_sec: int,
+    guest_proc_diagnostics: bool,
     *,
     emit_hashes: bool = False,
 ) -> Path:
@@ -923,7 +928,9 @@ def _build_init_for_run(
     exec_path = str(argv[0])
     if transport == "initramfs" and exec_path.startswith("./"):
         exec_path = f"{guest_run}/{exec_path[2:]}"
-    guest_proc_diagnostics_block = _guest_proc_diagnostics_block()
+    guest_proc_diagnostics_block = _guest_proc_diagnostics_block_if_enabled(
+        guest_proc_diagnostics
+    )
     stdin_open_block = f"""
   LOG_LIT("LINX_SPEC_DBG step=open-in\\n");
   int fd_in = raw_openat("{_c_escape(stdin_rel)}", O_RDONLY, 0);
@@ -3637,6 +3644,16 @@ def main(argv: list[str]) -> int:
         help="Emit guest-side child/output heartbeats from the init wrapper while waiting (0 to disable).",
     )
     parser.add_argument(
+        "--guest-proc-diagnostics",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_GUEST_PROC_DIAGNOSTICS", False),
+        help=(
+            "During guest heartbeat waits, also dump /proc status, meminfo, "
+            "vmstat, and pressure files. Off by default because these probes "
+            "can perturb SPEC startup fault paths."
+        ),
+    )
+    parser.add_argument(
         "--symbolize-heartbeat",
         action="store_true",
         default=_env_bool("LINX_SPEC_SYMBOLIZE_HEARTBEAT", False),
@@ -3773,6 +3790,7 @@ def main(argv: list[str]) -> int:
         "qemu_fault_trace_limit": args.qemu_fault_trace_limit,
         "qemu_fault_trace_filters": qemu_fault_trace_filters,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
+        "guest_proc_diagnostics": bool(args.guest_proc_diagnostics),
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "no_progress_timeout": args.no_progress_timeout,
         "fail_9p_timeout": bool(args.fail_9p_timeout),
@@ -3839,6 +3857,7 @@ def main(argv: list[str]) -> int:
                     args.transport,
                     args.dump_prefix_bytes,
                     args.guest_heartbeat_sec,
+                    args.guest_proc_diagnostics,
                     emit_hashes=(args.transport == "initramfs"),
                 )
                 initramfs, initramfs_log = _build_initramfs(

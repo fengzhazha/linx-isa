@@ -93,6 +93,7 @@ class StageQemuMatrixTests(unittest.TestCase):
                 "LINX_QEMU_FAULT_TRACE_PC_HI": "0x15559efe40",
             },
             "guest_heartbeat_sec": 10,
+            "guest_proc_diagnostics": True,
             "bench_override": ["523.xalancbmk_r"],
             "ok": False,
             "elapsed_sec": 1.0,
@@ -109,6 +110,7 @@ class StageQemuMatrixTests(unittest.TestCase):
         self.assertIn("qemu_heartbeat_regs: `true`", text)
         self.assertIn("qemu_heartbeat_code_bytes: `16`", text)
         self.assertIn("qemu_heartbeat_same_site_warn: `4`", text)
+        self.assertIn("guest_proc_diagnostics: `true`", text)
         self.assertIn("LINX_QEMU_FAULT_TRACE_PC_LO=0x15559efe00", text)
         self.assertIn("LINX_QEMU_FAULT_TRACE_PC_HI=0x15559efe40", text)
 

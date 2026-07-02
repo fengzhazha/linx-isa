@@ -294,6 +294,8 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         filter_text = ", ".join(f"{k}={v}" for k, v in sorted(filters.items()))
         lines.append(f"- qemu_fault_trace_filters: `{filter_text}`")
     lines.append(f"- guest_heartbeat_sec: `{summary['guest_heartbeat_sec']}`")
+    guest_proc_diag = str(bool(summary.get("guest_proc_diagnostics", False))).lower()
+    lines.append(f"- guest_proc_diagnostics: `{guest_proc_diag}`")
     if summary.get("bench_override"):
         benches = ", ".join(summary["bench_override"])
         lines.append(f"- bench_override: `{benches}`")
@@ -460,6 +462,12 @@ def main(argv: list[str]) -> int:
         help="Guest child/output heartbeat interval passed through to the initramfs runner (0 disables).",
     )
     ap.add_argument(
+        "--guest-proc-diagnostics",
+        action="store_true",
+        default=_env_bool("LINX_SPEC_GUEST_PROC_DIAGNOSTICS", False),
+        help="Pass --guest-proc-diagnostics to enable heavy /proc dumps during guest heartbeat waits.",
+    )
+    ap.add_argument(
         "--symbolize-heartbeat",
         action="store_true",
         default=_env_bool("LINX_SPEC_SYMBOLIZE_HEARTBEAT", False),
@@ -576,6 +584,8 @@ def main(argv: list[str]) -> int:
         ]
         if args.symbolize_heartbeat:
             cmd.append("--symbolize-heartbeat")
+        if args.guest_proc_diagnostics:
+            cmd.append("--guest-proc-diagnostics")
         if args.qemu_heartbeat_regs:
             cmd.append("--qemu-heartbeat-regs")
         if args.qemu_fault_trace:
@@ -657,6 +667,7 @@ def main(argv: list[str]) -> int:
         "no_progress_timeout": float(args.no_progress_timeout),
         "fail_9p_timeout": bool(args.fail_9p_timeout),
         "guest_heartbeat_sec": int(args.guest_heartbeat_sec),
+        "guest_proc_diagnostics": bool(args.guest_proc_diagnostics),
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
         "append_extra": str(args.append_extra),
         "dump_prefix_bytes": int(args.dump_prefix_bytes),
