@@ -2666,7 +2666,7 @@ def _run_qemu(
         log_fp.flush()
     log_fp.close()
 
-    text = b"".join(chunks).decode("utf-8", errors="replace")
+    text = _final_qemu_log_text(out_log, chunks)
     qemu_rc = proc.returncode if proc.returncode is not None else -1
     panic_seen = (
         "Kernel panic - not syncing" in text
@@ -2707,7 +2707,7 @@ def _run_qemu(
     mprotect_trace = _mprotect_trace_summary(text)
     heartbeat_stall = classification["heartbeat_stall"]
 
-    return {
+    qemu_info = {
         "command": cmd,
         "qemu_rc": qemu_rc,
         "timed_out": timed_out,
@@ -2753,6 +2753,8 @@ def _run_qemu(
         "mprotect_trace_samples": mprotect_trace["samples"],
         "log": str(out_log),
     }
+    _specialize_spec_wrapper_failure(qemu_info, text)
+    return qemu_info
 
 
 def _classify_qemu_result(
@@ -2888,6 +2890,33 @@ def _classify_qemu_result(
     }
 
 
+def _final_qemu_log_text(out_log: Path, chunks: list[bytes]) -> str:
+    chunk_data = b"".join(chunks)
+    chunk_text = _decode_qemu_log_bytes(chunk_data)
+    try:
+        final_data = out_log.read_bytes()
+    except OSError:
+        return chunk_text
+    if len(final_data) >= len(chunk_data):
+        return _decode_qemu_log_bytes(final_data)
+    return chunk_text
+
+
+def _decode_qemu_log_bytes(data: bytes) -> str:
+    return data.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _specialize_spec_wrapper_failure(qemu_info: dict[str, Any], text: str) -> None:
+    if qemu_info.get("failure_class") != "spec-wrapper-fail":
+        return
+    internal_error = _spec_stderr_internal_error(text)
+    if not internal_error:
+        return
+    evidence = f"{internal_error}; {_spec_wrapper_failure_evidence(text)}"[:512]
+    qemu_info["failure_class"] = "spec-benchmark-internal-error"
+    qemu_info["failure_evidence"] = evidence
+
+
 def _first_matching_line(text: str, needles: tuple[str, ...]) -> str:
     for line in text.splitlines():
         if any(needle in line for needle in needles):
@@ -2910,6 +2939,7 @@ def _spec_wrapper_failure_evidence(text: str) -> str:
 
 
 def _spec_stderr_internal_error(text: str) -> str:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     match = re.search(
         r"LINX_SPEC_STDERR_BEGIN\n(?P<body>.*?)\nLINX_SPEC_STDERR_END",
         text,

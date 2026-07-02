@@ -197,6 +197,80 @@ Additional focused diagnostics:
   not make `541` correct or fast enough, but it cleanly splits the current
   mallocng metadata asserts from the closed compiler-rt atomic recursion.
 
+## Post-perlbench all-train split rerun
+
+Artifact root:
+
+- `workloads/generated/specint-train-split-post-perlbench-20260702-r1`
+
+Version context:
+
+- QEMU: `5cfb672a711b`, `QEMU emulator version 10.2.50 (v10.2.0-989-g5cfb672a711)`
+- LLVM: `e4771587a947`
+- Kernel: `kernel/linux/build-linx-fixed/vmlinux`
+- Sysroot: `out/libc/musl/install/phase-b`
+
+Command shape:
+
+```bash
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile train \
+  --spec-dir workloads/spec2017/cpu2017v118_x64_gcc12_avx2 \
+  --qemu emulator/qemu/build-linx/qemu-system-linx64 \
+  --sysroot out/libc/musl/install/phase-b \
+  --out-dir workloads/generated/specint-train-split-post-perlbench-20260702-r1 \
+  --append-extra norandmaps --heartbeat-sec 30 \
+  --qemu-heartbeat-interval 1000000000 \
+  --no-progress-timeout 0 --stack-limit 2G \
+  --guest-heartbeat-sec 0 --symbolize-heartbeat \
+  --continue-on-fail
+```
+
+The generated train profile split `525.x264_r` into the large-payload 9p shard
+and kept the other nine rows on initramfs. This run was started before the
+final classifier/fail-fast patches in this loop, so the raw logs and focused
+`502.gcc_r` repro below supersede any stale generic class in the original
+matrix JSON.
+
+Current all-train result ledger:
+
+| Bench | Transport | Result | Liveness evidence |
+|---|---|---|---|
+| `500.perlbench_r` | initramfs | `live-timeout` | first train row now starts at `diffmail`; BPC changed through count `46000000002`, last BPC `0x15556d96a4` |
+| `502.gcc_r` | initramfs | `spec-benchmark-internal-error` | focused current-code repro reports the SPEC GCC internal error at `tree-into-ssa.c:942`, child exit code 4 |
+| `505.mcf_r` | initramfs | `live-timeout` | BPC changed through count `48000000005`, last BPC `0x155555c4a4` |
+| `520.omnetpp_r` | initramfs | `live-timeout` | BPC changed through count `44000000019`, last BPC `0xffffffff800f683a` |
+| `523.xalancbmk_r` | initramfs | `live-timeout` | BPC changed through count `44000000000`, last BPC `0xffffffff8006aca2` |
+| `525.x264_r` | 9p | `live-timeout` | all four generated train rows timed out with site progress; final row reached count `22000000014`, last BPC `0xffffffff80112032` |
+| `531.deepsjeng_r` | initramfs | `live-timeout` | BPC changed through count `46000000023`, last BPC `0x155555b6fa` |
+| `541.leela_r` | initramfs | `live-timeout` | BPC changed through count `15000000005`, last BPC `0x155558ee8e` |
+| `557.xz_r` | initramfs | `live-timeout` | BPC changed through count `36000000014`, last BPC `0x155558cc70` |
+| `999.specrand_ir` | initramfs | pass | strict hash pass, `LINX_SPEC_PASS 999.specrand_ir` |
+
+Machine-readable summaries:
+
+- `workloads/generated/specint-train-split-post-perlbench-20260702-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-split-post-perlbench-20260702-r1/train-all/initramfs/stage_b_summary.json`
+- `workloads/generated/specint-train-split-post-perlbench-20260702-r1/train-all-large-9p/9p/stage_b_summary.json`
+
+Focused `502.gcc_r` classifier proof:
+
+- `workloads/generated/specint-502-internal-error-class-20260702-r3/qemu_matrix_summary.json`
+- Result: `spec-benchmark-internal-error`
+- Evidence: `200.c:63888:3: benchmark internal error: in ?, at tree-into-ssa.c:942; LINX_SPEC_FAIL child-exit; ... code=4`
+
+This repro also closed a runner-reporting bug: QEMU output carries carriage
+returns in the SPEC stderr marker block, so the classifier now normalizes QEMU
+log bytes before matching `LINX_SPEC_STDERR_BEGIN/END`. Without that
+normalization, the raw log contained the internal-error text while JSON stayed
+at generic `spec-wrapper-fail`.
+
+`525.x264_r` note: this long train run used the pre-fail-fast generated 9p
+command and therefore ran all four generated x264 train invocations after the
+first timeout. The fast gate now auto-enables `--fail-9p-timeout` for generated
+`*-large-9p` shards unless the caller explicitly overrides `--transports`, so
+future all-train gates stop this shard on the first heartbeat-backed timeout.
+
 ## Tool fixes in this loop
 
 - Fixed the GCC test input verifier to compare the generated `.s` output instead of a nonexistent `.out`.
@@ -211,10 +285,16 @@ Additional focused diagnostics:
   `--qemu-fault-trace`, `--qemu-fault-trace-pc[-lo|-hi]`,
   `--qemu-fault-trace-addr[-lo|-hi]`, `--qemu-fault-trace-count[-lo|-hi]`,
   and `--qemu-fault-trace-trapnum`.
+- Classified SPEC benchmark stderr internal-error blocks as
+  `spec-benchmark-internal-error`, including CR-normalized QEMU log marker
+  blocks such as the current `502.gcc_r` train failure.
 - Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
   all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
   `train-all-large-9p`, while explicit `--transports` still forces a single
   transport for focused bisection.
+- Added generated large-9p fail-fast policy so `525.x264_r` train/test shards
+  do not spend a full gate running every generated row after the first 9p
+  timeout.
 
 ## Profile observations
 
@@ -222,6 +302,7 @@ Profiles:
 
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/profiles/qemu-train-active.sample.txt`
 - `workloads/generated/specint-test-train-all-after-blockify-20260702-r2/profiles/qemu-train-520-active.sample.txt`
+- `workloads/generated/specint-train-split-post-perlbench-20260702-r1/profiles/qemu-531-active.sample.txt`
 
 Hot paths seen in both profiles:
 
@@ -229,6 +310,14 @@ Hot paths seen in both profiles:
 - `helper_linx_check_bstart_target`
 - `probe_access_flags` and `mmu_lookup` under BSTART legality checks
 - `linx_trace_wb` and `linx_call_trace_emit`, even in non-trace SPEC runs
+
+The latest `531.deepsjeng_r` sample still shows the same throughput owners:
+`helper_linx_template_step` around 313 samples, `probe_access_internal` around
+291, `helper_linx_check_bstart_target` around 188, `mmu_lookup1` around 178,
+`helper_linx_tile_set_attr` around 146, plus visible `linx_trace_wb`,
+`helper_lookup_tb_ptr`, and `linx_call_trace_emit` frames. The next speed loop
+should focus on reducing template-step and BSTART/probe/MMU helper cost before
+raising SPEC train timeouts.
 
 ## Proposed next loops
 
@@ -253,11 +342,19 @@ Hot paths seen in both profiles:
    unstable between user-trap and live-timeout; rerun with fault trace filters
    around the user BPC if the trap reproduces.
 8. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
+9. All other train failures in the current split run are heartbeat-backed
+   live-timeouts, not deadlocks. Keep correctness work on the explicit
+   internal-error/trap rows and run live-timeout rows through the QEMU
+   throughput profile loop.
 
 ## Verification
 
 - `PYTHONPATH=tools/spec2017 python3 -m unittest -q tools.spec2017.test_run_int_rate_qemu tools.spec2017.test_run_stage_qemu_matrix`
 - `git diff --check -- tools/spec2017/run_int_rate_qemu.py tools/spec2017/test_run_int_rate_qemu.py`
+- `python3 -m py_compile tools/spec2017/run_int_rate_qemu.py tools/spec2017/test_run_int_rate_qemu.py`
+- `PYTHONPATH=tools/spec2017 python3 -m unittest tools.spec2017.test_run_int_rate_qemu`
+- Focused current-code repro:
+  `workloads/generated/specint-502-internal-error-class-20260702-r3/qemu_matrix_summary.json`
 - `python3 -m py_compile run_int_rate_qemu.py test_run_int_rate_qemu.py` from `tools/spec2017`
 - `python3 -m unittest test_run_int_rate_qemu.py` from `tools/spec2017`
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 520.omnetpp_r --input-set test --transports initramfs --guest-heartbeat-sec 10 --timeout 240` (expected red, classified `live-timeout`)

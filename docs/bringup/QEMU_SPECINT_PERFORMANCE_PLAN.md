@@ -433,6 +433,58 @@ ledger `workloads/generated/specint-train-all-nomerge-qemu-20260630-r1/` keeps
 `525.x264_r` as the remaining initramfs VFS-root panic. The next QEMU work is
 therefore throughput profiling, not further 502 TLB correctness triage.
 
+2026-07-02 split-train update: the all-train fast gate now runs every SPECint
+train row while keeping `525.x264_r` in a generated large-payload 9p shard.
+The latest split run is
+`workloads/generated/specint-train-split-post-perlbench-20260702-r1/` with QEMU
+`v10.2.0-989-g5cfb672a711`, LLVM `e4771587a947`, phase-b musl, and a 2 GiB
+SPEC stack cap. It confirms the current all-train state:
+
+- `999.specrand_ir` passes strict hash.
+- `502.gcc_r` is a real SPEC GCC internal-error row, not a generic wrapper
+  failure. The current-code proof is
+  `workloads/generated/specint-502-internal-error-class-20260702-r3/`, which
+  classifies the row as `spec-benchmark-internal-error` with child exit
+  code 4 and the `tree-into-ssa.c:942` benchmark message.
+- `500.perlbench_r`, `505.mcf_r`, `520.omnetpp_r`, `523.xalancbmk_r`,
+  `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` are heartbeat-backed
+  `live-timeout` rows with changing BPCs.
+- `525.x264_r` runs under 9p and all four generated train invocations were
+  heartbeat-backed `live-timeout` rows in the pre-fail-fast run. The fast gate
+  now auto-enables `--fail-9p-timeout` for generated `*-large-9p` shards unless
+  explicit `--transports` is supplied, so future gates stop this shard after
+  the first timeout.
+
+The newest QEMU sample for the split run is
+`workloads/generated/specint-train-split-post-perlbench-20260702-r1/profiles/qemu-531-active.sample.txt`.
+The top sampled owners remain:
+
+| Frame | Samples |
+| --- | ---: |
+| `helper_linx_template_step` | 313 |
+| `probe_access_internal` | 291 |
+| `helper_linx_check_bstart_target` | 188 |
+| `mmu_lookup1` | 178 |
+| `helper_linx_tile_set_attr` | 146 |
+| `linx_trace_wb` | 89 |
+| `helper_lookup_tb_ptr` | 81 |
+| `linx_call_trace_emit` | 72 |
+
+Immediate speed hypotheses:
+
+1. Template-step fast path: audit why common SPEC execution still samples
+   `helper_linx_template_step` heavily and split cold trace/template work out
+   of the hot path.
+2. BSTART/probe path: extend the BSTART legality cache or per-TB memoization so
+   `helper_linx_check_bstart_target` does not repeatedly enter
+   `probe_access_internal` and `mmu_lookup1` for stable code pages.
+3. Trace hooks: make `linx_trace_wb` and `linx_call_trace_emit`
+   translation-time gated for non-trace runs, or prove from counters that these
+   samples are unavoidable architectural work.
+4. Tile attribute/reset path: inspect `helper_linx_tile_set_attr` and tile
+   reset traffic in SPEC loops; if attributes are unchanged, cache the no-op or
+   move validation out of repeated helper calls.
+
 Additional opt-in QEMU debug switches used during this pass:
 
 - `LINX_TLB_TRACE=1` records Linx TLB invalidation helpers with translated PC,

@@ -76,6 +76,48 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("benchmark internal error", result["evidence"])
         self.assertIn("code=4", result["evidence"])
 
+    def test_final_qemu_log_text_prefers_finished_log(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            log_path = Path(td) / "qemu.log"
+            log_path.write_bytes(
+                b"LINX_SPEC_FAIL child-exit\r\n"
+                b"LINX_SPEC_STDERR_BEGIN\r\n"
+                b"benchmark internal error\r\n"
+                b"LINX_SPEC_STDERR_END\r\n"
+            )
+
+            text = runner._final_qemu_log_text(
+                log_path,
+                [b"LINX_SPEC_FAIL child-exit\r\n"],
+            )
+
+        self.assertIn("LINX_SPEC_STDERR_BEGIN", text)
+        self.assertIn("benchmark internal error", text)
+        self.assertNotIn("\r", text)
+
+    def test_spec_wrapper_failure_specializes_from_finished_log(self) -> None:
+        qemu_info = {
+            "failure_class": "spec-wrapper-fail",
+            "failure_evidence": "LINX_SPEC_FAIL child-exit",
+        }
+
+        runner._specialize_spec_wrapper_failure(
+            qemu_info,
+            (
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=6 "
+                "fallback=0 status=0x0000000000000400 exited=1 code=4 "
+                "signaled=0 sig=-1\n"
+                "LINX_SPEC_FAIL child-exit\r\n"
+                "LINX_SPEC_STDERR_BEGIN\r\n"
+                "200.c:63888:3: benchmark internal error: in ?, at tree-into-ssa.c:942\r\n"
+                "LINX_SPEC_STDERR_END\r\n"
+            ),
+        )
+
+        self.assertEqual(qemu_info["failure_class"], "spec-benchmark-internal-error")
+        self.assertIn("benchmark internal error", qemu_info["failure_evidence"])
+        self.assertIn("code=4", qemu_info["failure_evidence"])
+
     def test_child_sigkill_is_classified(self) -> None:
         result = runner._classify_qemu_result(
             text=(
