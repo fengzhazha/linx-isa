@@ -68,6 +68,21 @@ Evidence:
   the manifest records the 502-specific flags, source immutability passes, and
   train row 1 reaches `live-timeout` at count `24000000002`, BPC
   `0x1555766900`, with no internal-error, trap, or panic marker.
+- `emulator/qemu` commit `57715bca69f` fixes explicit scalar queue
+  destinations (`RegDst=24` for `t#1`) and restores QEMU AVS D0D4. The refreshed
+  all-row `test-train` SPEC ledger is
+  `workloads/generated/specint-test-train-all-explicit-queue-dest-20260702-r1/`
+  on QEMU `v10.2.0-994-g57715bca69f`: `test` passes `502.gcc_r`,
+  `523.xalancbmk_r`, and `999.specrand_ir`; `train` passes
+  `999.specrand_ir`; every remaining red row, including split 9p `525.x264_r`,
+  is a heartbeat-backed `live-timeout` with BPC site progress and no fresh
+  trap, panic, hash-mismatch, internal-error, or wrapper child-exit class.
+- Fresh Linux evidence on the same QEMU includes passing initramfs smoke,
+  initramfs full boot, 15/15 defconfig audit, and a rebuilt BusyBox rootfs boot
+  in `workloads/generated/busybox-rootfs-qemu-explicit-queue-dest-20260702-r1/`
+  with timer IRQ progress `32 -> 37`. A `SKIP_BUILD=1` BusyBox rootfs run still
+  reproduces the stale PID1 `addr=0x10000004` trap, so stale rootfs results are
+  non-authoritative for current closure.
 
 Inference:
 
