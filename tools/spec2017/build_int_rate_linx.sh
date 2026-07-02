@@ -11,6 +11,7 @@ BUILD_RUNTIMES=0
 EMIT_MANIFEST=""
 FORCE_STATIC="${LINX_SPEC_FORCE_STATIC:-0}"
 CLI_BENCHES=()
+BENCH_OPTIMIZE_OVERRIDES=()
 
 usage() {
   cat <<EOF
@@ -21,6 +22,10 @@ Options:
   --mode <phase-a|phase-b|phase-c>   Sysroot mode for wrappers (default: $MODE)
   --jobs <N>             Parallel jobs for gmake (default: $JOBS)
   --optimize <flags>     Optimization flags override (default: "$OPTIMIZE_FLAGS")
+  --bench-optimize <bench=flags>
+                         Per-benchmark optimization flags override (repeatable).
+                         Environment alternative: LINX_SPEC_BENCH_OPTIMIZE
+                         with semicolon-separated bench=flags entries.
   --bench <name>         Benchmark to build (repeatable). Overrides LINX_SPEC_BENCHES.
   --emit-manifest <path> Write build/readelf evidence manifest JSON to <path>
   --reextract            Re-extract SPEC zip and refresh baseline manifest
@@ -47,6 +52,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --optimize)
       OPTIMIZE_FLAGS="$2"
+      shift 2
+      ;;
+    --bench-optimize)
+      BENCH_OPTIMIZE_OVERRIDES+=("$2")
       shift 2
       ;;
     --bench)
@@ -84,6 +93,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -n "${LINX_SPEC_BENCH_OPTIMIZE:-}" ]]; then
+  while IFS= read -r entry; do
+    [[ -n "$entry" ]] || continue
+    BENCH_OPTIMIZE_OVERRIDES+=("$entry")
+  done < <(printf '%s\n' "$LINX_SPEC_BENCH_OPTIMIZE" | tr ';' '\n' | sed '/^$/d')
+fi
 
 case "$MODE" in
   phase-a|phase-b|phase-c) ;;
@@ -192,6 +208,32 @@ is_supported_bench() {
       ;;
   esac
   return 1
+}
+
+bench_optimize_flags() {
+  local bench="$1"
+  local result="$OPTIMIZE_FLAGS"
+  local entry
+  local key
+  local value
+
+  for entry in ${BENCH_OPTIMIZE_OVERRIDES[@]+"${BENCH_OPTIMIZE_OVERRIDES[@]}"}; do
+    key="${entry%%=*}"
+    value="${entry#*=}"
+    if [[ "$entry" == "$key" || -z "$key" || -z "$value" ]]; then
+      echo "error: malformed --bench-optimize entry '$entry' (expected bench=flags)" >&2
+      exit 2
+    fi
+    if ! is_supported_bench "$key"; then
+      echo "error: unsupported --bench-optimize benchmark '$key'" >&2
+      exit 2
+    fi
+    if [[ "$key" == "$bench" ]]; then
+      result="$value"
+    fi
+  done
+
+  printf '%s\n' "$result"
 }
 
 candidate_exe_names() {
@@ -312,8 +354,10 @@ build_benchmark() {
   local exe_dir="$SPEC_DIR/benchspec/CPU/$bench/exe"
   local log_file="$LOG_DIR/${bench}.log"
   local expected
+  local bench_optimize
 
   expected="$(expected_exes "$bench")"
+  bench_optimize="$(bench_optimize_flags "$bench")"
 
   if [[ ! -d "$build_dir" ]]; then
     echo "error: missing build dir for $bench: $build_dir" >"$log_file"
@@ -324,7 +368,10 @@ build_benchmark() {
     echo "[bench] $bench"
     echo "[build_dir] $build_dir"
     echo "[mode] $MODE"
-    echo "[optimize] $OPTIMIZE_FLAGS"
+    echo "[optimize] $bench_optimize"
+    if [[ "$bench_optimize" != "$OPTIMIZE_FLAGS" ]]; then
+      echo "[global_optimize] $OPTIMIZE_FLAGS"
+    fi
     echo "[cc] $CC_WRAPPER"
     echo "[cxx] $CXX_WRAPPER"
     echo "[sysroot] $LINX_SYSROOT"
@@ -363,7 +410,7 @@ build_benchmark() {
         CXXLD="$CXX_WRAPPER" \
         FC=false \
         SPECLANG= \
-        OPTIMIZE="$OPTIMIZE_FLAGS" \
+        OPTIMIZE="$bench_optimize" \
         EXTRA_OPTIMIZE= \
         EXTRA_COPTIMIZE= \
         EXTRA_CXXOPTIMIZE= \
@@ -381,7 +428,7 @@ build_benchmark() {
         CXXLD="$CXX_WRAPPER" \
         FC=false \
         SPECLANG= \
-        OPTIMIZE="$OPTIMIZE_FLAGS" \
+        OPTIMIZE="$bench_optimize" \
         EXTRA_OPTIMIZE= \
         EXTRA_COPTIMIZE= \
         EXTRA_CXXOPTIMIZE= \
@@ -480,6 +527,12 @@ if ! cmp -s "$BASELINE_MANIFEST" "$POST_MANIFEST"; then
   failed+=("__src_drift__")
 fi
 
+BENCH_OPTIMIZE_MANIFEST="$LOG_DIR/bench-optimize.tsv"
+: >"$BENCH_OPTIMIZE_MANIFEST"
+for bench in "${benchmarks[@]}"; do
+  printf '%s\t%s\n' "$bench" "$(bench_optimize_flags "$bench")" >>"$BENCH_OPTIMIZE_MANIFEST"
+done
+
 if [[ -n "$EMIT_MANIFEST" ]]; then
   manifest_out="$EMIT_MANIFEST"
   if [[ "$manifest_out" != /* ]]; then
@@ -489,7 +542,7 @@ if [[ -n "$EMIT_MANIFEST" ]]; then
 
   benchmarks_csv="$(IFS=,; echo "${benchmarks[*]-}")"
   failed_csv="$(IFS=,; echo "${failed[*]-}")"
-  python3 - "$manifest_out" "$SPEC_DIR" "$MODE" "$OPTIMIZE_FLAGS" "$LINX_SPEC_LINK_MODE" "$LINX_SPEC_FORCE_STATIC" "$LLVM_READELF" "$LOG_DIR" "$BASELINE_MANIFEST" "$POST_MANIFEST" "$DRIFT_PATHS" "$benchmarks_csv" "$failed_csv" <<'PY'
+  python3 - "$manifest_out" "$SPEC_DIR" "$MODE" "$OPTIMIZE_FLAGS" "$BENCH_OPTIMIZE_MANIFEST" "$LINX_SPEC_LINK_MODE" "$LINX_SPEC_FORCE_STATIC" "$LLVM_READELF" "$LOG_DIR" "$BASELINE_MANIFEST" "$POST_MANIFEST" "$DRIFT_PATHS" "$benchmarks_csv" "$failed_csv" <<'PY'
 import datetime as dt
 import json
 import subprocess
@@ -500,15 +553,24 @@ manifest_out = Path(sys.argv[1]).resolve()
 spec_dir = Path(sys.argv[2]).resolve()
 mode = sys.argv[3]
 optimize_flags = sys.argv[4]
-link_mode = sys.argv[5]
-force_static = sys.argv[6] == "1"
-llvm_readelf = Path(sys.argv[7])
-log_dir = Path(sys.argv[8]).resolve()
-baseline_manifest = Path(sys.argv[9]).resolve()
-post_manifest = Path(sys.argv[10]).resolve()
-drift_paths = Path(sys.argv[11]).resolve()
-benchmarks = [x for x in sys.argv[12].split(",") if x]
-failed = {x for x in sys.argv[13].split(",") if x}
+bench_optimize_manifest = Path(sys.argv[5]).resolve()
+link_mode = sys.argv[6]
+force_static = sys.argv[7] == "1"
+llvm_readelf = Path(sys.argv[8])
+log_dir = Path(sys.argv[9]).resolve()
+baseline_manifest = Path(sys.argv[10]).resolve()
+post_manifest = Path(sys.argv[11]).resolve()
+drift_paths = Path(sys.argv[12]).resolve()
+benchmarks = [x for x in sys.argv[13].split(",") if x]
+failed = {x for x in sys.argv[14].split(",") if x}
+
+bench_optimize_flags = {}
+if bench_optimize_manifest.exists():
+    for line in bench_optimize_manifest.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        bench, flags = line.split("\t", 1)
+        bench_optimize_flags[bench] = flags
 
 expected = {
     "500.perlbench_r": ["perlbench_r_base.mytest-m64"],
@@ -630,6 +692,8 @@ for bench in benchmarks:
         "build_ok": build_ok,
         "all_expected_exes_present": all_exists,
         "all_expected_exes_linx_machine": all_linx,
+        "optimize_flags": bench_optimize_flags.get(bench, optimize_flags),
+        "uses_global_optimize_flags": bench_optimize_flags.get(bench, optimize_flags) == optimize_flags,
         "log": str(log_dir / f"{bench}.log"),
         "executables": exe_results,
     }
@@ -647,6 +711,7 @@ manifest = {
     "spec_dir": str(spec_dir),
     "mode": mode,
     "optimize_flags": optimize_flags,
+    "bench_optimize_flags": {bench: bench_optimize_flags.get(bench, optimize_flags) for bench in benchmarks},
     "link_mode": link_mode,
     "force_static": force_static,
     "llvm_readelf": str(llvm_readelf),

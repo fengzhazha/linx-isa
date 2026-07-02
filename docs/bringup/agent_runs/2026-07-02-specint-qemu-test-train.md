@@ -392,6 +392,20 @@ Focused `502.gcc_r` mixed-object `-fwrapv` localization:
   diffs for the same sources show `-fwrapv` removes `nsw` from signed integer
   adds, including the `compute_global_livein` `last_basic_block + 1` allocation
   size and the inline omega `(s + 1) * sizeof(int)` `memcpy`/`memset` lengths.
+- `tools/spec2017/build_int_rate_linx.sh` now supports an opt-in
+  `--bench-optimize 502.gcc_r='<flags>'` profile and records the effective
+  per-benchmark flags in the build manifest. Using this path,
+  `workloads/generated/specint-build-502-benchopt-wrapv-20260702-r1/build_manifest.json`
+  built only `502.gcc_r` with `-O0 -fno-vectorize -fno-slp-vectorize -fwrapv`.
+  The fwrapv-built test row 1 passed strict output/specdiff under
+  `workloads/generated/specint-502-benchopt-wrapv-test-hb-20260702-r1/stage_b_summary.json`
+  with `LINX_SPEC_PASS`, no trap, and no panic. The fwrapv-built train row 1
+  still timed out under the 180 second cap, but it is now explicitly
+  heartbeat-backed live progress:
+  `workloads/generated/specint-502-benchopt-wrapv-train-hb-20260702-r1/stage_b_summary.json`
+  reports `live-timeout`, last count `25000000005`, BPC `0x1555941412`,
+  recent count delta `6999999998`, eight recent unique sites, and no
+  trap/panic/fail/internal-error marker.
 
 Interpretation: the whole-benchmark `-fwrapv` effect is now localized to a
 minimal 502 object pair. `tree-into-ssa.o` alone and `tree-data-ref.o` alone
@@ -402,6 +416,8 @@ codegen, especially whether Linx lowering is respecting the signed-overflow
 contract difference between plain signed adds and `nsw`, before changing QEMU,
 Linux, or libc. After every probe above, the default 502 executable was restored to digest
 `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`.
+The latest restore evidence is
+`workloads/generated/specint-build-502-default-restore-after-benchopt-20260702-r1/build_manifest.json`.
 
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
 command and therefore ran all four generated x264 train invocations after the
@@ -431,6 +447,11 @@ future all-train gates stop this shard on the first heartbeat-backed timeout.
   now also preserves the mixed object files under each generated variant
   directory and can summarize staged baseline-vs-variant object disassembly plus
   symbol-size deltas with the `summarize` subcommand.
+- Added per-benchmark `--bench-optimize bench=flags` support to
+  `tools/spec2017/build_int_rate_linx.sh` and surfaced the effective flags in
+  build manifests. This lets the gate run a named 502 signed-wrap profile
+  without changing the global SPEC build policy or silently leaving the default
+  executable in place.
 - Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
   all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
   `train-all-large-9p`, while explicit `--transports` still forces a single
@@ -562,4 +583,9 @@ raising SPEC train timeouts.
 - `compiler/llvm/build-linxisa-clang/bin/llvm-objdump -dr --no-show-raw-insn ...` on the pair baseline/mixed objects (generated `workloads/generated/specint-502-mixed-tree-into-dataref-wrapv-20260702-r2/asm-diff/*.diff.txt`)
 - `compiler/llvm/build-linxisa-clang/bin/llvm-nm -S --size-sort ...` on the pair baseline/mixed objects (generated `asm-diff/*.symbol-size-delta.tsv`)
 - `python3 tools/spec2017/probe_502_mixed_flags.py restore --out-dir <each mixed-object probe dir>` (passed; final default staged/build executable digest `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`)
+- `bash -n tools/spec2017/build_int_rate_linx.sh` (passed)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --bench-optimize '502.gcc_r=-O0 -fno-vectorize -fno-slp-vectorize -fwrapv' --emit-manifest workloads/generated/specint-build-502-benchopt-wrapv-20260702-r1/build_manifest.json` (passed; manifest records 502-specific flags)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set test --run-index 1 --qemu-heartbeat-interval 1000000000 --timeout 180` against the fwrapv-built binary (passed; `LINX_SPEC_PASS`, specdiff OK)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --run-index 1 --qemu-heartbeat-interval 1000000000 --timeout 180` against the fwrapv-built binary (expected red; `live-timeout`, count `25000000005`, BPC `0x1555941412`, no internal error/trap/panic)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --emit-manifest workloads/generated/specint-build-502-default-restore-after-benchopt-20260702-r1/build_manifest.json` (passed; restored default staged/build executable digest `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`
