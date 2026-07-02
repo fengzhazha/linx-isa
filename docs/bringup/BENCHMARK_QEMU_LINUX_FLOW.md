@@ -275,6 +275,15 @@ faults and unrelated user faults otherwise consume `LINX_FAULT_TRACE_LIMIT`
 before QEMU reaches the final SPEC window. For null-branch or null-data traps,
 `LINX_FAULT_TRACE_ADDR=0` now arms an explicit zero-address fault filter.
 
+When a suspected replay or trap-return bug needs ACRE evidence, prefer
+`LINX_ACRE_TRACE=1` over the older unfiltered `LINX_DEBUG_ACRE_STDERR=1`.
+Filter by `LINX_ACRE_TRACE_PC=<resume-pc>` or
+`LINX_ACRE_TRACE_BPC=<resume-bpc>`, and add `LINX_ACRE_TRACE_COUNT_LO/HI` once
+fault trace has identified the failing instruction-count window. The trace
+prints paired `phase=entry` and `phase=staged` records so the run can compare
+saved block/queue state before restore with the state actually staged for
+userspace.
+
 When a null-branch fault comes from `FRET.STK` restoring `ra=0`, use
 `LINX_FRET_STK_TRACE=1` with `LINX_FRET_STK_TRACE_PC=<fret-pc>`,
 `LINX_FRET_STK_TRACE_RA=0`, and optional `LINX_FRET_STK_TRACE_COUNT_LO/HI`.

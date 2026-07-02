@@ -584,6 +584,15 @@ Additional opt-in QEMU debug switches used during this pass:
 - `LINX_SYSCALL_TRACE_REGS=1` prints a `LINX_SYSCALL_REGS` record for each
   traced syscall entry and return with the full Linx GPR file. This is useful
   when return-value clobbering, TLS state, or caller-save handling is suspect.
+- `LINX_ACRE_TRACE=1` logs filtered ACRE/trap-return handoff records before
+  block-state restore (`phase=entry`) and after resume staging
+  (`phase=staged`). Narrow with `LINX_ACRE_TRACE_PC`, `_PC_LO/_PC_HI`,
+  `_BPC`, `_BPC_LO/_BPC_HI`, `_COUNT_LO/_COUNT_HI`, `_TARGET`, `_RRA`, and
+  `_TRAPNUM`; set `LINX_ACRE_TRACE_LIMIT=0` only for deliberately unbounded
+  short runs. Add `LINX_ACRE_TRACE_REGS=1` or
+  `LINX_ACRE_TRACE_CODE_BYTES=<n>` for focused register/code snapshots.
+  Matching `LINX_QEMU_ACRE_TRACE_*` aliases are accepted. Use this instead of
+  the older all-or-nothing `LINX_DEBUG_ACRE_STDERR=1` on SPEC rows.
 - `LINX_FAULT_TRACE_REGS=1` prints a `LINX_FAULT_REGS` record after
   `LINX_FAULT_TRACE` reports a synchronous trap, again with the full GPR file.
 - `LINX_TRACE_REGS=1` enables both syscall and fault register records.
