@@ -52,6 +52,29 @@ def _run(cmd: list[str], *, cwd: Path, env: dict[str, str], log: Path) -> None:
         subprocess.run(cmd, cwd=cwd, env=env, stdout=f, stderr=subprocess.STDOUT, check=True)
 
 
+def _find_tool(configured: str, tool: str) -> str:
+    if configured:
+        path = Path(configured)
+        if path.is_file():
+            return str(path)
+        found = shutil.which(configured)
+        if found:
+            return found
+        raise SystemExit(f"error: tool not found: {configured}")
+
+    candidates = [
+        ROOT / "compiler/llvm/build-linxisa-clang/bin" / tool,
+        Path.home() / "llvm-project/build-linxisa-clang/bin" / tool,
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            return str(cand)
+    found = shutil.which(tool)
+    if found:
+        return found
+    raise SystemExit(f"error: {tool} not found; pass --{tool.replace('_', '-')}")
+
+
 def _make_bin() -> str:
     configured = os.environ.get("MAKE", "")
     if configured:
@@ -328,6 +351,120 @@ def _restore(args: argparse.Namespace) -> None:
     print(f"restore_manifest={restore_path}")
 
 
+def _parse_nm(path: Path) -> dict[str, tuple[int, int]]:
+    symbols: dict[str, tuple[int, int]] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+        if not all(ch in "0123456789abcdefABCDEF" for ch in parts[0] + parts[1]):
+            continue
+        symbols[parts[-1]] = (int(parts[0], 16), int(parts[1], 16))
+    return symbols
+
+
+def _diff_stats(path: Path) -> dict[str, int]:
+    hunks = plus = minus = 0
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith("@@"):
+            hunks += 1
+        elif line.startswith("+") and not line.startswith("+++"):
+            plus += 1
+        elif line.startswith("-") and not line.startswith("---"):
+            minus += 1
+    return {"hunks": hunks, "plus": plus, "minus": minus}
+
+
+def _summarize(args: argparse.Namespace) -> None:
+    out_dir = Path(args.out_dir).resolve()
+    manifest_path = out_dir / "mixed_flags_manifest.json"
+    if not manifest_path.is_file():
+        raise SystemExit(f"error: missing manifest: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    report_dir = Path(args.report_dir).resolve() if args.report_dir else out_dir / "asm-diff"
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    objdump = _find_tool(args.llvm_objdump, "llvm-objdump")
+    nm = _find_tool(args.llvm_nm, "llvm-nm")
+    objects: list[dict[str, Any]] = []
+    for entry in manifest.get("selected_objects", []):
+        obj = entry["object"]
+        base_obj = Path(entry["backup"])
+        mixed_obj = Path(entry.get("mixed_object", out_dir / "variant/mixed-objects" / obj))
+        if not base_obj.is_file():
+            raise SystemExit(f"error: missing baseline object for {obj}: {base_obj}")
+        if not mixed_obj.is_file():
+            raise SystemExit(
+                f"error: missing mixed object for {obj}: {mixed_obj}; "
+                "rerun stage with a helper version that preserves mixed objects"
+            )
+
+        stem = obj.replace("/", "_").removesuffix(".o")
+        base_dis = report_dir / f"{stem}.baseline.dis.txt"
+        mixed_dis = report_dir / f"{stem}.wrapv.dis.txt"
+        diff_path = report_dir / f"{stem}.diff.txt"
+        base_nm = report_dir / f"{stem}.baseline.nm.txt"
+        mixed_nm = report_dir / f"{stem}.wrapv.nm.txt"
+        symbol_delta = report_dir / f"{stem}.symbol-size-delta.tsv"
+
+        with base_dis.open("w", encoding="utf-8") as f:
+            subprocess.run([objdump, "-dr", "--no-show-raw-insn", str(base_obj)], stdout=f, check=True)
+        with mixed_dis.open("w", encoding="utf-8") as f:
+            subprocess.run([objdump, "-dr", "--no-show-raw-insn", str(mixed_obj)], stdout=f, check=True)
+        with diff_path.open("w", encoding="utf-8") as f:
+            subprocess.run(["diff", "-u", str(base_dis), str(mixed_dis)], stdout=f, check=False)
+
+        with base_nm.open("w", encoding="utf-8") as f:
+            subprocess.run([nm, "-S", "--size-sort", str(base_obj)], stdout=f, check=True)
+        with mixed_nm.open("w", encoding="utf-8") as f:
+            subprocess.run([nm, "-S", "--size-sort", str(mixed_obj)], stdout=f, check=True)
+
+        base_symbols = _parse_nm(base_nm)
+        mixed_symbols = _parse_nm(mixed_nm)
+        changed_symbols = []
+        with symbol_delta.open("w", encoding="utf-8") as f:
+            f.write("symbol\tbaseline_size\twrapv_size\tdelta\n")
+            for sym in sorted(set(base_symbols) | set(mixed_symbols)):
+                base_size = base_symbols.get(sym, (0, 0))[1]
+                mixed_size = mixed_symbols.get(sym, (0, 0))[1]
+                if base_size == mixed_size:
+                    continue
+                delta = {
+                    "symbol": sym,
+                    "baseline_size": base_size,
+                    "mixed_size": mixed_size,
+                    "delta": mixed_size - base_size,
+                }
+                changed_symbols.append(delta)
+                f.write(f"{sym}\t{base_size}\t{mixed_size}\t{mixed_size - base_size}\n")
+
+        objects.append(
+            {
+                "object": obj,
+                "source": entry.get("source", ""),
+                "baseline_object": str(base_obj),
+                "mixed_object": str(mixed_obj),
+                "disassembly_diff": str(diff_path),
+                "symbol_size_delta": str(symbol_delta),
+                "diff_stats": _diff_stats(diff_path),
+                "changed_symbols": changed_symbols,
+            }
+        )
+
+    summary = {
+        "schema_version": "linx-spec-502-mixed-flags-summary-v1",
+        "generated_at_utc": _now_utc(),
+        "source_manifest": str(manifest_path),
+        "report_dir": str(report_dir),
+        "llvm_objdump": objdump,
+        "llvm_nm": nm,
+        "objects": objects,
+    }
+    summary_path = report_dir / "summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"summary={summary_path}")
+
+
 def _list(args: argparse.Namespace) -> None:
     spec_dir = Path(args.spec_dir).resolve()
     build_dir = spec_dir / BUILD_REL
@@ -359,6 +496,13 @@ def main(argv: list[str] | None = None) -> int:
     restore_p = sub.add_parser("restore", help="Restore the default 502 executable after a staged probe.")
     restore_p.add_argument("--out-dir", required=True, help="Generated artifact directory used by stage.")
     restore_p.set_defaults(func=_restore)
+
+    summarize_p = sub.add_parser("summarize", help="Generate disassembly and symbol-delta reports for a staged probe.")
+    summarize_p.add_argument("--out-dir", required=True, help="Generated artifact directory used by stage.")
+    summarize_p.add_argument("--report-dir", default="", help="Report directory (default: <out-dir>/asm-diff).")
+    summarize_p.add_argument("--llvm-objdump", default="", help="llvm-objdump path override.")
+    summarize_p.add_argument("--llvm-nm", default="", help="llvm-nm path override.")
+    summarize_p.set_defaults(func=_summarize)
 
     args = parser.parse_args(argv)
     args.func(args)

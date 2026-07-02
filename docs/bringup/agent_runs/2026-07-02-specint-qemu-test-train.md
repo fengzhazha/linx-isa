@@ -386,15 +386,21 @@ Focused `502.gcc_r` mixed-object `-fwrapv` localization:
   (`444 -> 450` bytes); `tree-data-ref.o` changes only inline `omega.h`
   helpers `omega_copy_eqn` (`106 -> 112`) and `omega_init_eqn_zero`
   (`72 -> 80`).
+- The helper's `summarize` subcommand now regenerates that object evidence from
+  the preserved staged objects. The pair summary reports six disassembly hunks
+  in `tree-into-ssa.o` and thirty-seven in `tree-data-ref.o`; generated IR
+  diffs for the same sources show `-fwrapv` removes `nsw` from signed integer
+  adds, including the `compute_global_livein` `last_basic_block + 1` allocation
+  size and the inline omega `(s + 1) * sizeof(int)` `memcpy`/`memset` lengths.
 
 Interpretation: the whole-benchmark `-fwrapv` effect is now localized to a
 minimal 502 object pair. `tree-into-ssa.o` alone and `tree-data-ref.o` alone
 both still fail with the same internal error; together they convert the row to
 heartbeat-backed `live-timeout` under the same cap. The next compiler loop
 should inspect the changed `compute_global_livein` and inline omega helper
-codegen, especially the signed-add-before-scale sequence in
-`compute_global_livein`, before changing QEMU, Linux, or libc. After every
-probe above, the default 502 executable was restored to digest
+codegen, especially whether Linx lowering is respecting the signed-overflow
+contract difference between plain signed adds and `nsw`, before changing QEMU,
+Linux, or libc. After every probe above, the default 502 executable was restored to digest
 `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`.
 
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
@@ -423,7 +429,8 @@ future all-train gates stop this shard on the first heartbeat-backed timeout.
 - Added `tools/spec2017/probe_502_mixed_flags.py` to stage and restore
   selected-object 502 probe binaries without modifying SPEC sources. The helper
   now also preserves the mixed object files under each generated variant
-  directory for disassembly/IR follow-up.
+  directory and can summarize staged baseline-vs-variant object disassembly plus
+  symbol-size deltas with the `summarize` subcommand.
 - Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
   all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
   `train-all-large-9p`, while explicit `--transports` still forces a single
