@@ -297,6 +297,40 @@ validation. After the probe, `502.gcc_r` was rebuilt back to the default
 `-O0 -fno-vectorize -fno-slp-vectorize` flag set; restore evidence is
 `workloads/generated/specint-build-502-default-restore-20260702-r1/build_manifest.json`.
 
+Focused `502.gcc_r` flag-bisect follow-up:
+
+- `workloads/generated/specint-build-502-no-jumptables-20260702-r1/build_manifest.json`
+  rebuilt 502 with default flags plus `-fno-jump-tables`. The row still
+  reproduced `spec-benchmark-internal-error` at `tree-into-ssa.c:942` in
+  `workloads/generated/specint-502-no-jumptables-20260702-r1/stage_b_summary.json`
+  after `113.397` seconds, count `18000000001`, last BPC `0x1555e5429c`.
+- `workloads/generated/specint-build-502-no-inline-20260702-r1/build_manifest.json`
+  rebuilt 502 with default flags plus `-fno-inline`. The row still reproduced
+  the same internal error in
+  `workloads/generated/specint-502-no-inline-20260702-r1/stage_b_summary.json`
+  after `145.321` seconds, count `18000000000`.
+- `workloads/generated/specint-build-502-semantic-flags-20260702-r1/build_manifest.json`
+  rebuilt 502 with default flags plus `-fno-optimize-sibling-calls
+  -fno-strict-aliasing -fwrapv`. The row did not reproduce the internal error
+  under the 240 second cap and instead classified as `live-timeout` in
+  `workloads/generated/specint-502-semantic-flags-20260702-r1/stage_b_summary.json`,
+  count `28000000002`, last BPC `0x15559475a8`, no trap, no panic, and no fail
+  marker.
+- `workloads/generated/specint-build-502-wrapv-20260702-r1/build_manifest.json`
+  rebuilt 502 with default flags plus only `-fwrapv`. This single flag also
+  suppressed the immediate internal error through the 240 second cap:
+  `workloads/generated/specint-502-wrapv-20260702-r1/stage_b_summary.json`
+  classified as `live-timeout`, count `32000000001`, last BPC `0x15556b207c`,
+  no trap, no panic, and no fail marker.
+
+Interpretation: `-fwrapv` is the narrowest tested build flag that changes the
+default 502 failure class. This points at signed-overflow-sensitive behavior in
+the Linx-built `cpugcc_r` binary or in Linx LLVM's lowering of code that relies
+on wrapped signed arithmetic. It is still only a localization probe because the
+row has not produced strict-hash-validated assembly output. After the probe,
+502 was restored again to default flags; restore evidence is
+`workloads/generated/specint-build-502-default-restore-after-wrapv-20260702-r1/build_manifest.json`.
+
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
 command and therefore ran all four generated x264 train invocations after the
 first timeout. The fast gate now auto-enables `--fail-9p-timeout` for generated
@@ -368,10 +402,11 @@ raising SPEC train timeouts.
 6. `502.gcc_r`: treat train as a compiler/codegen bug first. The default
    binary exits with code 4 and reports a benchmark internal compiler error at
    `tree-into-ssa.c:942`. A conservative rebuild suppresses that internal error
-   for at least 600 seconds but only reaches `live-timeout`, so the next loop is
-   to bisect the flag bundle or object files and then isolate the Linx LLVM
-   codegen feature that changes GCC tree-SSA behavior. This is not yet a
-   correctness fix.
+   for at least 600 seconds but only reaches `live-timeout`; follow-up bisection
+   narrowed the first suppressing flag to `-fwrapv`. The next loop is to isolate
+   the signed-overflow-sensitive source object/function or Linx LLVM lowering
+   feature that changes GCC tree-SSA behavior. This is not yet a correctness
+   fix.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
    2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
    is now fixed. The next `541` blocker is mallocng-specific so far: the fixed
@@ -429,4 +464,9 @@ raising SPEC train timeouts.
 - `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --transport initramfs --run-index 1 --timeout 240` against the conservative binary (expected red; `live-timeout`, no internal error/trap/panic)
 - `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --transport initramfs --run-index 1 --timeout 600` against the conservative binary (expected red; `live-timeout`, count `91000000002`, no internal error/trap/panic)
 - `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize' --emit-manifest workloads/generated/specint-build-502-default-restore-20260702-r1/build_manifest.json` (passed; restored the default 502 binary after the conservative probe)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize -fno-jump-tables' --emit-manifest workloads/generated/specint-build-502-no-jumptables-20260702-r1/build_manifest.json` (passed; focused probe still reproduced `tree-into-ssa.c:942`)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize -fno-inline' --emit-manifest workloads/generated/specint-build-502-no-inline-20260702-r1/build_manifest.json` (passed; focused probe still reproduced `tree-into-ssa.c:942`)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize -fno-optimize-sibling-calls -fno-strict-aliasing -fwrapv' --emit-manifest workloads/generated/specint-build-502-semantic-flags-20260702-r1/build_manifest.json` (passed; QEMU row became `live-timeout`)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize -fwrapv' --emit-manifest workloads/generated/specint-build-502-wrapv-20260702-r1/build_manifest.json` (passed; `-fwrapv` alone made the row `live-timeout`, count `32000000001`)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize' --emit-manifest workloads/generated/specint-build-502-default-restore-after-wrapv-20260702-r1/build_manifest.json` (passed; restored the default 502 binary after the flag bisection)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`
