@@ -594,7 +594,55 @@ the macOS `sample` reports shows the intended debug-path reduction:
 | `probe_access_internal` | 1619 | 1725 |
 | `mmu_lookup1` | 1270 | 1327 |
 
-The remaining sampled QEMU owners after the call-trace fast-disabled patch are
+2026-07-02 wider BSTART cache update: the focused `531.deepsjeng_r` test-input
+profile still showed repeated CFI target validation and text probes after the
+call-trace fast-disabled patch. QEMU now widens the direct-mapped legal-target
+cache from 64 to 1024 entries, hashes target addresses before indexing, checks
+the cache before the call-continuation scan, and caches continuation positives.
+It also adds opt-in cache counters via `LINX_BSTART_CACHE_STATS=1` and
+`LINX_BSTART_CACHE_STATS_INTERVAL=<n>`; `LINX_BSTART_CACHE_REVALIDATE=1`
+continues to force revalidation for self-modifying-code/debug runs.
+
+Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
+
+- `python3 avs/qemu/run_tests.py --all --timeout 20 --qemu emulator/qemu/build-linx/qemu-system-linx64` passed.
+- `bash avs/qemu/check_system_strict.sh` passed.
+- `QEMU=emulator/qemu/build-linx/qemu-system-linx64 bash avs/qemu/run_tests.sh --all --timeout 10` passed.
+- `python3 avs/qemu/run_callret_contract.py` passed.
+- `tools/bringup/run_specint_fast_gate.py --profile pr` passed both
+  `999.specrand_ir` test and train sentinels in
+  `workloads/generated/specint-pr-bstart-cache-20260702-r1/`.
+- `SPECINT_TEST_CPU_STRESS_TIMEOUT=900 tools/bringup/run_specint_fast_gate.py
+  --profile nightly --suite test-cpu-stress` passed `531.deepsjeng_r` test
+  input in `404.207s` under
+  `workloads/generated/specint-test-cpu-stress-bstart-cache-20260702-r1/`.
+  The row exited 0, emitted `LINX_SPEC_PASS`, and matched `test.out` hash
+  `0x391c9299`.
+
+Focused 180-second `531.deepsjeng_r` timing improved from
+`46000000006` to `50000000021` guest instructions under the same timeout and
+heartbeat settings:
+
+| Run | Artifact | Count | Last BPC |
+| --- | --- | ---: | --- |
+| Baseline | `workloads/generated/specint-profile-531-test-20260702-r1/` | 46000000006 | `0x155556a8b4` |
+| Wider cache | `workloads/generated/specint-profile-531-test-bstart-cache-nostats-20260702-r1/` | 50000000021 | `0x155556a7ca` |
+
+The stats-enabled run under
+`workloads/generated/specint-profile-531-test-bstart-cache-20260702-r1/`
+reported `1022200000` checks, `929791076` cache hits, `92408922` BSTART
+inserts, and zero bad targets at the final stats line, for about a 91% hit
+rate. The macOS `sample` comparison also showed the intended reduction:
+
+| Frame | Baseline samples | Wider-cache samples |
+| --- | ---: | ---: |
+| `helper_linx_check_bstart_target` | 657 | 429 |
+| `linx_is_bstart_at_addr` | 519 | 202 |
+| `probe_access_internal` | 433 | 222 |
+| `probe_access_flags` | 361 | 118 |
+| `helper_linx_template_fret_stk` | 513 | 472 |
+
+The remaining sampled QEMU owners after the wider BSTART cache patch are
 therefore still the expected next targets:
 
 | Frame | Samples |
@@ -613,9 +661,9 @@ Next implementation loops:
    no-trace path. Preserve the existing stack-growth/page-fault restart
    contract: FENTRY probes save slots before SP commit, and restore templates
    load all slots before SP/register commit.
-2. Extend BSTART legality caching beyond the current direct-mapped cache. The
-   profiler still shows repeated target checks and text probes in stable code,
-   especially on template returns.
+2. Add a page-local or per-TB BSTART decode cache with explicit text/TB
+   invalidation. The wider target cache improves repeated exact-target hits,
+   but cold targets and cache churn still enter the BSTART byte classifier.
 3. Profile translation churn separately from execution churn. The
    `pthread_jit_write_protect_np` samples may reflect TB generation during early
    SPEC execution rather than steady-state execution; take a delayed sample
@@ -651,6 +699,13 @@ Additional opt-in QEMU debug switches used during this pass:
 - `LINX_CALL_TRACE_RING=1` records recent call/return/ACRE events in a bounded
   ring and dumps them after `LINX_FAULT_TRACE` reports a synchronous fault.
   Use `LINX_CALL_TRACE_RING_SIZE=<1..128>` to tune the retained window.
+- `LINX_BSTART_CACHE_STATS=1` records aggregate CFI target-validation cache
+  counters on stderr as `LINX_BSTART_CACHE_STATS` lines. Use
+  `LINX_BSTART_CACHE_STATS_INTERVAL=<checks>` to lower or raise the emission
+  cadence; the default interval is one million checks. Pair this with
+  `LINX_BSTART_CACHE_REVALIDATE=1` only for self-modifying-code or stale-cache
+  debugging, because revalidation intentionally takes the slower target-probe
+  path.
 - `LINX_FRET_STK_TRACE=1` records `FRET.STK` restore slots before the register
   file is committed. Narrow with `LINX_FRET_STK_TRACE_PC=<pc>`,
   `LINX_FRET_STK_TRACE_COUNT_LO/HI`, and `LINX_FRET_STK_TRACE_RA=<value>`;
