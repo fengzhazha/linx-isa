@@ -295,6 +295,11 @@ future all-train gates stop this shard on the first heartbeat-backed timeout.
 - Added generated large-9p fail-fast policy so `525.x264_r` train/test shards
   do not spend a full gate running every generated row after the first 9p
   timeout.
+- Added effective-argv evidence to SPEC init wrappers and per-run JSON:
+  generated QEMU logs now emit `LINX_SPEC_ARGV_BEGIN/END` with indexed argv
+  values, and each run records both `configured_argv` and `effective_argv`.
+  This makes `LINX_SPEC_ARGV<n>_OVERRIDE` focused probes self-describing after
+  the fact, including the `502.gcc_r` flag-override/debug lane.
 
 ## Profile observations
 
@@ -380,4 +385,5 @@ raising SPEC train timeouts.
 - `python3 -m py_compile tools/bringup/run_specint_fast_gate.py tools/bringup/test_run_specint_fast_gate.py` (passed)
 - `python3 tools/bringup/run_specint_fast_gate.py --profile test-train --dry-run ...` (passed; generated `test-all-large-9p` and `train-all-large-9p` x264 shards)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 525.x264_r --input-set train --transports 9p --memory-mb 4096 --stack-limit 2G --timeout 480 --fail-9p-timeout` (expected red; `live-timeout`, no trap/panic/mount failure)
+- `LINX_SPEC_ARGV2_OVERRIDE=10 python3 tools/spec2017/run_int_rate_qemu.py ... --bench 999.specrand_ir --input-set test --transport initramfs --run-index 1 --no-strict-hash` (passed; `workloads/generated/specint-argv-log-smoke-20260702-r1/stage_b_summary.json` records configured argv count `24239`, effective argv count `10`, and the QEMU log emits matching `LINX_SPEC_ARGV` lines)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`

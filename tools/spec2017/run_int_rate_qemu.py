@@ -180,6 +180,10 @@ def _apply_argv_overrides(argv: list[str]) -> list[str]:
     return out
 
 
+def _effective_run_argv(run_cfg: dict[str, Any]) -> list[str]:
+    return _apply_argv_overrides(list(run_cfg["argv"]))
+
+
 def _runs_perlbench(bench_root: Path, input_set: str, exe: str) -> list[dict[str, Any]]:
     input_dir = bench_root / "data" / input_set / "input"
     if not input_dir.exists():
@@ -864,7 +868,7 @@ def _build_init_for_run(
     if guest_heartbeat_sec < 0:
         raise SystemExit("error: guest_heartbeat_sec must be >= 0")
 
-    argv = _apply_argv_overrides(list(run_cfg["argv"]))
+    argv = _effective_run_argv(run_cfg)
     argv_items = "\n".join(f'    "{_c_escape(arg)}",' for arg in argv)
     stdout_rel = str(run_cfg["stdout"])
     stderr_rel = str(run_cfg["stderr"])
@@ -2280,6 +2284,15 @@ int main(void) {{
   set_spec_stack_limit();
   /* Use inherited init stdio from the kernel console wiring. */
   LOG_LIT("LINX_SPEC_START {_c_escape(bench)}\\n");
+  LOG_LIT("LINX_SPEC_ARGV_BEGIN\\n");
+  for (int i = 0; argv[i]; ++i) {{
+    LOG_LIT("LINX_SPEC_ARGV index=");
+    write_log_u64_dec((unsigned long long)i);
+    LOG_LIT(" value=");
+    write_log_cstr(argv[i]);
+    LOG_LIT("\\n");
+  }}
+  LOG_LIT("LINX_SPEC_ARGV_END\\n");
 {transport_block}
 
   LOG_LIT("LINX_SPEC_DBG step=chdir\\n");
@@ -3847,6 +3860,8 @@ def main(argv: list[str]) -> int:
                 )
                 qemu_info["run_index"] = run_idx
                 qemu_info["source_run_index"] = run_cfg.get("source_run_index", run_idx)
+                qemu_info["configured_argv"] = list(run_cfg.get("argv", []))
+                qemu_info["effective_argv"] = _effective_run_argv(run_cfg)
                 qemu_info["stdout"] = run_cfg.get("stdout")
                 qemu_info["stderr"] = run_cfg.get("stderr")
                 qemu_info["initramfs"] = str(initramfs)

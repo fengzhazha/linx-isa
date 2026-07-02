@@ -330,6 +330,15 @@ class RunIntRateQemuTests(unittest.TestCase):
 
         self.assertEqual(argv, ["./bench", "input", "patched"])
 
+    def test_effective_run_argv_reflects_indexed_overrides(self) -> None:
+        run_cfg = {"argv": ["./bench", "input", "old"]}
+
+        with mock.patch.dict(os.environ, {"LINX_SPEC_ARGV2_OVERRIDE": "patched"}, clear=True):
+            argv = runner._effective_run_argv(run_cfg)
+
+        self.assertEqual(argv, ["./bench", "input", "patched"])
+        self.assertEqual(run_cfg["argv"], ["./bench", "input", "old"])
+
     def test_gcc_run_verifies_generated_assembly_output(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             bench_root = Path(td)
