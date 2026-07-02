@@ -376,6 +376,7 @@ def _suite_command(
     symbolize_heartbeat: bool,
     guest_heartbeat_sec: int,
     dump_prefix_bytes: int,
+    fail_9p_timeout: bool,
 ) -> list[str]:
     timeout = _env_int(suite.timeout_env, suite.timeout_default)
     cmd = [
@@ -423,9 +424,18 @@ def _suite_command(
         cmd.extend(["--stack-limit", stack_limit.strip()])
     if symbolize_heartbeat and forward_symbolize_heartbeat:
         cmd.append("--symbolize-heartbeat")
+    if fail_9p_timeout:
+        cmd.append("--fail-9p-timeout")
     for bench in suite.benches:
         cmd.extend(["--bench", bench])
     return cmd
+
+
+def _auto_fail_9p_timeout(unit: Suite, transports_override: str) -> bool:
+    if transports_override.strip():
+        return False
+    transports = {item.strip() for item in unit.transports.split(",") if item.strip()}
+    return unit.name.endswith("-large-9p") and "9p" in transports
 
 
 def _write_md(path: Path, summary: dict[str, Any]) -> None:
@@ -445,6 +455,7 @@ def _write_md(path: Path, summary: dict[str, Any]) -> None:
         f"- qemu_heartbeat_regs: `{str(bool(summary.get('qemu_heartbeat_regs', False))).lower()}`",
         f"- qemu_heartbeat_code_bytes: `{summary.get('qemu_heartbeat_code_bytes', 0)}`",
         f"- qemu_heartbeat_same_site_warn: `{summary.get('qemu_heartbeat_same_site_warn', 0)}`",
+        f"- fail_9p_timeout: `{str(bool(summary.get('fail_9p_timeout', False))).lower()}`",
         "",
         "## Suites",
         "",
@@ -508,6 +519,15 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--symbolize-heartbeat", action="store_true", default=os.environ.get("LINX_SPEC_SYMBOLIZE_HEARTBEAT", "").lower() in {"1", "true", "yes", "on"})
     parser.add_argument("--dump-prefix-bytes", type=int, default=_env_int("SPEC_DUMP_PREFIX_BYTES", _env_int("LINX_SPEC_DUMP_PREFIX_BYTES", 0)))
     parser.add_argument("--transports", default="", help="Override each suite transport list, e.g. initramfs or 9p,initramfs.")
+    parser.add_argument(
+        "--fail-9p-timeout",
+        action="store_true",
+        default=_env_bool("SPEC_FAIL_9P_TIMEOUT", _env_bool("LINX_SPEC_FAIL_9P_TIMEOUT", False)),
+        help=(
+            "Pass --fail-9p-timeout to matrix runners. Generated large 9p "
+            "shards enable this automatically unless --transports overrides the split policy."
+        ),
+    )
     parser.add_argument("--continue-on-fail", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
@@ -550,6 +570,7 @@ def main(argv: list[str]) -> int:
     runner_has_memory_mb = _runner_supports_option(runner, "--memory-mb")
     runner_has_stack_limit = _runner_supports_option(runner, "--stack-limit")
     runner_has_symbolize_heartbeat = _runner_supports_option(runner, "--symbolize-heartbeat")
+    runner_has_fail_9p_timeout = _runner_supports_option(runner, "--fail-9p-timeout")
     if args.qemu_heartbeat_interval and not runner_has_qemu_heartbeat:
         raise SystemExit(
             "error: local SPEC matrix runner does not support "
@@ -598,6 +619,12 @@ def main(argv: list[str]) -> int:
             "--symbolize-heartbeat; update tools/spec2017/run_stage_qemu_matrix.py "
             "or rerun without the symbolize-heartbeat switch"
         )
+    if args.fail_9p_timeout and not runner_has_fail_9p_timeout:
+        raise SystemExit(
+            "error: local SPEC matrix runner does not support "
+            "--fail-9p-timeout; update tools/spec2017/run_stage_qemu_matrix.py "
+            "or rerun without the fail-9p-timeout switch"
+        )
 
     suites = _select_suites(args.profile, args.suite)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -611,6 +638,12 @@ def main(argv: list[str]) -> int:
         suite_ok = True
         for unit in _suite_execution_units(suite, args.transports):
             suite_out = out_dir / unit.name
+            fail_9p_timeout = args.fail_9p_timeout or _auto_fail_9p_timeout(unit, args.transports)
+            if fail_9p_timeout and not runner_has_fail_9p_timeout:
+                raise SystemExit(
+                    "error: local SPEC matrix runner does not support "
+                    "--fail-9p-timeout required by the generated large 9p shard"
+                )
             cmd = _suite_command(
                 suite=unit,
                 runner=runner,
@@ -638,6 +671,7 @@ def main(argv: list[str]) -> int:
                 symbolize_heartbeat=args.symbolize_heartbeat,
                 guest_heartbeat_sec=args.guest_heartbeat_sec,
                 dump_prefix_bytes=args.dump_prefix_bytes,
+                fail_9p_timeout=fail_9p_timeout,
             )
             print(f"-- {unit.name}: {unit.description}")
             print(" ".join(cmd))
@@ -672,6 +706,7 @@ def main(argv: list[str]) -> int:
                     "matrix_ok": bool(matrix.get("ok", False)),
                     "failure_classes": failure_classes,
                     "failure_details": failure_details,
+                    "fail_9p_timeout": fail_9p_timeout,
                 }
             )
             suite_ok = suite_ok and row_ok
@@ -700,6 +735,7 @@ def main(argv: list[str]) -> int:
         "no_progress_timeout": args.no_progress_timeout,
         "guest_heartbeat_sec": args.guest_heartbeat_sec,
         "symbolize_heartbeat": bool(args.symbolize_heartbeat),
+        "fail_9p_timeout": bool(args.fail_9p_timeout),
         "suites": rows,
     }
     summary_json = out_dir / "specint_fast_gate_summary.json"

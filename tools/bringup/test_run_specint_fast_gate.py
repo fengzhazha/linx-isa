@@ -35,6 +35,15 @@ class SpecintFastGateTests(unittest.TestCase):
         self.assertEqual(units[0].transports, "9p")
         self.assertEqual(units[0].benches, gate.SPECINT_STAGE_B_BENCHES)
 
+    def test_large_auto_9p_shard_fails_fast_on_timeout(self) -> None:
+        units = gate._suite_execution_units(gate.SUITES["train-all"], "")
+        large = units[1]
+
+        self.assertEqual(large.name, "train-all-large-9p")
+        self.assertTrue(gate._auto_fail_9p_timeout(large, ""))
+        self.assertFalse(gate._auto_fail_9p_timeout(large, "9p"))
+        self.assertFalse(gate._auto_fail_9p_timeout(units[0], ""))
+
     def test_suite_command_forwards_qemu_heartbeat_debug_switches(self) -> None:
         cmd = gate._suite_command(
             suite=gate.SUITES["train-smoke"],
@@ -63,6 +72,7 @@ class SpecintFastGateTests(unittest.TestCase):
             symbolize_heartbeat=True,
             guest_heartbeat_sec=0,
             dump_prefix_bytes=0,
+            fail_9p_timeout=True,
         )
 
         self.assertIn("--qemu-heartbeat-regs", cmd)
@@ -70,6 +80,7 @@ class SpecintFastGateTests(unittest.TestCase):
         self.assertEqual(cmd[cmd.index("--qemu-heartbeat-code-bytes") + 1], "16")
         self.assertIn("--qemu-heartbeat-same-site-warn", cmd)
         self.assertEqual(cmd[cmd.index("--qemu-heartbeat-same-site-warn") + 1], "4")
+        self.assertIn("--fail-9p-timeout", cmd)
 
 
 if __name__ == "__main__":
