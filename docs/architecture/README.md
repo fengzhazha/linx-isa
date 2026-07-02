@@ -4,13 +4,7 @@ Architecture-facing documentation lives under `docs/architecture/`.
 
 ## Canonical contract pages
 
-- current v0.57 pages:
-  - `docs/architecture/v0.57-architecture-contract.md`
-  - `docs/architecture/v0.57-block-definition.md`
-  - `docs/architecture/v0.57-pto-encoding.md`
-  - `docs/architecture/v0.57-downstream-migration.md`
-  - `isa/v0.57/CHANGELOG.md`
-- previous v0.56 pages:
+- current v0.56 stable pages:
   - `docs/architecture/v0.56-architecture-contract.md`
   - `docs/architecture/v0.56-hardening-policy.md`
   - `docs/architecture/v0.56-simt-compiler-contract.md`
@@ -49,4 +43,4 @@ Architecture-facing documentation lives under `docs/architecture/`.
   contract pages.
 - Any architecture-affecting change must update LinxArch first, then implementation.
 - Older pre-v0.56 material, pre-canonical draft notes, and research notes are retained for history only and must not be used as the live contract.
-- Planning pages may live alongside canonical pages when they define the staged path to the next contract freeze; they must state clearly whether they are normative.
+- Planning pages may live alongside canonical pages when they define the staged path to a future contract freeze; they must state clearly whether they are normative.

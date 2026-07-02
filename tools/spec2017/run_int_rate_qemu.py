@@ -2589,6 +2589,7 @@ def _run_qemu(
         b"Kernel panic - not syncing",
         b"LINX_PANIC",
         b"LINX_EXIT_INIT",
+        b"LINX_DIE",
         b"LINX_USER_TRAP",
         b"[linx trap]",
     )
@@ -2735,6 +2736,7 @@ def _run_qemu(
         "timed_out": timed_out,
         "stalled": stalled,
         "panic_seen": panic_seen,
+        "die_seen": "LINX_DIE" in text,
         "trap_seen": "LINX_USER_TRAP" in text or "[linx trap]" in text.lower(),
         "pass_marker": f"LINX_SPEC_PASS {bench}" in text,
         "fail_marker": fail_marker,
@@ -2803,6 +2805,14 @@ def _classify_qemu_result(
         return {
             "class": "kernel-panic",
             "evidence": line,
+            **base,
+        }
+
+    die = _first_matching_line(text, ("LINX_DIE",))
+    if die:
+        return {
+            "class": "kernel-oops" if "Oops" in die else "kernel-die",
+            "evidence": die,
             **base,
         }
 

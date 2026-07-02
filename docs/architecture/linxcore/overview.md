@@ -55,8 +55,8 @@ Current alignment point:
 
 - Repository: `https://github.com/LinxISA/LinxCoreModel.git`
 - Local checkout: `/Users/zhoubot/linx-isa/model/LinxCoreModel`
-- Reference branch: `linx-isa-0.57`
-- Latest pulled commit for this spec alignment pass: `3c0878d`
+- Reference branch: `main`
+- Latest pulled commit for this spec alignment pass: `793722e`
 
 The model is an executable reference, not a replacement for the written ISA
 contract. When LinxCore docs and LinxCoreModel behavior disagree in a

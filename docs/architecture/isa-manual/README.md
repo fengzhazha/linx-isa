@@ -1,11 +1,9 @@
 # Linx Instruction Set Architecture Manual (AsciiDoc)
 
 This directory contains the AsciiDoc ISA manual for the **Linx Instruction Set
-Architecture (Linx ISA)**. The latest profile is v0.57; the generated manual
-source in this directory still carries the v0.56.4 book until the full manual
-regeneration lands.
-**AsciiDoc** and built to **PDF** using
-`asciidoctor-pdf` (via Bundler).
+Architecture (Linx ISA)**. The latest stable profile is v0.56.4. The manual is
+written in **AsciiDoc** and built to **PDF** using `asciidoctor-pdf` (via
+Bundler).
 
 The content is specific to Linx’s design (block-structured control flow, `BSTART/BSTOP`, ClockHands temporaries,
 template instructions like `FENTRY`, etc).
@@ -23,8 +21,7 @@ Outputs:
 
 ## Release artifacts
 
-- Current v0.57 changelog: `isa/v0.57/CHANGELOG.md`
-- v0.56.4 manual release notes: `docs/releases/v0.56.4.md`
+- Current stable manual release notes: `docs/releases/v0.56.4.md`
 - Latest release page: https://github.com/LinxISA/linx-isa/releases/latest
 
 ## Regenerate generated sections

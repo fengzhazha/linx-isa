@@ -200,6 +200,26 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(result["class"], "spec-child-sigsegv")
         self.assertIn("sig=11", result["evidence"])
 
+    def test_kernel_oops_preempts_child_sigsegv(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_DIE msg=Oops tpc=0xffffffff8012b58e "
+                "bpc=0xffffffff8012b572 traparg0=0x8 trapno=0xc000000002000001\n"
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=7 "
+                "fallback=0 status=0x000000000000000b exited=0 code=-1 "
+                "signaled=1 sig=11\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "kernel-oops")
+        self.assertIn("LINX_DIE msg=Oops", result["evidence"])
+        self.assertIn("traparg0=0x8", result["evidence"])
+
     def test_guest_proc_diagnostics_block_dumps_memory_state(self) -> None:
         block = runner._guest_proc_diagnostics_block()
 

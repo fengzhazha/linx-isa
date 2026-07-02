@@ -82,8 +82,8 @@ whether LinxCoreModel already implements the intended behavior.
 Required model checkout:
 
 - Repository: `https://github.com/LinxISA/LinxCoreModel.git`
-- Branch: `linx-isa-0.57`
-- Current aligned commit: `3c0878d`
+- Branch: `main`
+- Current aligned commit: `793722e`
 
 Current build contract from the aligned model:
 

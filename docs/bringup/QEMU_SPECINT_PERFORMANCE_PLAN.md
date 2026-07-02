@@ -748,6 +748,24 @@ of the cheap PR gate; run it in nightly/profiling loops with coarse or disabled
 heartbeat after `LINX_SPEC_START`, and re-open correctness triage only if a
 fresh run shows a trap, panic, child-exit marker, or hash mismatch.
 
+Focused `500.perlbench_r` test-input split on latest QEMU:
+
+- `workloads/generated/specint-500-test-kernel-oops-classified-20260702-r1/stage_b_summary.json`
+  proves row 1 (`makerand.pl`) under strict initramfs hash validation on QEMU
+  `v10.2.0-998-gea87f8ca513`: `makerand.out` matches hash `0xdff9dd08`
+  and size `43841`.
+- Row 2 (`test.pl`) is not a live-timeout or a QEMU deadlock. The run was
+  classified directly as `kernel-oops` from `LINX_DIE msg=Oops
+  tpc=0xffffffff8012b58e bpc=0xffffffff8012b572 ... a7=0x3b
+  traparg0=0x8`; `test.out` is absent, so strict hash validation cannot match
+  expected hash `0x0bcb1242` size `15506`. The fault symbolizes to Linux
+  `create_pipe_files` / `pipe.c:0` with `a0=0`.
+
+Keep `500.perlbench_r` row 2 out of the generic throughput queue until the
+kernel Oops is explained. The next owner should inspect the Linx
+`execve`/pipe-creation path and the QEMU/kernel state handoff that leaves
+`create_pipe_files` dereferencing a null file pointer.
+
 The remaining sampled QEMU owners after the wider BSTART cache and trace
 fast-disabled patches are therefore still the expected next targets:
 
