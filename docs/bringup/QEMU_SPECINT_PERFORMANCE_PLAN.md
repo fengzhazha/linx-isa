@@ -644,8 +644,9 @@ rate. The macOS `sample` comparison also showed the intended reduction:
 
 2026-07-02 template trace fast-disabled update: the latest-QEMU focused
 `531.deepsjeng_r` test-input profile, with QEMU rebuilt at
-`v10.2.0-995-gcdb2a01e2bb`, showed disabled trace instrumentation still
-visible inside frame-template helpers. QEMU commit `8f6de68e091` caches the
+`v10.2.0-995-gcdb2a01e2bb` before the local patch, showed disabled trace
+instrumentation still visible inside frame-template helpers. QEMU commit
+`8f6de68e091` caches the
 no-trace state in `CPULinxState` after the first commit/minst/cosim/log check,
 keeps disabled FENTRY/FRET.STK debug trace checks out of repeated scan paths,
 and forces the call-trace fast-disabled helper inline. Architectural frame
@@ -654,7 +655,7 @@ save/restore, BSTART validation, and enabled trace behavior are unchanged.
 Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
 
 - `emulator/qemu/build-linx/qemu-system-linx64 --version` reports
-  `v10.2.0-995-gcdb2a01e2bb` before this local patch.
+  `v10.2.0-996-g8f6de68e091`.
 - `python3 avs/qemu/run_tests.py --all --timeout 20 --qemu emulator/qemu/build-linx/qemu-system-linx64` passed.
 - `bash avs/qemu/check_system_strict.sh` passed when rerun sequentially; an
   earlier parallel attempt overlapped `avs/qemu/out` and reproduced the known
@@ -668,6 +669,12 @@ Validation after rebuilding `emulator/qemu/build-linx/qemu-system-linx64`:
   `workloads/generated/specint-999-calltrace-enabled-trace-fast-disabled-20260702-r1/`
   and emitted a bounded `LINX_CALL_TRACE` record, proving the enabled trace
   path still reaches the slow emitter.
+- `tools/bringup/run_specint_fast_gate.py --profile nightly --suite
+  test-cpu-stress` passed `531.deepsjeng_r` test input in
+  `workloads/generated/specint-test-cpu-stress-trace-fast-disabled-20260702-r1/`;
+  strict hash validation matched `test.out` at `0x391c9299`, the Stage-A run
+  took `373.577s`, and the last BPC heartbeat recorded count `108000000001`
+  at `0xffffffff800f7f6c`.
 
 Focused `531.deepsjeng_r` 180-second timing with 1B-instruction BPC heartbeat:
 
@@ -676,6 +683,13 @@ Focused `531.deepsjeng_r` 180-second timing with 1B-instruction BPC heartbeat:
 | Pre-BSTART-cache baseline | `workloads/generated/specint-profile-531-test-20260702-r1/` | 46000000006 | `0x155556a8b4` |
 | Wider BSTART cache | `workloads/generated/specint-profile-531-test-bstart-cache-nostats-20260702-r1/` | 50000000021 | `0x155556a7ca` |
 | Trace fast-disabled | `workloads/generated/specint-profile-531-test-trace-fast-disabled-20260702-r1/` | 52000000005 | `0x15555683a2` |
+
+Focused strict `531.deepsjeng_r` test-input completion:
+
+| Run | Artifact | Stage elapsed | Strict hash |
+| --- | --- | ---: | --- |
+| Wider BSTART cache | `workloads/generated/specint-test-cpu-stress-bstart-cache-20260702-r1/` | `404.207s` | `0x391c9299` |
+| Trace fast-disabled | `workloads/generated/specint-test-cpu-stress-trace-fast-disabled-20260702-r1/` | `373.577s` | `0x391c9299` |
 
 The sample comparison between
 `workloads/generated/specint-profile-531-test-latest-qemu-20260702-r2/qemu-sample-delayed-15s.txt`
