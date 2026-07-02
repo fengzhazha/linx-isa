@@ -1275,27 +1275,7 @@ def _build_init_for_run(
     if (child_pipe_eof)
       LOG_LIT("LINX_SPEC_DBG child-pipe-eof\\n");
 
-    LOG_LIT("LINX_SPEC_DBG wait wr=");
-    write_log_s64_dec((long long)wr);
-    LOG_LIT(" errno=");
-    write_log_s64_dec((long long)wait_errno);
-    LOG_LIT(" waitid_errno=");
-    write_log_s64_dec((long long)waitid_errno);
-    LOG_LIT(" method=");
-    write_log_s64_dec((long long)wait_method);
-    LOG_LIT(" fallback=");
-    write_log_s64_dec((long long)wait_fallback);
-    LOG_LIT(" status=0x");
-    write_log_hex_u64((unsigned long long)(unsigned int)status);
-    LOG_LIT(" exited=");
-    write_log_s64_dec((long long)WIFEXITED(status));
-    LOG_LIT(" code=");
-    write_log_s64_dec((long long)(WIFEXITED(status) ? WEXITSTATUS(status) : -1));
-    LOG_LIT(" signaled=");
-    write_log_s64_dec((long long)WIFSIGNALED(status));
-    LOG_LIT(" sig=");
-    write_log_s64_dec((long long)(WIFSIGNALED(status) ? WTERMSIG(status) : -1));
-    LOG_LIT("\\n");
+    write_wait_status_log(wr, wait_errno, waitid_errno, wait_method, wait_fallback, status);
     child_success = wait_fallback || (WIFEXITED(status) && WEXITSTATUS(status) == 0);
     if (!child_success) {{
       LOG_LIT("LINX_SPEC_FAIL child-exit\\n");
@@ -1713,6 +1693,28 @@ static void write_log_s64_dec(long long v) {{
     write_log_u64_dec((unsigned long long)(-v));
   }} else {{
     write_log_u64_dec((unsigned long long)v);
+  }}
+}}
+
+static void write_wait_status_log(pid_t wr, int wait_errno, int waitid_errno,
+                                  int wait_method, int wait_fallback,
+                                  int status) {{
+  char line[192];
+  int n = snprintf(
+      line, sizeof(line),
+      "LINX_SPEC_DBG wait wr=%lld errno=%lld waitid_errno=%lld "
+      "method=%lld fallback=%lld status=0x%016llx exited=%lld "
+      "code=%lld signaled=%lld sig=%lld\\n",
+      (long long)wr, (long long)wait_errno, (long long)waitid_errno,
+      (long long)wait_method, (long long)wait_fallback,
+      (unsigned long long)(unsigned int)status, (long long)WIFEXITED(status),
+      (long long)(WIFEXITED(status) ? WEXITSTATUS(status) : -1),
+      (long long)WIFSIGNALED(status),
+      (long long)(WIFSIGNALED(status) ? WTERMSIG(status) : -1));
+  if (n > 0) {{
+    if (n >= (int)sizeof(line))
+      n = (int)sizeof(line) - 1;
+    write_log_all(line, (unsigned long)n);
   }}
 }}
 

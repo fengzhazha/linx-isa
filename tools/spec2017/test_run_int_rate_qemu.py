@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import inspect
 import os
 import tempfile
 from pathlib import Path
@@ -52,6 +53,13 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("LINX_SPEC_FAIL child-exit", result["evidence"])
         self.assertIn("code=1", result["evidence"])
         self.assertIn("signaled=0", result["evidence"])
+
+    def test_generated_wait_status_log_uses_single_helper_write(self) -> None:
+        source = inspect.getsource(runner._build_init_for_run)
+
+        self.assertIn("write_wait_status_log(wr, wait_errno", source)
+        self.assertIn("static void write_wait_status_log", source)
+        self.assertNotIn('LOG_LIT("LINX_SPEC_DBG wait wr=");', source)
 
     def test_child_exit_with_benchmark_internal_error_is_classified(self) -> None:
         result = runner._classify_qemu_result(

@@ -705,26 +705,31 @@ shows the intended disabled-trace reduction:
 | `helper_linx_template_fentry` | 302 | 270 |
 | `linx_frame_restore_commit` | 91 | 70 |
 
-Focused `557.xz_r` test-input split on latest QEMU:
+Focused and all-row `557.xz_r` test-input closure on latest QEMU:
 
-- Command artifact:
+- Historical split artifact:
   `workloads/generated/specint-557-test-strict-latest-qemu-20260702-r1/`.
-- Run 1 exits 0, emits `LINX_SPEC_PASS`, and matches
-  `cpu2006docs.tar-4-0.out` by strict initramfs hash: size `697`,
-  FNV-1a `0xb663ec07`.
-- Run 2 reaches `LINX_SPEC_DBG wait ... status=0x0`, then remains
-  heartbeat-backed `live-timeout` until the 600s per-row timeout. The last BPC
-  is `0xffffffff8011214e` at count `101000000001`, with recent site progress.
-  Recent BPC symbolization maps the loop to Linux `slub.c` allocator/free-list
-  paths (`set_freepointer`, `next_tid`, `arch_local_irq_restore`, and adjacent
-  basic blocks).
+  It proved run 1 strict hash correctness, then exposed a tooling/logging
+  failure where run 2 reached `LINX_SPEC_DBG wait ... status=0x0` and stayed
+  heartbeat-live in Linux allocator/free-list paths before `parent-hash`.
+- Runner fix: the generated SPEC init wrapper now emits the post-child wait
+  status through one bounded `snprintf` line and one `write_log_all()` call
+  instead of a sequence of tiny console/log writes. The Python regression is
+  `test_generated_wait_status_log_uses_single_helper_write`.
+- Focused closure: `workloads/generated/specint-557-test-run2-atomic-wait-20260702-r1/`
+  passes row 2 with `LINX_SPEC_HASH cpu2006docs.tar-4-1.out 684
+  0xc1cd766a` and `LINX_SPEC_PASS 557.xz_r`. Row 12 also passes in
+  `workloads/generated/specint-557-test-run12-extended-20260702-r1/`.
+- Full-row closure: `workloads/generated/specint-557-test-all-atomic-wait-20260702-r2/stage_b_summary.json`
+  passes all 12 `557.xz_r` test rows under strict initramfs hash validation on
+  QEMU `v10.2.0-996-g8f6de68e091`: 12/12 rows pass, 12/12 hash checks match,
+  elapsed `953.286s`.
 
-This narrows current `557.xz_r` test failure from "compression correctness" to
-post-child Linux/QEMU allocator throughput and shutdown/wait cleanup. The SPEC
-runner now also preserves completed initramfs hash checks in aggregate
-`specdiff.checks` for partial multi-run failures, so future all-row ledgers can
-show which command rows already produced correct output before a later row
-timed out.
+This moves current `557.xz_r` test input out of the correctness blocker list.
+Keep the earlier partial run as the reason for the atomic wait-status log, and
+use a larger per-row cap such as `1200s` for full `557.xz_r` test sweeps; the
+600s all-row attempt reached 11/12 hashes and timed out live on row 12, while
+focused row 12 and the full 1200s rerun both passed.
 
 The remaining sampled QEMU owners after the wider BSTART cache and trace
 fast-disabled patches are therefore still the expected next targets:
