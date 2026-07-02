@@ -265,6 +265,38 @@ log bytes before matching `LINX_SPEC_STDERR_BEGIN/END`. Without that
 normalization, the raw log contained the internal-error text while JSON stayed
 at generic `spec-wrapper-fail`.
 
+Focused `502.gcc_r` conservative-codegen probe:
+
+- `workloads/generated/specint-502-current-argv-20260702-r1/stage_b_summary.json`
+  reran train row 1 on the current runner and default 502 binary. It reproduced
+  `spec-benchmark-internal-error` at `tree-into-ssa.c:942`, with child exit
+  code 4 and exact argv now recorded in both JSON and QEMU log:
+  `./cpugcc_r_base.mytest-m64 200.c -O3 -finline-limit=50000 -o 200.opts-O3_-finline-limit_50000.s`.
+- `workloads/generated/specint-build-502-conservative-20260702-r1/build_manifest.json`
+  rebuilt only `502.gcc_r` as a static phase-b binary with
+  `-O0 -fno-vectorize -fno-slp-vectorize -fno-inline -fno-optimize-sibling-calls
+  -fno-strict-aliasing -fwrapv -fno-jump-tables`; the source immutability check
+  passed.
+- `workloads/generated/specint-502-conservative-20260702-r1/stage_b_summary.json`
+  reran the same row with a 240 second cap. The internal error did not
+  reproduce; the row became `live-timeout`, with heartbeat site progress to
+  count `32000000006`, last BPC `0x15559e77aa`, no trap, no panic, and no fail
+  marker.
+- `workloads/generated/specint-502-conservative-long-20260702-r1/stage_b_summary.json`
+  extended the same conservative binary to 600 seconds. It remained
+  `live-timeout`, with heartbeat site progress to count `91000000002`, last BPC
+  `0x1555fbd61c`, recent count delta `6999999998`, seven recent unique BPC
+  sites, no trap, no panic, and no fail marker.
+
+Interpretation: the default 502 binary still has a real codegen-sensitive
+misbehavior, but the conservative build turns the immediate benchmark internal
+error into a throughput row rather than proving correctness. Keep this as a
+compiler/codegen localization probe; do not promote the flag bundle as a
+correctness fix until the generated `.s` output reaches strict hash/specdiff
+validation. After the probe, `502.gcc_r` was rebuilt back to the default
+`-O0 -fno-vectorize -fno-slp-vectorize` flag set; restore evidence is
+`workloads/generated/specint-build-502-default-restore-20260702-r1/build_manifest.json`.
+
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
 command and therefore ran all four generated x264 train invocations after the
 first timeout. The fast gate now auto-enables `--fail-9p-timeout` for generated
@@ -333,7 +365,13 @@ raising SPEC train timeouts.
 5. `525.x264_r`: the fast gate now splits x264 to 9p by default. Treat both
    test and train focused 9p runs as `live-timeout` throughput rows; use
    initramfs only to reproduce the oversized-cpio panic.
-6. `502.gcc_r`: treat train as a compiler/codegen bug first. It exits with code 4 and reports a benchmark internal compiler error. Rebuild at lower optimization or bisect Linx LLVM codegen around GCC tree-SSA paths.
+6. `502.gcc_r`: treat train as a compiler/codegen bug first. The default
+   binary exits with code 4 and reports a benchmark internal compiler error at
+   `tree-into-ssa.c:942`. A conservative rebuild suppresses that internal error
+   for at least 600 seconds but only reaches `live-timeout`, so the next loop is
+   to bisect the flag bundle or object files and then isolate the Linx LLVM
+   codegen feature that changes GCC tree-SSA behavior. This is not yet a
+   correctness fix.
 7. SIGKILL rows are now split by evidence. `541.leela_r` is real guest OOM at
    2 GiB, but at 4 GiB the old user trap was compiler-rt atomic recursion and
    is now fixed. The next `541` blocker is mallocng-specific so far: the fixed
@@ -386,4 +424,9 @@ raising SPEC train timeouts.
 - `python3 tools/bringup/run_specint_fast_gate.py --profile test-train --dry-run ...` (passed; generated `test-all-large-9p` and `train-all-large-9p` x264 shards)
 - `python3 tools/spec2017/run_stage_qemu_matrix.py ... --bench 525.x264_r --input-set train --transports 9p --memory-mb 4096 --stack-limit 2G --timeout 480 --fail-9p-timeout` (expected red; `live-timeout`, no trap/panic/mount failure)
 - `LINX_SPEC_ARGV2_OVERRIDE=10 python3 tools/spec2017/run_int_rate_qemu.py ... --bench 999.specrand_ir --input-set test --transport initramfs --run-index 1 --no-strict-hash` (passed; `workloads/generated/specint-argv-log-smoke-20260702-r1/stage_b_summary.json` records configured argv count `24239`, effective argv count `10`, and the QEMU log emits matching `LINX_SPEC_ARGV` lines)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --transport initramfs --run-index 1` on the default binary (expected red; `workloads/generated/specint-502-current-argv-20260702-r1/stage_b_summary.json`, classified `spec-benchmark-internal-error` with argv evidence)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize -fno-inline -fno-optimize-sibling-calls -fno-strict-aliasing -fwrapv -fno-jump-tables' --emit-manifest workloads/generated/specint-build-502-conservative-20260702-r1/build_manifest.json` (passed)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --transport initramfs --run-index 1 --timeout 240` against the conservative binary (expected red; `live-timeout`, no internal error/trap/panic)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --transport initramfs --run-index 1 --timeout 600` against the conservative binary (expected red; `live-timeout`, count `91000000002`, no internal error/trap/panic)
+- `bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --optimize '-O0 -fno-vectorize -fno-slp-vectorize' --emit-manifest workloads/generated/specint-build-502-default-restore-20260702-r1/build_manifest.json` (passed; restored the default 502 binary after the conservative probe)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`
