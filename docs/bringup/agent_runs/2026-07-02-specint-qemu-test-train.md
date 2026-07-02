@@ -452,6 +452,130 @@ first timeout. The fast gate now auto-enables `--fail-9p-timeout` for generated
 `*-large-9p` shards unless the caller explicitly overrides `--transports`, so
 future all-train gates stop this shard on the first heartbeat-backed timeout.
 
+## Post-Linux-smoke all-train rerun
+
+Artifact root:
+
+- `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1`
+
+Version context:
+
+- Root at run: `1512b3be04d1bee003452125f68857acebb165f1`
+- LLVM: `e4771587a947`
+- QEMU: `5cfb672a711b`, `QEMU emulator version 10.2.50 (v10.2.0-989-g5cfb672a711)`
+- Kernel: `e804a94929b9`, `kernel/linux/build-linx-fixed/vmlinux`
+- Musl: `4ab3c65fc332`
+- Sysroot: `out/libc/musl/install/phase-b`
+
+Linux gate sanity before SPEC:
+
+```bash
+OUT_DIR=/tmp/linx-initramfs-Oz-current-88527 \
+  bash kernel/linux/tools/linxisa/initramfs/build.sh
+
+TIMEOUT=120 \
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+QEMU_EXTRA_ARGS='-bios none' \
+python3 kernel/linux/tools/linxisa/initramfs/smoke.py
+
+TIMEOUT=180 \
+QEMU=/Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+QEMU_EXTRA_ARGS='-bios none' \
+python3 kernel/linux/tools/linxisa/initramfs/full_boot.py
+```
+
+Both standard wrappers passed after rebuilding the initramfs from the current
+compiler. The prior `SKIP_BUILD=1` smoke failure was a stale BusyBox artifact:
+fresh `write_uhex` disassembly has `cmp.ltui a0, 10, ->a0` followed by
+`csel a0, a1, a2, ->a0`, matching the intended digit/letter source order.
+The smoke log reached the `/proc` and `/sys` directory checks, `fd` checks,
+`sigill: ok`, `sigsegv: ok`, and `poweroff`. Full boot also listed `/proc`
+and `/sys`, probed `/proc/cpuinfo`, `/proc/meminfo`, and
+`/proc/interrupts`, then powered off cleanly. Treat future `SKIP_BUILD=1`
+Linux smoke failures as non-authoritative until the initramfs payload is
+rebuilt or its codegen provenance is checked.
+
+All-train command:
+
+```bash
+python3 tools/bringup/run_specint_fast_gate.py \
+  --profile train \
+  --out-dir workloads/generated/specint-train-all-post-linux-smoke-20260702-r1 \
+  --qemu /Users/zhoubot/linx-isa/emulator/qemu/build-linx/qemu-system-linx64 \
+  --qemu-heartbeat-interval 1000000000 \
+  --qemu-heartbeat-same-site-warn 4 \
+  --no-progress-timeout 180 \
+  --stack-limit 2G \
+  --continue-on-fail
+```
+
+Machine-readable summaries:
+
+- `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1/specint_fast_gate_summary.json`
+- `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1/train-all/qemu_matrix_summary.json`
+- `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1/train-all-large-9p/qemu_matrix_summary.json`
+
+Result ledger:
+
+| Bench | Transport | Result | Liveness / failure evidence |
+|---|---|---|---|
+| `500.perlbench_r` | initramfs | `live-timeout` | BPC site progress through count `39000000001`, last BPC `0x15556d9704` |
+| `502.gcc_r` | initramfs | `live-timeout` | BPC site progress, timeout summary BPC `0xffffffff80049b2a`; keep the signed-wrap/codegen lane from the focused 502 probes |
+| `505.mcf_r` | initramfs | `live-timeout` | BPC site progress, last BPC `0x155555cc06` |
+| `520.omnetpp_r` | initramfs | `live-timeout` | BPC site progress, last BPC `0x15555f1144` |
+| `523.xalancbmk_r` | initramfs | `user-trap` | child SIGSEGV at `addr=0`, `tpc=0x15559efe26`, `bpc=0x15559efe1a` |
+| `525.x264_r` | 9p | `live-timeout` | large-payload shard fail-fast timeout, site-progress BPC `0xffffffff8011232a` |
+| `531.deepsjeng_r` | initramfs | `live-timeout` | BPC site progress, last BPC `0x155555fac8` |
+| `541.leela_r` | initramfs | `live-timeout` | BPC site progress, last BPC `0x1555570b34`; oldmalloc/mallocng split remains the focused allocator lane |
+| `557.xz_r` | initramfs | `live-timeout` | BPC site progress, last BPC `0x155558cd50`; no repeat of the earlier all-train `spec_mem_init` exit |
+| `999.specrand_ir` | initramfs | pass | no failure entry in the strict summary |
+
+The refreshed all-train run supersedes the earlier `557.xz_r`
+`spec_mem_init` all-row symptom for the current payload and wrapper state:
+`557` now joins the live-timeout throughput group. The BPC heartbeat switch
+also confirms that the live-timeout rows are running with site changes rather
+than sitting in a same-site deadlock.
+
+Focused `523.xalancbmk_r` trap classification:
+
+- QEMU log:
+  `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1/train-all/initramfs/523_xalancbmk_r/run_001/qemu.log`
+- Effective argv: `./cpuxalan_r_base.mytest-m64 -v allbooks.xml xalanc.xsl`
+- Pre-exec probes show the target binary exists and has ELF magic.
+- Runtime trap: `signo=0xb`, `code=0x1`, `addr=0x0`,
+  `tpc=0x15559efe26`, `bpc=0x15559efe1a`, `ra=0x15559efcba`.
+- With ET_DYN load bias `0x1515555000`, the trap maps to file addresses
+  `0x4049ae1a`, `0x4049ae26`, and `0x4049acba`. `llvm-addr2line` maps these
+  to musl `rcrt1.c:0`, labels `.LBB0_29` and `.Ltmp0`.
+- Disassembly at the trap window:
+  `ldi [a4, -16], ->t; add t#1, a0, ->u; ldi [a4, 0], ->t; add t#1, a0, ->t; sdi t#1, [u#1, 0]`.
+
+Interpretation: `523.xalancbmk_r` is now a distinct startup-relocation
+correctness lane for a large C++ static PIE. The faulting store uses a null
+relocation destination inside musl `rcrt1.c` startup processing, so the next
+owner is compiler/libc relocation table generation or runtime startup logic,
+not QEMU throughput. Add fault-register and relocation-table probes around the
+startup loop before changing generic QEMU execution.
+
+Loop update:
+
+1. Keep Linux smoke/full boot ahead of SPEC when QEMU or compiler artifacts
+   have been rebuilt. If `SKIP_BUILD=1` is used, verify the initramfs binary
+   disassembly before assigning ISA/QEMU semantics.
+2. Split current SPEC work into two queues: `523.xalancbmk_r` startup
+   relocation correctness, and all other failing rows as QEMU throughput/live
+   progress unless a fresh trap/internal-error marker appears.
+3. For throughput rows, profile after `LINX_SPEC_START` with heartbeat disabled
+   or coarse enough to avoid dominating the sample. The prior profiles still
+   point at `helper_linx_template_step`, `helper_linx_check_bstart_target`,
+   `probe_access_flags` / `mmu_lookup`, and trace hook frames.
+4. Proposed QEMU speed fixes remain: cache BSTART legality per TB or code
+   page, add counters for template/BSTART/MMU-probe/trace-helper calls at exit,
+   fast-path `helper_linx_template_step` when tracing/templates are inactive,
+   and keep all verbose PC/fault/memory traces opt-in.
+5. Keep `525.x264_r` in the generated large 9p shard. Its current 9p timeout
+   is live progress, while oversized initramfs panics are transport artifacts.
+
 ## Tool fixes in this loop
 
 - Fixed the GCC test input verifier to compare the generated `.s` output instead of a nonexistent `.out`.

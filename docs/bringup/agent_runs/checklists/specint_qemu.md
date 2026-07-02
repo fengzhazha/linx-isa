@@ -1,5 +1,12 @@
 # SPECint / QEMU Checklist
 
+## Live Blockers (2026-07-02)
+
+- [x] ID: SPEC-M05-POST-LINUX-SMOKE-TRAIN-ALL-20260702 Fresh Linux wrappers pass before the latest all-train SPEC rerun.
+  Linux evidence: rebuilding the initramfs from current compiler output restored correct BusyBox `write_uhex` codegen (`cmp.ltui a0, 10` followed by `csel a0, a1, a2`) and both standard firmwareless wrappers passed: `smoke.py` reached `/proc` and `/sys` directory checks plus `sigill: ok` / `sigsegv: ok`, and `full_boot.py` listed/probed `/proc` and `/sys` before `poweroff`.
+  SPEC evidence: `workloads/generated/specint-train-all-post-linux-smoke-20260702-r1/specint_fast_gate_summary.json` covers every train SPECint row under the split policy. `999.specrand_ir` passes. `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`, `520.omnetpp_r`, `531.deepsjeng_r`, `541.leela_r`, and `557.xz_r` are heartbeat-backed `live-timeout` rows with BPC site progress. `525.x264_r` runs in the generated 9p shard and is also a heartbeat-backed `live-timeout`. `523.xalancbmk_r` is the current correctness exception: an early `user-trap` at `addr=0`, `tpc=0x15559efe26`, `bpc=0x15559efe1a`, symbolized to musl `rcrt1.c` startup relocation code in the static PIE.
+  Loop update: do not classify the live-timeout rows as deadlocks while BPC reports site changes. Route them to the QEMU throughput loop (`helper_linx_template_step`, BSTART legality/probe caching, MMU-probe reduction, trace-hook fast paths, and exit counters). Route `523.xalancbmk_r` to compiler/libc relocation-startup triage with fault-register and relocation-table probes. Treat `SKIP_BUILD=1` Linux smoke results as non-authoritative unless the initramfs payload was rebuilt or disassembled against the current compiler.
+
 ## Live Blockers (2026-07-01)
 
 - [x] ID: SPEC-M05-502-MIXED-OBJECT-WRAPV-20260702 Mixed-object probes narrow the current `502.gcc_r` signed-wrap-sensitive lane.
