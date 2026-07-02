@@ -68,5 +68,5 @@
 [submodule "model/LinxCoreModel"]
 	path = model/LinxCoreModel
 	url = https://github.com/LinxISA/LinxCoreModel.git
-	branch = codex/import-sanitized-20260618
+	branch = main
 	update = checkout
