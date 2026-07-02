@@ -731,6 +731,23 @@ use a larger per-row cap such as `1200s` for full `557.xz_r` test sweeps; the
 600s all-row attempt reached 11/12 hashes and timed out live on row 12, while
 focused row 12 and the full 1200s rerun both passed.
 
+Focused `505.mcf_r` test/train split on latest QEMU:
+
+- `workloads/generated/specint-505-test-strict-900-20260702-r1/stage_b_summary.json`
+  passes strict initramfs hash validation in `294.032s`: `inp.out`
+  `0xebc57874`/`2020` bytes and `mcf.out` `0x2cbcef6f`/`11` bytes both match.
+- `workloads/generated/specint-505-train-strict-1200-20260702-r1/stage_b_summary.json`
+  keeps running until the `1200.289s` cap. The row is `live-timeout`, not a
+  correctness stop: QEMU heartbeat is running with site progress, last count
+  `383000000001`, recent delta `7000000000`, eight recent sites, and last BPC
+  `0x155555c6fa`.
+
+This confirms that `505.mcf_r` test input is a usable fast correctness gate,
+while train input remains a throughput/VM-stress workload. Keep train `505` out
+of the cheap PR gate; run it in nightly/profiling loops with coarse or disabled
+heartbeat after `LINX_SPEC_START`, and re-open correctness triage only if a
+fresh run shows a trap, panic, child-exit marker, or hash mismatch.
+
 The remaining sampled QEMU owners after the wider BSTART cache and trace
 fast-disabled patches are therefore still the expected next targets:
 
