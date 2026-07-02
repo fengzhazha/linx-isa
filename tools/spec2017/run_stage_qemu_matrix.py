@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -592,13 +593,15 @@ def main(argv: list[str]) -> int:
         for bench in benches:
             cmd.extend(["--bench", bench])
 
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=False,
-        )
-        log_path.write_bytes(proc.stdout)
+        with log_path.open("wb") as log:
+            log.write(("$ " + shlex.join(cmd) + "\n").encode("utf-8"))
+            log.flush()
+            proc = subprocess.run(
+                cmd,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
 
         summary_obj: dict[str, Any] = {}
         summary_loaded = False

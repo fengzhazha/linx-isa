@@ -419,6 +419,33 @@ Linux, or libc. After every probe above, the default 502 executable was restored
 The latest restore evidence is
 `workloads/generated/specint-build-502-default-restore-after-benchopt-20260702-r1/build_manifest.json`.
 
+The same profile was then applied to the full train diagnostic matrix:
+`workloads/generated/specint-build-all-502-benchopt-wrapv-20260702-r1/build_manifest.json`
+records all ten supported SPECint C/C++ benchmarks built, with only
+`502.gcc_r` using `-fwrapv`. The split all-train run under
+`workloads/generated/specint-train-all-502-benchopt-wrapv-20260702-r1/specint_fast_gate_summary.json`
+is still strict-red, but it covers every train benchmark row with BPC
+heartbeat evidence. `500.perlbench_r`, `502.gcc_r`, `505.mcf_r`,
+`520.omnetpp_r`, `523.xalancbmk_r`, `531.deepsjeng_r`, and `541.leela_r`
+classify as heartbeat-backed `live-timeout`; the large 9p shard
+`525.x264_r` also classifies as `live-timeout` with BPC `0xffffffff801119ac`.
+`999.specrand_ir` is not in the failure map for this run. The signed-wrap
+profile moves `502.gcc_r` from the default all-train `spec-wrapper-fail` class
+to `live-timeout`, with count `24000000010` and BPC `0x1555990338`. The one
+remaining non-timeout train row is `557.xz_r`: at 2 GiB guest memory it exits
+with SPEC stderr `spec_mem_init: Error mallocing 267386880 bytes...`, while
+focused 2 GiB and 3 GiB reruns do not reproduce the child exit. The focused
+2 GiB rerun
+`workloads/generated/specint-557-mem2g-class-20260702-r1/stage_b_summary.json`
+reaches `live-timeout`, count `35000000000`, BPC `0x155558d71c`; the focused
+3 GiB rerun
+`workloads/generated/specint-557-mem3g-train-20260702-r1/stage_b_summary.json`
+reaches `live-timeout`, count `36000000000`, BPC `0x155558d700`, no
+trap/panic, and no fail marker. The all-train 557 memory exit is therefore
+run-shape sensitive rather than a simple guest-memory threshold. The default
+502 executable was restored again
+in `workloads/generated/specint-build-502-default-restore-after-all-benchopt-20260702-r1/build_manifest.json`.
+
 `525.x264_r` note: this long train run used the pre-fail-fast generated 9p
 command and therefore ran all four generated x264 train invocations after the
 first timeout. The fast gate now auto-enables `--fail-9p-timeout` for generated
@@ -452,6 +479,14 @@ future all-train gates stop this shard on the first heartbeat-backed timeout.
   build manifests. This lets the gate run a named 502 signed-wrap profile
   without changing the global SPEC build policy or silently leaving the default
   executable in place.
+- Streamed `run_stage_qemu_matrix.py` child-runner output directly into the
+  stage log instead of buffering the entire child stdout and writing it at the
+  end. The first all-train rerun hit host `ENOSPC` while writing
+  `stage_b_initramfs.log`; the streamed log path completed the rerun and keeps
+  parent memory/log pressure bounded.
+- Classified SPEC stderr `spec_mem_init: Error mallocing...` child exits as
+  `spec-mem-init-fail` instead of generic `spec-wrapper-fail`, preserving the
+  malloc size plus wait status in failure evidence.
 - Split large-payload SPEC rows in `run_specint_fast_gate.py`: by default the
   all-row suites keep `525.x264_r` but run it as `test-all-large-9p` /
   `train-all-large-9p`, while explicit `--transports` still forces a single
@@ -519,8 +554,15 @@ raising SPEC train timeouts.
    performance triage unless a fresh run proves otherwise. `523.xalancbmk_r` is
    unstable between user-trap and live-timeout; rerun with fault trace filters
    around the user BPC if the trap reproduces.
-8. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
-9. All other train failures in the current split run are heartbeat-backed
+8. `557.xz_r`: the current rebuilt train binary is run-shape sensitive. The
+   all-train profile saw a SPEC `spec_mem_init` allocation failure for
+   267386880 bytes, but focused 2 GiB and 3 GiB reruns both become
+   heartbeat-backed `live-timeout`. Keep the new `spec-mem-init-fail`
+   classifier because the failure is actionable when it appears, but do not
+   treat the all-train row as a deterministic memory-size threshold until a
+   focused repro exists.
+9. `500.perlbench_r` test run 2: investigate kernel Oops/SIGSEGV separately from train. The test row traps before hash verification; train hashes all match.
+10. All other train failures in the current split run are heartbeat-backed
    live-timeouts, not deadlocks. Keep correctness work on the explicit
    internal-error/trap rows and run live-timeout rows through the QEMU
    throughput profile loop.
@@ -588,4 +630,11 @@ raising SPEC train timeouts.
 - `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set test --run-index 1 --qemu-heartbeat-interval 1000000000 --timeout 180` against the fwrapv-built binary (passed; `LINX_SPEC_PASS`, specdiff OK)
 - `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 502.gcc_r --input-set train --run-index 1 --qemu-heartbeat-interval 1000000000 --timeout 180` against the fwrapv-built binary (expected red; `live-timeout`, count `25000000005`, BPC `0x1555941412`, no internal error/trap/panic)
 - `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --emit-manifest workloads/generated/specint-build-502-default-restore-after-benchopt-20260702-r1/build_manifest.json` (passed; restored default staged/build executable digest `6c5535276d410b82bf0f0bb12213302e742411d2dd679737ef482a974c69386b`)
+- `python3 -m py_compile tools/spec2017/run_stage_qemu_matrix.py tools/bringup/run_specint_fast_gate.py tools/spec2017/run_int_rate_qemu.py` (passed)
+- `python3 -m unittest test_run_int_rate_qemu.py test_run_stage_qemu_matrix.py` from `tools/spec2017` (passed)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench-optimize '502.gcc_r=-O0 -fno-vectorize -fno-slp-vectorize -fwrapv' --emit-manifest workloads/generated/specint-build-all-502-benchopt-wrapv-20260702-r1/build_manifest.json` (passed; all ten benchmarks built, only 502 used non-global flags)
+- `SPECINT_TRAIN_ALL_TIMEOUT=180 python3 tools/bringup/run_specint_fast_gate.py --profile train --suite train-all --qemu-heartbeat-interval 1000000000 --qemu-heartbeat-same-site-warn 4 --stack-limit 2G --continue-on-fail --out-dir workloads/generated/specint-train-all-502-benchopt-wrapv-20260702-r1` (expected red; all train rows covered, 502 becomes `live-timeout`, 557 is `spec-mem-init-fail` at 2 GiB, 525 9p is `live-timeout`)
+- `LINX_SPEC_LINK_MODE=default bash tools/spec2017/build_int_rate_linx.sh --mode phase-b --force-static --bench 502.gcc_r --emit-manifest workloads/generated/specint-build-502-default-restore-after-all-benchopt-20260702-r1/build_manifest.json` (passed; restored default 502 after all-train profile)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 557.xz_r --input-set train --run-index 1 --memory-mb 3072 --qemu-heartbeat-interval 1000000000 --timeout 180` (expected red; focused 3 GiB `live-timeout`, count `36000000000`, BPC `0x155558d700`)
+- `python3 tools/spec2017/run_int_rate_qemu.py ... --bench 557.xz_r --input-set train --run-index 1 --memory-mb 2048 --qemu-heartbeat-interval 1000000000 --timeout 180` (expected red; focused 2 GiB did not reproduce the all-train `spec_mem_init` exit, `live-timeout`, count `35000000000`, BPC `0x155558d71c`)
 - `skill-evolve: update linx-superproject (record large SPEC payload transport split)`

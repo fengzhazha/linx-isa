@@ -2882,6 +2882,14 @@ def _classify_qemu_result(
                 "evidence": evidence,
                 **base,
             }
+        mem_init = _spec_mem_init_error(text)
+        if mem_init:
+            evidence = f"{mem_init}; {_spec_wrapper_failure_evidence(text)}"[:512]
+            return {
+                "class": "spec-mem-init-fail",
+                "evidence": evidence,
+                **base,
+            }
         return {
             "class": "spec-wrapper-fail",
             "evidence": _spec_wrapper_failure_evidence(text),
@@ -2921,6 +2929,12 @@ def _decode_qemu_log_bytes(data: bytes) -> str:
 
 def _specialize_spec_wrapper_failure(qemu_info: dict[str, Any], text: str) -> None:
     if qemu_info.get("failure_class") != "spec-wrapper-fail":
+        return
+    mem_init = _spec_mem_init_error(text)
+    if mem_init:
+        evidence = f"{mem_init}; {_spec_wrapper_failure_evidence(text)}"[:512]
+        qemu_info["failure_class"] = "spec-mem-init-fail"
+        qemu_info["failure_evidence"] = evidence
         return
     internal_error = _spec_stderr_internal_error(text)
     if not internal_error:
@@ -2973,6 +2987,10 @@ def _spec_stderr_internal_error(text: str) -> str:
         if any(needle in lowered for needle in needles):
             return line[:512]
     return ""
+
+
+def _spec_mem_init_error(text: str) -> str:
+    return _first_matching_line(text, ("spec_mem_init: Error mallocing",))
 
 
 def _spec_child_signal(text: str) -> int | None:

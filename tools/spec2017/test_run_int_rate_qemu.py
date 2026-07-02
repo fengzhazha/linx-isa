@@ -76,6 +76,27 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertIn("benchmark internal error", result["evidence"])
         self.assertIn("code=4", result["evidence"])
 
+    def test_child_exit_with_spec_mem_init_error_is_classified(self) -> None:
+        result = runner._classify_qemu_result(
+            text=(
+                "LINX_SPEC_STDERR_BEGIN\n"
+                "spec_mem_init: Error mallocing 267386880 bytes for fd 0@0x3f7feff240!\n"
+                "LINX_SPEC_STDERR_END\n"
+                "LINX_SPEC_DBG wait wr=13 errno=0 waitid_errno=0 method=7 "
+                "fallback=0 status=0x0000000000000100 exited=1 code=1 "
+                "signaled=0 sig=-1\n"
+                "LINX_SPEC_FAIL child-exit\n"
+            ),
+            timed_out=False,
+            stalled=False,
+            panic_seen=False,
+            fail_marker=True,
+        )
+
+        self.assertEqual(result["class"], "spec-mem-init-fail")
+        self.assertIn("spec_mem_init: Error mallocing", result["evidence"])
+        self.assertIn("code=1", result["evidence"])
+
     def test_final_qemu_log_text_prefers_finished_log(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             log_path = Path(td) / "qemu.log"
