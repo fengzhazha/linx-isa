@@ -346,6 +346,16 @@ class RunIntRateQemuTests(unittest.TestCase):
         self.assertEqual(qemu_runs[0]["failure_class"], "none")
         self.assertEqual(qemu_runs[0]["failure_evidence"], "")
 
+    def test_hash_specdiff_result_preserves_partial_checks(self) -> None:
+        checks = [{"ok": True, "output_name": "cpu2006docs.tar-4-0.out"}]
+
+        result = runner._hash_specdiff_result(False, checks, strict_hash=True)
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["strict_hash"])
+        self.assertIs(result["checks"], checks)
+        self.assertIs(result["hash_checks"], checks)
+
     def test_indexed_argv_override_targets_requested_argument(self) -> None:
         with mock.patch.dict(os.environ, {"LINX_SPEC_ARGV1_OVERRIDE": "/spec-run/test.txt"}, clear=True):
             argv = runner._apply_argv_overrides(["./bench", "test.txt"])

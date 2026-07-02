@@ -3081,6 +3081,15 @@ def _strict_hash_checks_ok(specdiff_info: dict[str, Any]) -> bool:
     return bool(checks) and all(isinstance(check, dict) and check.get("ok", False) for check in checks)
 
 
+def _hash_specdiff_result(ok: bool, hash_checks: list[dict[str, Any]], strict_hash: bool) -> dict[str, Any]:
+    return {
+        "ok": bool(ok),
+        "checks": hash_checks,
+        "hash_checks": hash_checks,
+        "strict_hash": strict_hash,
+    }
+
+
 def _heartbeat_progress(heartbeats: list[str]) -> bool:
     return bool(_heartbeat_summary(heartbeats)["running"])
 
@@ -3978,7 +3987,7 @@ def main(argv: list[str]) -> int:
                                 bool(hash_ok) if strict_hash else True
                             )
                     else:
-                        bench_result["specdiff"] = {"ok": hash_ok, "checks": hash_checks, "strict_hash": strict_hash}
+                        bench_result["specdiff"] = _hash_specdiff_result(hash_ok, hash_checks, strict_hash)
                         bench_result["ok"] = bool(hash_ok) if strict_hash else True
                 else:
                     specdiff_info = _run_specdiff(spec_dir, run_dir, bench, cfg, bench_out)
@@ -3987,7 +3996,7 @@ def main(argv: list[str]) -> int:
                         _annotate_specdiff_mismatch(qemu_runs, specdiff_info)
                     bench_result["ok"] = bool(specdiff_info.get("ok", False))
             else:
-                bench_result["specdiff"] = {"ok": False, "checks": []}
+                bench_result["specdiff"] = _hash_specdiff_result(False, hash_checks, strict_hash)
                 bench_result["ok"] = False
 
         except Exception as exc:  # pylint: disable=broad-except

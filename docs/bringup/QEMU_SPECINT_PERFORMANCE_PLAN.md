@@ -705,6 +705,27 @@ shows the intended disabled-trace reduction:
 | `helper_linx_template_fentry` | 302 | 270 |
 | `linx_frame_restore_commit` | 91 | 70 |
 
+Focused `557.xz_r` test-input split on latest QEMU:
+
+- Command artifact:
+  `workloads/generated/specint-557-test-strict-latest-qemu-20260702-r1/`.
+- Run 1 exits 0, emits `LINX_SPEC_PASS`, and matches
+  `cpu2006docs.tar-4-0.out` by strict initramfs hash: size `697`,
+  FNV-1a `0xb663ec07`.
+- Run 2 reaches `LINX_SPEC_DBG wait ... status=0x0`, then remains
+  heartbeat-backed `live-timeout` until the 600s per-row timeout. The last BPC
+  is `0xffffffff8011214e` at count `101000000001`, with recent site progress.
+  Recent BPC symbolization maps the loop to Linux `slub.c` allocator/free-list
+  paths (`set_freepointer`, `next_tid`, `arch_local_irq_restore`, and adjacent
+  basic blocks).
+
+This narrows current `557.xz_r` test failure from "compression correctness" to
+post-child Linux/QEMU allocator throughput and shutdown/wait cleanup. The SPEC
+runner now also preserves completed initramfs hash checks in aggregate
+`specdiff.checks` for partial multi-run failures, so future all-row ledgers can
+show which command rows already produced correct output before a later row
+timed out.
+
 The remaining sampled QEMU owners after the wider BSTART cache and trace
 fast-disabled patches are therefore still the expected next targets:
 
