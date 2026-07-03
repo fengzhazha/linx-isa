@@ -1,17 +1,17 @@
 # ISA vs QEMU Coverage Snapshot
 
-- Generated (UTC): `2026-07-02 11:05:37Z`
+- Generated (UTC): `2026-07-03 01:36:22Z`
 - Spec unique mnemonics: `710`
-- QEMU unique decode mnemonics (non-internal): `653`
-- QEMU mapped spec mnemonics: `614`
-- Mnemonic coverage: `614/710` (`86.48%`)
+- QEMU unique decode mnemonics (non-internal): `652`
+- QEMU mapped spec mnemonics: `615`
+- Mnemonic coverage: `615/710` (`86.62%`)
 - Spec legal forms: `740`
 - QEMU mapped spec forms: `614`
 - Form coverage: `614/740` (`82.97%`)
-- Missing spec mnemonics: `96`
+- Missing spec mnemonics: `95`
 - Missing spec forms: `126`
 - Reserved spec forms: `0`
-- Unmapped QEMU mnemonics: `19`
+- Unmapped QEMU mnemonics: `17`
 
 ## Mnemonic Coverage By Prefix
 
@@ -27,7 +27,7 @@
 - `ANDIW`: `1`
 - `ANDW`: `1`
 - `ASSERT`: `1`
-- `B`: `13`
+- `B`: `14`
 - `BC`: `2`
 - `BCNT`: `1`
 - `BIC`: `1`
@@ -174,7 +174,7 @@
 
 ## Missing Mnemonics By Prefix
 
-- `B`: `4`
+- `B`: `3`
 - `C`: `1`
 - `V`: `90`
 - `XB`: `1`
@@ -355,9 +355,7 @@
 - `b_dim_lb0`
 - `b_dim_lb1`
 - `b_dim_lb2`
-- `b_itp`
-- `b_meta`
-- `b_ota`
+- `b_ioti`
 - `bstart_fall`
 - `bstart_split_cond`
 - `bstart_split_direct`
@@ -376,7 +374,6 @@
 - `B.CATR`
 - `B.DATR`
 - `B.DIM`
-- `B.IOT`
 - `C.SETRET`
 - `V.LB`
 - `V.LBI`
