@@ -19,8 +19,8 @@ The unique 32bit instructions within the system block are as follows:| Category 
 | **Atomic operation·Load double word** | [LD.ADD](../../inst/misa_s/LD.ADD.md), [LD.AND](../../inst/misa_s/LD.AND.md), [LD.OR](../../inst/misa_s/LD.OR.md), [LD.XOR](../../inst/misa_s/LD.XOR.md), [LD.SMAX](../../inst/misa_s/LD.SMAX.md), [LD.SMIN](../../inst/misa_s/LD.SMIN.md), [LD.UMAX](../../inst/misa_s/LD.UMAX.md), | [LD.UMIN](../../inst/misa_s/LD.UMIN.md) |
 | **Atomic operation·Storage word** | [SW.ADD](../../inst/misa_s/SW.ADD.md), [SW.AND](../../inst/misa_s/SW.AND.md), [SW.OR](../../inst/misa_s/SW.OR.md), [SW.XOR](../../inst/misa_s/SW.XOR.md), [SW.SMAX](../../inst/misa_s/SW.SMAX.md), [SW.SMIN](../../inst/misa_s/SW.SMIN.md), [SW.UMAX](../../inst/misa_s/SW.UMAX.md), | [SW.UMIN](../../inst/misa_s/SW.UMIN.md) || **Atomic operation·Storage double word** | [SD.ADD](../../inst/misa_s/SD.ADD.md), [SD.AND](../../inst/misa_s/SD.AND.md), [SD.OR](../../inst/misa_s/SD.OR.md), [SD.XOR](../../inst/misa_s/SD.XOR.md), [SD.SMAX](../../inst/misa_s/SD.SMAX.md), [SD.SMIN](../../inst/misa_s/SD.SMIN.md), [SD.UMAX](../../inst/misa_s/SD.UMAX.md), | [SD.UMIN](../../inst/misa_s/SD.UMIN.md) |
 | **Atomic Swap** | [SWAPB](../../inst/misa_s/SWAPB.md), [SWAPH](../../inst/misa_s/SWAPH.md), [SWAPW](../../inst/misa_s/SWAPW.md), [SWAPD](../../inst/misa_s/SWAPD.md) |
-| **Atomic Compare-And-Swap** | CASB, CASH, CASW, CASD |
-| **DMA Operation** | DMA |
+| **Atomic Compare-And-Swap** | [CASB](../../inst/misa_s/CASB.md), [CASH](../../inst/misa_s/CASH.md), [CASW](../../inst/misa_s/CASW.md), [CASD](../../inst/misa_s/CASD.md) |
+| **DMA Operation** | [DMA](../../inst/misa_s/DMA.md) |
 
 The unique 48bit instructions within the system block are as follows:
 

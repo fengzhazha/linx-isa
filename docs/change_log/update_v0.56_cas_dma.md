@@ -104,8 +104,8 @@ retry:
 ### Reference Counting
 ```assembly
 incr_refcount:
-  ld [refcount], ->x10
 retry:
+  ld [refcount], ->x10
   addi x10, 1, ->x11            # Increment
   casd.aq [refcount], x10, x11, ->x12
   b.ne x10, x12, retry          # Retry if value changed

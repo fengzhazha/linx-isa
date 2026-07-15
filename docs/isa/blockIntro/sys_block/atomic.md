@@ -8,21 +8,21 @@ The atomic instructions in the system block currently mainly include the followi
 
 LOAD.OP class instructions read a 32- or 64-bit value from the memory location specified by the left source register SrcL and write it into the destination register. Then perform corresponding operations (such as addition, bitwise AND, etc.) between this read value and the value of the right source register SrcR. The calculation results are stored in the memory specified by the SrcL register, and these steps are guaranteed to be atomic.| Microinstructions | Assembly format | Description |
 |--------------|-------------------------------------------------|----------------|
-| LW.ADD | lw.add<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | **Add** memory words are written back and the original memory words are output |
-| LW.AND | lw.and<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** and ** memory words are written back and the original memory words are output |
-| LW.OR | lw.or<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** or ** memory words are written back and the original memory words are output |
+| LW.ADD | lw.add<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | **Add** memory words are written back and the original memory words are output |
+| LW.AND | lw.and<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** and ** memory words are written back and the original memory words are output |
+| LW.OR | lw.or<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** or ** memory words are written back and the original memory words are output |
 | LW.
-| LW.SMAX | lw.smax<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **signed maximum** write back, output the original memory word |
-| LW.UMAX | lw.umax<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **unsigned maximum** write back, output the original memory word |
-| LW.SMIN | lw.smin<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **Signed Minimum** Write back, output the original memory word |
-| LW.UMIN | lw.umin<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison** unsigned minimum value** written back, output the original memory word |
-| LD.ADD | ld.add<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | **Add** memory double word write back, output the original memory double word |
-| LD.AND | ld.and<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** and ** memory double words are written back and the original memory double words are output |
-| LD.OR | ld.or<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** or ** memory double word write back, output the original memory double word |
+| LW.SMAX | lw.smax<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **signed maximum** write back, output the original memory word |
+| LW.UMAX | lw.umax<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **unsigned maximum** write back, output the original memory word |
+| LW.SMIN | lw.smin<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison **Signed Minimum** Write back, output the original memory word |
+| LW.UMIN | lw.umin<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory word comparison** unsigned minimum value** written back, output the original memory word |
+| LD.ADD | ld.add<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | **Add** memory double word write back, output the original memory double word |
+| LD.AND | ld.and<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** and ** memory double words are written back and the original memory double words are output |
+| LD.OR | ld.or<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | ** or ** memory double word write back, output the original memory double word |
 | LD.
-| LD.SMAX | ld.smax<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** signed maximum value** write back, output the original memory double word |
-| LD.UMAX | ld.umax<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** unsigned maximum value** write back, output the original memory double word || LD.SMIN | ld.smin<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** signed minimum value** write back, output the original memory double word |
-| LD.UMIN | ld.umin<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** unsigned minimum value** write back, output the original memory double word |
+| LD.SMAX | ld.smax<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** signed maximum value** write back, output the original memory double word |
+| LD.UMAX | ld.umax<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** unsigned maximum value** write back, output the original memory double word || LD.SMIN | ld.smin<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** signed minimum value** write back, output the original memory double word |
+| LD.UMIN | ld.umin<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory double word comparison** unsigned minimum value** write back, output the original memory double word |
 
 LOAD.OP class atomic instructions can add additional memory access sequence restrictions through the two suffixes "aq" and "rl" to ensure the consistency of memory access. Please see "Memory Access Restriction Parameter Table" for specific definitions.
 
@@ -57,10 +57,10 @@ STORE.OP class atomic instructions need to add additional memory access sequence
 
 The atomic swap instruction reads the value of `8,16,32或64位` from the memory location specified by register SrcL and writes it to the destination register. Then store the 8, 16, 32 or 64-bit value in register SrcR into the memory specified by register SrcL, and ensure that these steps are atomic.| Microinstructions | Assembly format | Description |
 |--------------|-------------------------------------------------|----------------|
-| SWAPB | swapb<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **byte** |
-| SWAPH | swaph<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **halfword** |
-| SWAPW | swapw<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **word** |
-| SWAPD | swapd<{.aq,.rl,.aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **double** |
+| SWAPB | swapb<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **byte** |
+| SWAPH | swaph<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **halfword** |
+| SWAPW | swapw<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **word** |
+| SWAPD | swapd<.{aq, rl, aqrl}> [SrcL], SrcR, ->{t, u, Rd} | Memory and register swap **double** |
 
 The atomic swap operation instruction can add additional memory access sequence restrictions through the "aq" and "rl" suffixes to ensure the consistency of memory access. Please see "Memory Access Restriction Parameter Table" for specific definitions.
 
@@ -72,10 +72,10 @@ The atomic compare-and-swap (CAS) instruction reads an `8, 16, 32, or 64-bit` va
 
 | Instruction | Assembly Format | Description |
 |-------------|-----------------|-------------|
-| CASB | casb<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **byte** |
-| CASH | cash<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **halfword** |
-| CASW | casw<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **word** |
-| CASD | casd<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **doubleword** |
+| CASB | casb<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **byte** |
+| CASH | cash<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **halfword** |
+| CASW | casw<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **word** |
+| CASD | casd<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **doubleword** |
 
 **Encoding Details:**
 - Opcode group: `6..4=3'b001, 3..1=3'b101` (separate from DMA which uses `6..4=3'b000`)
