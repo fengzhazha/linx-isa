@@ -1,5 +1,5 @@
 {
-  "instruction_count": 740,
+  "instruction_count": 745,
   "instructions": [
     {
       "asm": "acrc rst_type",
@@ -15633,6 +15633,738 @@
       "uop_group": "ALU"
     },
     {
+      "asm": "casb<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}",
+      "encoding": {
+        "length_bits": 32,
+        "parts": [
+          {
+            "fields": [
+              {
+                "name": "RegDst",
+                "pieces": [
+                  {
+                    "insn_lsb": 7,
+                    "insn_msb": 11,
+                    "token": "RegDst",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcD",
+                "pieces": [
+                  {
+                    "insn_lsb": 27,
+                    "insn_msb": 31,
+                    "token": "SrcD",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcL",
+                "pieces": [
+                  {
+                    "insn_lsb": 15,
+                    "insn_msb": 19,
+                    "token": "SrcL",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcR",
+                "pieces": [
+                  {
+                    "insn_lsb": 20,
+                    "insn_msb": 24,
+                    "token": "SrcR",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "aq",
+                "pieces": [
+                  {
+                    "insn_lsb": 26,
+                    "insn_msb": 26,
+                    "token": "aq",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "rl",
+                "pieces": [
+                  {
+                    "insn_lsb": 25,
+                    "insn_msb": 25,
+                    "token": "rl",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              }
+            ],
+            "index": 0,
+            "mask": "0x0000707f",
+            "match": "0x0000001b",
+            "pattern": ".................000.....0011011",
+            "width_bits": 32
+          }
+        ]
+      },
+      "encoding_kind": "L32",
+      "group": "Atomic Operation",
+      "id": "casb_32_7e529b871832",
+      "length_bits": 32,
+      "mnemonic": "CASB",
+      "note": "32-bit compare-and-swap byte: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.",
+      "parts": [
+        {
+          "segments": [
+            {
+              "lsb": 27,
+              "msb": 31,
+              "token": "SrcD",
+              "width": 5
+            },
+            {
+              "lsb": 26,
+              "msb": 26,
+              "token": "aq",
+              "width": 1
+            },
+            {
+              "lsb": 25,
+              "msb": 25,
+              "token": "rl",
+              "width": 1
+            },
+            {
+              "lsb": 20,
+              "msb": 24,
+              "token": "SrcR",
+              "width": 5
+            },
+            {
+              "lsb": 15,
+              "msb": 19,
+              "token": "SrcL",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 0,
+                "width": 3
+              },
+              "lsb": 12,
+              "msb": 14,
+              "token": "3'b000",
+              "width": 3
+            },
+            {
+              "lsb": 7,
+              "msb": 11,
+              "token": "RegDst",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 3
+              },
+              "lsb": 4,
+              "msb": 6,
+              "token": "3'b001",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 5,
+                "width": 3
+              },
+              "lsb": 1,
+              "msb": 3,
+              "token": "3'b101",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 1
+              },
+              "lsb": 0,
+              "msb": 0,
+              "token": "1",
+              "width": 1
+            }
+          ],
+          "width_bits": 32
+        }
+      ],
+      "source": {
+        "file": "opcodes/lx_32.opc",
+        "line": 322
+      },
+      "uid": "7e529b871832"
+    },
+    {
+      "asm": "casd<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}",
+      "encoding": {
+        "length_bits": 32,
+        "parts": [
+          {
+            "fields": [
+              {
+                "name": "RegDst",
+                "pieces": [
+                  {
+                    "insn_lsb": 7,
+                    "insn_msb": 11,
+                    "token": "RegDst",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcD",
+                "pieces": [
+                  {
+                    "insn_lsb": 27,
+                    "insn_msb": 31,
+                    "token": "SrcD",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcL",
+                "pieces": [
+                  {
+                    "insn_lsb": 15,
+                    "insn_msb": 19,
+                    "token": "SrcL",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcR",
+                "pieces": [
+                  {
+                    "insn_lsb": 20,
+                    "insn_msb": 24,
+                    "token": "SrcR",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "aq",
+                "pieces": [
+                  {
+                    "insn_lsb": 26,
+                    "insn_msb": 26,
+                    "token": "aq",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "rl",
+                "pieces": [
+                  {
+                    "insn_lsb": 25,
+                    "insn_msb": 25,
+                    "token": "rl",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              }
+            ],
+            "index": 0,
+            "mask": "0x0000707f",
+            "match": "0x0000301b",
+            "pattern": ".................011.....0011011",
+            "width_bits": 32
+          }
+        ]
+      },
+      "encoding_kind": "L32",
+      "group": "Atomic Operation",
+      "id": "casd_32_5852c57277a6",
+      "length_bits": 32,
+      "mnemonic": "CASD",
+      "note": "32-bit compare-and-swap doubleword: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.",
+      "parts": [
+        {
+          "segments": [
+            {
+              "lsb": 27,
+              "msb": 31,
+              "token": "SrcD",
+              "width": 5
+            },
+            {
+              "lsb": 26,
+              "msb": 26,
+              "token": "aq",
+              "width": 1
+            },
+            {
+              "lsb": 25,
+              "msb": 25,
+              "token": "rl",
+              "width": 1
+            },
+            {
+              "lsb": 20,
+              "msb": 24,
+              "token": "SrcR",
+              "width": 5
+            },
+            {
+              "lsb": 15,
+              "msb": 19,
+              "token": "SrcL",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 3,
+                "width": 3
+              },
+              "lsb": 12,
+              "msb": 14,
+              "token": "3'b011",
+              "width": 3
+            },
+            {
+              "lsb": 7,
+              "msb": 11,
+              "token": "RegDst",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 3
+              },
+              "lsb": 4,
+              "msb": 6,
+              "token": "3'b001",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 5,
+                "width": 3
+              },
+              "lsb": 1,
+              "msb": 3,
+              "token": "3'b101",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 1
+              },
+              "lsb": 0,
+              "msb": 0,
+              "token": "1",
+              "width": 1
+            }
+          ],
+          "width_bits": 32
+        }
+      ],
+      "source": {
+        "file": "opcodes/lx_32.opc",
+        "line": 325
+      },
+      "uid": "5852c57277a6"
+    },
+    {
+      "asm": "cash<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}",
+      "encoding": {
+        "length_bits": 32,
+        "parts": [
+          {
+            "fields": [
+              {
+                "name": "RegDst",
+                "pieces": [
+                  {
+                    "insn_lsb": 7,
+                    "insn_msb": 11,
+                    "token": "RegDst",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcD",
+                "pieces": [
+                  {
+                    "insn_lsb": 27,
+                    "insn_msb": 31,
+                    "token": "SrcD",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcL",
+                "pieces": [
+                  {
+                    "insn_lsb": 15,
+                    "insn_msb": 19,
+                    "token": "SrcL",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcR",
+                "pieces": [
+                  {
+                    "insn_lsb": 20,
+                    "insn_msb": 24,
+                    "token": "SrcR",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "aq",
+                "pieces": [
+                  {
+                    "insn_lsb": 26,
+                    "insn_msb": 26,
+                    "token": "aq",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "rl",
+                "pieces": [
+                  {
+                    "insn_lsb": 25,
+                    "insn_msb": 25,
+                    "token": "rl",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              }
+            ],
+            "index": 0,
+            "mask": "0x0000707f",
+            "match": "0x0000101b",
+            "pattern": ".................001.....0011011",
+            "width_bits": 32
+          }
+        ]
+      },
+      "encoding_kind": "L32",
+      "group": "Atomic Operation",
+      "id": "cash_32_cb1315ff6cb5",
+      "length_bits": 32,
+      "mnemonic": "CASH",
+      "note": "32-bit compare-and-swap halfword: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.",
+      "parts": [
+        {
+          "segments": [
+            {
+              "lsb": 27,
+              "msb": 31,
+              "token": "SrcD",
+              "width": 5
+            },
+            {
+              "lsb": 26,
+              "msb": 26,
+              "token": "aq",
+              "width": 1
+            },
+            {
+              "lsb": 25,
+              "msb": 25,
+              "token": "rl",
+              "width": 1
+            },
+            {
+              "lsb": 20,
+              "msb": 24,
+              "token": "SrcR",
+              "width": 5
+            },
+            {
+              "lsb": 15,
+              "msb": 19,
+              "token": "SrcL",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 3
+              },
+              "lsb": 12,
+              "msb": 14,
+              "token": "3'b001",
+              "width": 3
+            },
+            {
+              "lsb": 7,
+              "msb": 11,
+              "token": "RegDst",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 3
+              },
+              "lsb": 4,
+              "msb": 6,
+              "token": "3'b001",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 5,
+                "width": 3
+              },
+              "lsb": 1,
+              "msb": 3,
+              "token": "3'b101",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 1
+              },
+              "lsb": 0,
+              "msb": 0,
+              "token": "1",
+              "width": 1
+            }
+          ],
+          "width_bits": 32
+        }
+      ],
+      "source": {
+        "file": "opcodes/lx_32.opc",
+        "line": 323
+      },
+      "uid": "cb1315ff6cb5"
+    },
+    {
+      "asm": "casw<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}",
+      "encoding": {
+        "length_bits": 32,
+        "parts": [
+          {
+            "fields": [
+              {
+                "name": "RegDst",
+                "pieces": [
+                  {
+                    "insn_lsb": 7,
+                    "insn_msb": 11,
+                    "token": "RegDst",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcD",
+                "pieces": [
+                  {
+                    "insn_lsb": 27,
+                    "insn_msb": 31,
+                    "token": "SrcD",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcL",
+                "pieces": [
+                  {
+                    "insn_lsb": 15,
+                    "insn_msb": 19,
+                    "token": "SrcL",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcR",
+                "pieces": [
+                  {
+                    "insn_lsb": 20,
+                    "insn_msb": 24,
+                    "token": "SrcR",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "aq",
+                "pieces": [
+                  {
+                    "insn_lsb": 26,
+                    "insn_msb": 26,
+                    "token": "aq",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "rl",
+                "pieces": [
+                  {
+                    "insn_lsb": 25,
+                    "insn_msb": 25,
+                    "token": "rl",
+                    "width": 1
+                  }
+                ],
+                "signed": null
+              }
+            ],
+            "index": 0,
+            "mask": "0x0000707f",
+            "match": "0x0000201b",
+            "pattern": ".................010.....0011011",
+            "width_bits": 32
+          }
+        ]
+      },
+      "encoding_kind": "L32",
+      "group": "Atomic Operation",
+      "id": "casw_32_cb29e4287223",
+      "length_bits": 32,
+      "mnemonic": "CASW",
+      "note": "32-bit compare-and-swap word: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.",
+      "parts": [
+        {
+          "segments": [
+            {
+              "lsb": 27,
+              "msb": 31,
+              "token": "SrcD",
+              "width": 5
+            },
+            {
+              "lsb": 26,
+              "msb": 26,
+              "token": "aq",
+              "width": 1
+            },
+            {
+              "lsb": 25,
+              "msb": 25,
+              "token": "rl",
+              "width": 1
+            },
+            {
+              "lsb": 20,
+              "msb": 24,
+              "token": "SrcR",
+              "width": 5
+            },
+            {
+              "lsb": 15,
+              "msb": 19,
+              "token": "SrcL",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 2,
+                "width": 3
+              },
+              "lsb": 12,
+              "msb": 14,
+              "token": "3'b010",
+              "width": 3
+            },
+            {
+              "lsb": 7,
+              "msb": 11,
+              "token": "RegDst",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 3
+              },
+              "lsb": 4,
+              "msb": 6,
+              "token": "3'b001",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 5,
+                "width": 3
+              },
+              "lsb": 1,
+              "msb": 3,
+              "token": "3'b101",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 1
+              },
+              "lsb": 0,
+              "msb": 0,
+              "token": "1",
+              "width": 1
+            }
+          ],
+          "width_bits": 32
+        }
+      ],
+      "source": {
+        "file": "opcodes/lx_32.opc",
+        "line": 324
+      },
+      "uid": "cb29e4287223"
+    },
+    {
       "asm": "clz SrcL,  M, N, ->{t, u, Rd}",
       "encoding": {
         "length_bits": 32,
@@ -20183,6 +20915,137 @@
         "uop_kind": "ALU"
       },
       "uop_group": "ALU"
+    },
+    {
+      "asm": "dma [SrcL], SrcR",
+      "encoding": {
+        "length_bits": 32,
+        "parts": [
+          {
+            "fields": [
+              {
+                "name": "SrcL",
+                "pieces": [
+                  {
+                    "insn_lsb": 15,
+                    "insn_msb": 19,
+                    "token": "SrcL",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              },
+              {
+                "name": "SrcR",
+                "pieces": [
+                  {
+                    "insn_lsb": 20,
+                    "insn_msb": 24,
+                    "token": "SrcR",
+                    "width": 5
+                  }
+                ],
+                "signed": null
+              }
+            ],
+            "index": 0,
+            "mask": "0xfe007fff",
+            "match": "0x0000700b",
+            "pattern": "0000000..........111000000001011",
+            "width_bits": 32
+          }
+        ]
+      },
+      "encoding_kind": "L32",
+      "group": "DMA Operation",
+      "id": "dma_32_5cc2bf16d282",
+      "length_bits": 32,
+      "mnemonic": "DMA",
+      "note": "DMA transfer operation: initiate DMA from address [SrcL] with control parameters in SrcR.",
+      "parts": [
+        {
+          "segments": [
+            {
+              "const": {
+                "value": 0,
+                "width": 7
+              },
+              "lsb": 25,
+              "msb": 31,
+              "token": "7'b0000000",
+              "width": 7
+            },
+            {
+              "lsb": 20,
+              "msb": 24,
+              "token": "SrcR",
+              "width": 5
+            },
+            {
+              "lsb": 15,
+              "msb": 19,
+              "token": "SrcL",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 7,
+                "width": 3
+              },
+              "lsb": 12,
+              "msb": 14,
+              "token": "3'b111",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 0,
+                "width": 5
+              },
+              "lsb": 7,
+              "msb": 11,
+              "token": "5'b00000",
+              "width": 5
+            },
+            {
+              "const": {
+                "value": 0,
+                "width": 3
+              },
+              "lsb": 4,
+              "msb": 6,
+              "token": "3'b000",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 5,
+                "width": 3
+              },
+              "lsb": 1,
+              "msb": 3,
+              "token": "3'b101",
+              "width": 3
+            },
+            {
+              "const": {
+                "value": 1,
+                "width": 1
+              },
+              "lsb": 0,
+              "msb": 0,
+              "token": "1",
+              "width": 1
+            }
+          ],
+          "width_bits": 32
+        }
+      ],
+      "source": {
+        "file": "opcodes/lx_32.opc",
+        "line": 326
+      },
+      "uid": "5cc2bf16d282"
     },
     {
       "asm": "ebreak imm",
@@ -90738,7 +91601,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 322
+        "line": 327
       },
       "uid": "147e55489c41",
       "uop_big_kind": "AGU",
@@ -90895,7 +91758,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 323
+        "line": 328
       },
       "uid": "1630e926da1a",
       "uop_big_kind": "AGU",
@@ -91040,7 +91903,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 324
+        "line": 329
       },
       "uid": "e794d6bf347e",
       "uop_big_kind": "SYS",
@@ -91171,7 +92034,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 325
+        "line": 330
       },
       "uid": "0fb421b85c88",
       "uop_big_kind": "SYS",
@@ -91311,7 +92174,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 326
+        "line": 331
       },
       "uid": "95f4937d2917",
       "uop_big_kind": "SYS",
@@ -91451,7 +92314,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 327
+        "line": 332
       },
       "uid": "bf0a5d1ea211",
       "uop_big_kind": "SYS",
@@ -91615,7 +92478,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 328
+        "line": 333
       },
       "uid": "987f4e019c32",
       "uop_big_kind": "FSU",
@@ -152373,7 +153236,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 329
+        "line": 334
       },
       "uid": "40ad190a0a7f",
       "uop_big_kind": "CMD",
@@ -152545,7 +153408,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 330
+        "line": 335
       },
       "uid": "33510860c585",
       "uop_big_kind": "ALU",
@@ -152679,7 +153542,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 331
+        "line": 336
       },
       "uid": "5cf7e5be17e7",
       "uop_big_kind": "ALU",
@@ -152813,7 +153676,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 332
+        "line": 337
       },
       "uid": "1f8c6f43e2bd",
       "uop_big_kind": "ALU",
@@ -152983,7 +153846,7 @@
       ],
       "source": {
         "file": "opcodes/lx_32.opc",
-        "line": 333
+        "line": 338
       },
       "uid": "32282566e32d",
       "uop_big_kind": "ALU",

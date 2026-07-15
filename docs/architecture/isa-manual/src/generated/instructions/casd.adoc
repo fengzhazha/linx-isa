@@ -1,0 +1,18 @@
+---
+// Auto-generated instruction documentation
+// Do not edit by hand
+
+[[inst_casd]]
+==== CASD
+
+*Syntax:* casd<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}
+
+*Description:* 32-bit compare-and-swap doubleword: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.
+
+*Encoding:*
+
+image::../generated/encodings/enc_casd.svg[CASD encoding,width=800]
+
+*Uop-Class:* -
+
+*Compression:* L32 (len=32)

@@ -10,7 +10,9 @@
     "This directory is the authoritative staged golden ISA definition for v0.56.4.",
     "v0.56.4 is the live canonical LinxISA profile for this repository.",
     "v0.56.4 retains the expanded 16-entry-per-hand tile register file, dynamic tile capacity descriptors, and the canonical B.IOT/B.CATR/B.DATR block descriptor spellings.",
-    "Historical pre-v0.56 profile material is removed from active repository surfaces after this profile validates."
+    "Historical pre-v0.56 profile material is removed from active repository surfaces after this profile validates.",
+    "v0.56.4+ adds 32-bit CAS (CASB/CASH/CASW/CASD) with encoding 6..4=001, 3..1=101, supporting independent input/output registers and aq/rl memory ordering.",
+    "DMA instruction added at encoding 6..4=000, 3..1=101, 14..12=111 for direct memory access operations."
   ],
   "status": "canonical",
   "version": "0.56.4"

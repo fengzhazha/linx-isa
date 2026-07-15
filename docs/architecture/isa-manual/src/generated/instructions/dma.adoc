@@ -1,0 +1,18 @@
+---
+// Auto-generated instruction documentation
+// Do not edit by hand
+
+[[inst_dma]]
+==== DMA
+
+*Syntax:* dma [SrcL], SrcR
+
+*Description:* DMA transfer operation: initiate DMA from address [SrcL] with control parameters in SrcR.
+
+*Encoding:*
+
+image::../generated/encodings/enc_dma.svg[DMA encoding,width=800]
+
+*Uop-Class:* -
+
+*Compression:* L32 (len=32)

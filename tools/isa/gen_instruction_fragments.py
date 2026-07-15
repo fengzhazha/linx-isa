@@ -305,7 +305,9 @@ def _inst_description(inst: Dict[str, Any]) -> str:
         if base.startswith("CAS"):
             width = {"CASB": "byte", "CASH": "halfword", "CASW": "word", "CASD": "doubleword"}
             sz = next((v for k, v in width.items() if base.endswith(k)), "")
-            return f"Long 48-bit compare-and-swap {sz} at address [SrcL]: atomically swap with SrcD if SrcR matches."
+            # Detect 32-bit vs 48-bit based on mnemonic prefix
+            bit_len = "48-bit" if mnemonic.startswith("HL.") else "32-bit"
+            return f"{bit_len} compare-and-swap {sz} at address [SrcL]: atomically swap with SrcD if SrcR matches, return old value to RegDst."
         if base.startswith("LD.") or base.startswith("LB.") or base.startswith("LH.") or base.startswith("LW."):
             mode = base.split(".")[1] if len(base.split(".")) > 1 else ""
             op = "load" if "L" in base[3] else "store"

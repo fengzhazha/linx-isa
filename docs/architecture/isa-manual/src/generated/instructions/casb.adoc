@@ -1,0 +1,18 @@
+---
+// Auto-generated instruction documentation
+// Do not edit by hand
+
+[[inst_casb]]
+==== CASB
+
+*Syntax:* casb<.{aq, rl, aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}
+
+*Description:* 32-bit compare-and-swap byte: if ([SrcL]==SrcR) [SrcL]=SrcD; RegDst=old([SrcL]). Independent input/output registers.
+
+*Encoding:*
+
+image::../generated/encodings/enc_casb.svg[CASB encoding,width=800]
+
+*Uop-Class:* -
+
+*Compression:* L32 (len=32)

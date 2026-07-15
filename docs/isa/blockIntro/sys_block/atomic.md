@@ -66,22 +66,27 @@ The atomic swap operation instruction can add additional memory access sequence 
 
 ![AtomicSwap](../../../figs/bitfield/svg/Introduction_32bit/AtomicSwap.svg)
 
-<!-- 
-## 原子比较交换指令
+## Atomic Compare-And-Swap Instructions
 
-原子比较交换指令从寄存器SrcL指定的内存位置读取`8,16,32或64位`的值，然后再用这个读出的值和寄存器SrcR比较，如果它们相同的话，就把寄存器SrcD中`8,16,32或64位`的值存入寄存器SrcL指定的内存中。最后不管前面比较的结果相不相同，都把从内存读取的原始值写入目的寄存器中，并且**保证这些步骤都是原子的**。
+The atomic compare-and-swap (CAS) instruction reads an `8, 16, 32, or 64-bit` value from the memory location specified by register SrcL, then compares this read value with the value in register SrcR. If they are equal, the `8, 16, 32, or 64-bit` value in register SrcD is stored into the memory specified by register SrcL. Finally, regardless of whether the comparison succeeded or not, the original value read from memory is written to the destination register, and **all these steps are guaranteed to be atomic**.
 
-|     微指令    |         汇编格式                          |     描述       |
-|--------------|-------------------------------------------|----------------|
-|  CASB   | casb<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}   |  内存与寄存器比较交换**字节**   |
-|  CASH   | cash<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}   |  内存与寄存器比较交换**半字**   |
-|  CASW   | casw<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}   |  内存与寄存器比较交换**字**     |
-|  CASD   | casd<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd}   |  内存与寄存器比较交换**双字**   |
+| Instruction | Assembly Format | Description |
+|-------------|-----------------|-------------|
+| CASB | casb<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **byte** |
+| CASH | cash<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **halfword** |
+| CASW | casw<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **word** |
+| CASD | casd<{.aq,.rl,.aqrl}> [SrcL], SrcR, SrcD, ->{t, u, Rd} | Memory-register compare-and-swap **doubleword** |
+
+**Encoding Details:**
+- Opcode group: `6..4=3'b001, 3..1=3'b101` (separate from DMA which uses `6..4=3'b000`)
+- Width encoding: `14..12` (000=B, 001=H, 010=W, 011=D)
+- Four independent 5-bit register operands: SrcL (address), SrcR (compare), SrcD (swap), RegDst (old value)
+- Supports `aq` (acquire) and `rl` (release) memory ordering flags
+- Does not support `far` flag (use 48-bit HL.CAS* for remote cache operations)
 
 ![AtomicCompareandSwap](../../../figs/bitfield/svg/Introduction_32bit/AtomicCompareandSwap.svg)
 
-原子比较交换指令可以通过"aq"和"rl"两个后缀来添加额外的内存访问顺序限制，以保证内存访问的一致性。具体定义请见“内存访问限制参数表”。
- -->
+The atomic compare-and-swap instructions can add additional memory access ordering restrictions through the “aq” and “rl” suffixes to ensure memory access consistency. For specific definitions, please see the “Memory Access Restriction Parameter Table”.
 
 ## Memory access restriction parameter table
 
